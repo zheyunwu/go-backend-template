@@ -17,16 +17,15 @@ const (
 )
 
 type UserProvider struct {
-	ID            uint       `json:"id" gorm:"primaryKey"`
-	UserID        uint       `json:"user_id" gorm:"index"`                                                // 外键
-	Provider      string     `json:"provider" gorm:"type:varchar(50);index:idx_provider_uid,unique"`      // 如 "google"、"wechat_app"、"wechat_mini_program"
-	ProviderUID   string     `json:"provider_uid" gorm:"type:varchar(100);index:idx_provider_uid,unique"` // 如 Google 的 sub，微信的 OpenID
-	WechatUnionID *string    `json:"wechat_union_id" gorm:"type:varchar(100);index"`                      // 微信的 UnionID，适用于小程序 & App 端用户
-	AccessToken   *string    `json:"access_token" gorm:"type:text"`                                       // 可选
-	RefreshToken  *string    `json:"refresh_token" gorm:"type:text"`                                      // 可选
-	ExpiresAt     *time.Time `json:"expires_at"`                                                          // 可选，OAuth2 的过期时间
-	CreatedAt     time.Time  `json:"created_at"`                                                          // 创建时间
-	UpdatedAt     time.Time  `json:"updated_at"`                                                          // 更新时间
+	UserID        uint       `json:"user_id" gorm:"index;not null"`                    // 外键，指向users表
+	Provider      string     `json:"provider" gorm:"primaryKey;type:varchar(50)"`      // 联合主键的一部分
+	ProviderUID   string     `json:"provider_uid" gorm:"primaryKey;type:varchar(100)"` // 联合主键的一部分
+	WechatUnionID *string    `json:"wechat_union_id" gorm:"type:varchar(100);index"`   // 微信的 UnionID，适用于小程序 & App 端用户
+	AccessToken   *string    `json:"access_token" gorm:"type:text"`                    // 可选
+	RefreshToken  *string    `json:"refresh_token" gorm:"type:text"`                   // 可选
+	ExpiresAt     *time.Time `json:"expires_at"`                                       // 可选，OAuth2 的过期时间
+	CreatedAt     time.Time  `json:"created_at"`                                       // 创建时间
+	UpdatedAt     time.Time  `json:"updated_at"`                                       // 更新时间
 }
 
 // 用户表
