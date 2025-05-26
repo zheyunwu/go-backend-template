@@ -1,0 +1,90 @@
+package routes
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/go-backend-template/internal/di"
+	"github.com/go-backend-template/internal/middlewares"
+)
+
+func InitRoutes(r *gin.Engine, container *di.Container) {
+	// 全局中间件
+	r.Use(middlewares.RequestLogger())
+	r.Use(middlewares.ErrorHandler())
+	r.Use(middlewares.QueryParamParser())
+
+	// 初始化公共API路由组
+	api := r.Group("/api/v1")
+	initRoutes(api, container)
+
+	// 初始化后台管理API路由组
+	adminApi := r.Group("/admin-api/v1")
+	initAdminRoutes(adminApi, container)
+}
+
+// User API路由
+func initRoutes(api *gin.RouterGroup, container *di.Container) {
+	// 中间件
+	requiredAuthMiddleware := middlewares.RequiredAuthenticate(container.Config, container.UserService)
+	optionalAuthMiddleware := middlewares.OptionalAuthenticate(container.Config, container.UserService)
+
+	// Auth相关路由
+	authRoutes := api.Group("/auth")
+	{
+		authRoutes.GET("/user_exists", container.AuthHandler.CheckUserExists)                     // 检查用户是否存在
+		authRoutes.GET("/profile", requiredAuthMiddleware, container.AuthHandler.GetProfile)      // 获取用户信息，可用作微信登录
+		authRoutes.PATCH("/profile", requiredAuthMiddleware, container.AuthHandler.UpdateProfile) // 更新用户信息
+
+		authRoutes.POST("/register", container.AuthHandler.RegisterWithPassword) // 使用密码注册
+		authRoutes.POST("/login", container.AuthHandler.LoginWithPassword)       // 使用密码登录
+
+		authRoutes.POST("/wxmini/register", container.AuthHandler.RegisterFromWechatMiniProgram) // 微信小程序注册
+		authRoutes.POST("/wxmini/login", container.AuthHandler.LoginFromWechatMiniProgram)       // 微信小程序登录
+	}
+
+	// 产品相关路由
+	productRoutes := api.Group("/products")
+	{
+		// 查询产品列表 - 支持?is_liked=true和?is_favorited=true筛选已点赞和已收藏的产品
+		productRoutes.GET("", optionalAuthMiddleware, container.ProductHandler.ListProducts)
+		productRoutes.GET("/:id", optionalAuthMiddleware, container.ProductHandler.GetProduct)
+
+		// 用户交互（点赞、收藏）相关路由
+		productRoutes.GET("/:id/stats", container.UserInteractionHandler.GetProductStats)                           // 获取产品统计信息(点赞数、收藏数)
+		productRoutes.PUT("/:id/like", requiredAuthMiddleware, container.UserInteractionHandler.ToggleLike)         // 点赞/取消点赞产品
+		productRoutes.PUT("/:id/favorite", requiredAuthMiddleware, container.UserInteractionHandler.ToggleFavorite) // 收藏/取消收藏产品
+	}
+
+	// 分类相关路由
+	categoryRoutes := api.Group("/categories")
+	{
+		categoryRoutes.GET("", container.CategoryHandler.ListCategories)       // 获取分类列表
+		categoryRoutes.GET("/tree", container.CategoryHandler.GetCategoryTree) // 获取分类树结构
+	}
+}
+
+// Admin API路由
+func initAdminRoutes(admin *gin.RouterGroup, container *di.Container) {
+	// 中间件
+	admin.Use(middlewares.AdminAuthMiddleware(container.Config, container.UserService)) // 所有后台路由都需要管理员权限
+
+	// 用户管理路由
+	userRoutes := admin.Group("/users")
+	{
+		userRoutes.GET("", container.UserHandlerForAdmin.ListUsers)
+		userRoutes.GET("/:id", container.UserHandlerForAdmin.GetUser)
+		userRoutes.POST("", container.UserHandlerForAdmin.CreateUser)
+		userRoutes.PATCH("/:id", container.UserHandlerForAdmin.UpdateUser)
+		userRoutes.DELETE("/:id", container.UserHandlerForAdmin.DeleteUser)
+		userRoutes.PATCH("/:id/ban", container.UserHandlerForAdmin.BanUser)
+	}
+
+	// 产品管理路由
+	productRoutes := admin.Group("/products")
+	{
+		productRoutes.GET("", container.ProductHandlerForAdmin.ListProducts)
+		productRoutes.GET("/:id", container.ProductHandlerForAdmin.GetProduct)
+		productRoutes.POST("", container.ProductHandlerForAdmin.CreateProduct)
+		productRoutes.PATCH("/:id", container.ProductHandlerForAdmin.UpdateProduct)
+		productRoutes.DELETE("/:id", container.ProductHandlerForAdmin.DeleteProduct)
+	}
+}

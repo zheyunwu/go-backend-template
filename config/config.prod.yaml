@@ -1,0 +1,35 @@
+# server:
+#   port: 80
+
+# database:
+#   driver: postgres
+#   host: localhost
+#   port: 5432
+#   user: deshop_db_user
+#   password: Deshopdbsecret!
+#   name: deshop
+#   charset: utf8mb4
+#   max_idle_conns: 20
+#   max_open_conns: 200
+
+# database:
+#   driver: mysql
+#   host: localhost
+#   port: 3306
+#   user: dbuser
+#   password: dbpassword
+#   name: database_name
+#   charset: utf8mb4
+#   max_idle_conns: 20
+#   max_open_conns: 200
+
+# jwt:
+#   secret: "super-secret-prod-key"
+#   expire_hours: 720
+
+# ai:
+#   openai_api_key: ""
+#   moonshot_api_url: "https://api.moonshot.cn/v1"
+#   moonshot_api_key: ""
+#   deepseek_api_url: "https://api.deepseek.com"
+#   deepseek_api_key: ""
