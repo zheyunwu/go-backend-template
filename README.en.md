@@ -1,55 +1,55 @@
-# Go 后端模版
+# Go Backend Template
 
-基于 **Golang + Gin + GORM** 的后端项目模版，支持 PostgreSQL 和 MySQL。
+A backend project template based on **Golang + Gin + GORM**, supporting PostgreSQL and MySQL.
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 环境要求
+### Requirements
 - Go 1.19+
-- PostgreSQL 或 MySQL
+- PostgreSQL or MySQL
 
-### 本地开发
+### Local Development
 
-1. **启动数据库**
+1. **Start Database**
    ```bash
    # PostgreSQL
    docker run --name test-pg -e POSTGRES_USER=dbuser -e POSTGRES_PASSWORD=dbpassword -e POSTGRES_DB=database_name -p 5432:5432 -d postgres:14
 
-   # 或 MySQL
+   # Or MySQL
    docker run --name test-mysql -e MYSQL_ROOT_PASSWORD=root_password -e MYSQL_USER=dbuser -e MYSQL_PASSWORD=dbpassword -e MYSQL_DATABASE=database_name -p 3306:3306 -d mysql:latest
    ```
 
-2. **运行项目**
+2. **Run the Project**
    ```bash
-   # 数据库迁移
+   # Database migration
    go run cmd/*.go migrate
 
-   # 启动服务器
+   # Start server
    go run cmd/*.go server
    ```
 
-服务器将运行在 http://localhost:8080
+Server will run at http://localhost:8080
 
-### 生产部署
+### Production Deployment
 
-#### 方式一：直接运行
+#### Method 1: Direct Run
 ```bash
-# 设置环境
+# Set environment
 export APP_ENV=prod
 
-# 数据库迁移
+# Database migration
 APP_ENV=prod go run cmd/*.go migrate
 
-# 启动服务器
+# Start server
 APP_ENV=prod go run cmd/*.go server
 ```
 
-#### 方式二：Docker 部署
+#### Method 2: Docker Deployment
 ```bash
-# 构建镜像
+# Build image
 docker build -t go-backend-template .
 
-# 运行容器
+# Run container
 docker run -d \
   --name go-backend \
   -p 8080:8080 \
@@ -60,12 +60,12 @@ docker run -d \
   -e JWT_SECRET=your-jwt-secret \
   go-backend-template
 
-# 或使用 docker-compose
-# 创建 docker-compose.yml 后运行：
+# Or use docker-compose
+# After creating docker-compose.yml, run:
 docker-compose up -d
 ```
 
-#### Docker Compose 示例
+#### Docker Compose Example
 ```yaml
 # docker-compose.yml
 version: '3.8'
@@ -99,93 +99,88 @@ volumes:
   postgres_data:
 ```
 
-## ⚙️ 配置
+## ⚙️ Configuration
 
-### 配置文件
-- `config/config.dev.yaml` - 开发环境
-- `config/config.prod.yaml` - 生产环境
+### Config Files
+- `config/config.dev.yaml` - Development
+- `config/config.prod.yaml` - Production
 
-### 环境变量覆盖
+### Environment Variable Override
 ```bash
 export APP_ENV=prod
-
 export SERVER_PORT=8080
-
 export DATABASE_HOST="mysql.db.host"
 export DATABASE_PORT=3306
 export DATABASE_USER="admin"
 export DATABASE_PASSWORD="supersecret"
 export DATABASE_NAME="deshop"
-
 export JWT_SECRET="jwt-secret"
 export JWT_EXPIRE_HOURS=72
-
 export AI_OPENAI_API_KEY="your-api-key"
 export AI_MOONSHOT_API_KEY="your-api-key"
 export AI_DEEPSEEK_API_KEY="your-api-key"
-
 export COS_BUCKET="bucket_name"
 export COS_REGION="ap-shanghai"
 ```
 
-## 📁 项目结构
+## 📁 Project Structure
 
 ```
 go-backend-template/
-├── cmd/                       # 应用程序入口
-│   ├── main.go                # 入口文件（控制 server/migrate）
-│   ├── migrate.go             # 运行数据库迁移
-│   ├── server.go              # 启动 HTTP 服务器
-├── config/                    # 配置
+├── cmd/                       # Entrypoint
+│   ├── main.go                # Main (controls server/migrate)
+│   ├── migrate.go             # DB migration
+│   ├── server.go              # Start HTTP server
+├── config/                    # Config
 │   ├── config.dev.yaml
 │   ├── config.prod.yaml
-│   ├── config.go              # 载入Config程序
-├── internal/                  # 应用内部逻辑
-│   ├── di/                    # 依赖注入容器
-│   ├── dto/                   # DTO定义
-│   ├── errors/                # 自定义错误
-│   ├── routes/                # 路由定义
+│   ├── config.go              # Config loader
+├── internal/                  # Internal logic
+│   ├── di/                    # DI container
+│   ├── dto/                   # DTOs
+│   ├── errors/                # Custom errors
+│   ├── routes/                # Routes
 │   ├── infra/
-│   │   ├── db.go              # DB 连接 & 初始化
-│   │   ├── llm.go             # LLM Client初始化
-│   ├── handlers/              # HTTP请求处理层
-│   │   ├── admin_handlers/    # 面向后台管理的API Handlers
-│   │   ├── hander_utils/      # Handler层公共逻辑
-│   │   ├── xxx_handlers.go    # 公共Handlers
-│   ├── services/              # 业务逻辑层
-│   ├── repositories/          # 数据访问层
+│   │   ├── db.go              # DB connection/init
+│   │   ├── llm.go             # LLM Client init
+│   ├── handlers/              # HTTP handlers
+│   │   ├── admin_handlers/    # Admin API Handlers
+│   │   ├── hander_utils/      # Handler utils
+│   │   ├── xxx_handlers.go    # Common Handlers
+│   ├── services/              # Services
+│   ├── repositories/          # Data access
 │   ├── models/                # Models
-│   │   ├── user.go            # 用户表
-│   │   ├── product.go         # 商品表
+│   │   ├── user.go            # User table
+│   │   ├── product.go         # Product table
 │   │   ├── ...
-│   ├── middlewares/           # 中间件
-│   │   ├── authenticate.go    # 鉴权（JWT -> user）
-│   │   ├── error_handler.go   # 全局错误处理
-│   │   ├── query_parser.go    # 解析查询参数
-│   │   ├── request_logger.go  # 记录HTTP请求的生命周期
-│   ├── utils/                 # 工具函数
-├── pkg/                       # 公共库
-├── sql/                       # SQL脚本
-├── scripts/                   # 放一些脚本
-├── docs/                      # API 文档
-│   └── api.yaml               # OpenAPI 规范
+│   ├── middlewares/           # Middlewares
+│   │   ├── authenticate.go    # Auth (JWT -> user)
+│   │   ├── error_handler.go   # Global error handler
+│   │   ├── query_parser.go    # Query param parser
+│   │   ├── request_logger.go  # HTTP request logger
+│   ├── utils/                 # Utils
+├── pkg/                       # Public libs
+├── sql/                       # SQL scripts
+├── scripts/                   # Scripts
+├── docs/                      # API docs
+│   └── api.yaml               # OpenAPI spec
 └── Dockerfile
 ```
 
-## 📋 API 规范
+## 📋 API Spec
 
-### List接口Query Parameters
-支持以下查询参数：
-- `page`, `limit` - 分页
-- `search` - 搜索
-- `filter` - 过滤 (JSON格式)
-- `sort` - 排序 (格式: `field:asc|desc`)
+### List API Query Parameters
+Supports:
+- `page`, `limit` - Pagination
+- `search` - Search
+- `filter` - Filter (JSON)
+- `sort` - Sort (format: `field:asc|desc`)
 
-示例：`GET /products?page=1&limit=10&search=laptop&filter={"barcode":"4337256850032","categories":[1]}&sort=updated_at:desc`
+Example: `GET /products?page=1&limit=10&search=laptop&filter={"barcode":"4337256850032","categories":[1]}&sort=updated_at:desc`
 
-### 响应格式
+### Response Format
 
-**列表接口：**
+**List API:**
 ```json
 {
   "status": "success",
@@ -199,7 +194,7 @@ go-backend-template/
 }
 ```
 
-**单条记录：**
+**Single Record:**
 ```json
 {
   "status": "success",
@@ -207,21 +202,21 @@ go-backend-template/
 }
 ```
 
-**错误响应：**
+**Error Response:**
 ```json
 {
   "status": "error",
-  "message": "错误描述"
+  "message": "Error description"
 }
 ```
 
-## Google OAuth2 登录（Authorization Code Flow with PKCE）
+## Google OAuth2 Login (Authorization Code Flow with PKCE)
 
-本后端支持 Google OAuth2 登录，采用推荐的 Authorization Code Flow with PKCE（适用于原生移动端和 SPA）。
+This backend supports Google OAuth2 login using the Authorization Code Flow with PKCE (Proof Key for Code Exchange), which is the recommended approach for native mobile apps and SPAs.
 
-### 配置
+### Configuration
 
-在配置文件中添加 Google OAuth2 凭证。iOS 和 Web 可分别配置不同的 client：
+Add your Google OAuth2 credentials to your config file. You can configure different client credentials for iOS and Web applications:
 
 ```yaml
 google:
@@ -229,23 +224,23 @@ google:
     client_id: "your-ios-google-client-id"
     client_secret: "your-ios-google-client-secret"
     redirect_urls:
-      - "com.yourapp.scheme://oauth/callback"  # iOS应用深链接
+      - "com.yourapp.scheme://oauth/callback"  # iOS app deep link
   web:
     client_id: "your-web-google-client-id"
     client_secret: "your-web-google-client-secret"
     redirect_urls:
-      - "http://localhost:3000/auth/callback"  # 本地开发Web应用
-      - "https://yourapp.com/auth/callback"    # 生产环境Web应用
+      - "http://localhost:3000/auth/callback"  # Local development web app
+      - "https://yourapp.com/auth/callback"    # Production web app
 ```
 
-### API 接口
+### API Endpoints
 
-#### 统一 Google OAuth2 Exchange
+#### Unified Google OAuth2 Exchange
 **POST** `/api/v1/auth/google/exchange`
 
-自动判断登录/注册，仅需一个“Google 登录”按钮。
+Authenticate using Google OAuth2 with automatic login/registration detection. This is the recommended approach where clients only need one "Sign in with Google" button.
 
-**请求体：**
+**Request Body:**
 ```json
 {
   "code": "google_authorization_code",
@@ -255,13 +250,13 @@ google:
 }
 ```
 
-**参数说明：**
-- `code`：Google OAuth2 授权码
-- `code_verifier`：PKCE 校验参数
-- `redirect_uri`：需与配置一致
-- `client_type`：`"ios"` 或 `"web"`
+**Parameters:**
+- `code`: Google authorization code from OAuth2 flow
+- `code_verifier`: PKCE code verifier for security
+- `redirect_uri`: Must match one of the configured redirect URLs
+- `client_type`: Either `"ios"` or `"web"` to specify which client configuration to use
 
-**响应（200 已有用户登录）：**
+**Response (200 OK - Existing User Login):**
 ```json
 {
   "success": true,
@@ -275,7 +270,7 @@ google:
 }
 ```
 
-**响应（201 新用户注册）：**
+**Response (201 Created - New User Registration):**
 ```json
 {
   "success": true,
@@ -289,20 +284,20 @@ google:
 }
 ```
 
-### 客户端实现指引
+### Client Implementation Guide
 
-#### 前端流程（PKCE）
+#### Frontend Flow (PKCE)
 
-1. **生成 PKCE 参数：**
+1. **Generate PKCE Parameters:**
 ```javascript
-// 生成 code verifier（43-128位）
+// Generate code verifier (43-128 characters)
 const codeVerifier = generateRandomString(128);
 
-// 生成 code challenge
+// Generate code challenge
 const codeChallenge = base64URLEncode(sha256(codeVerifier));
 ```
 
-2. **跳转 Google 授权：**
+2. **Redirect to Google Authorization:**
 ```javascript
 const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
   `client_id=${CLIENT_ID}&` +
@@ -316,13 +311,13 @@ const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
 window.location.href = authUrl;
 ```
 
-3. **回调后换取 JWT：**
+3. **Handle Callback and Exchange Code:**
 ```javascript
-// 从回调URL提取 code
+// Extract authorization code from callback URL
 const urlParams = new URLSearchParams(window.location.search);
 const code = urlParams.get('code');
 
-// 向后端换取 JWT
+// Exchange for JWT with the backend
 const response = await fetch('/api/v1/auth/google/exchange', {
   method: 'POST',
   headers: {
@@ -338,14 +333,14 @@ const response = await fetch('/api/v1/auth/google/exchange', {
 
 const result = await response.json();
 if (result.success) {
-  // 存储 JWT token
+  // Store JWT token
   localStorage.setItem('access_token', result.data.access_token);
 }
 ```
 
-### 错误响应
+### Error Responses
 
-常见错误：
+Common error responses:
 
 ```json
 {
