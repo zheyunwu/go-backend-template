@@ -40,6 +40,22 @@ type Config struct {
 		DeepSeekAPIKey string `mapstructure:"deepseek_api_key"`
 	} `mapstructure:"ai"`
 
+	// Google OAuth2 配置
+	Google struct {
+		// iOS客户端配置
+		IOS struct {
+			ClientID     string   `mapstructure:"client_id"`
+			ClientSecret string   `mapstructure:"client_secret"`
+			RedirectURLs []string `mapstructure:"redirect_urls"`
+		} `mapstructure:"ios"`
+		// Web客户端配置
+		Web struct {
+			ClientID     string   `mapstructure:"client_id"`
+			ClientSecret string   `mapstructure:"client_secret"`
+			RedirectURLs []string `mapstructure:"redirect_urls"`
+		} `mapstructure:"web"`
+	} `mapstructure:"google"`
+
 	// 微信云托管相关配置
 	Cloud struct {
 		COSBucket string `mapstructure:"cos_bucket" env:"COS_BUCKET"` // 云存储桶名称

@@ -214,3 +214,159 @@ go-backend-template/
   "message": "错误描述"
 }
 ```
+
+## Google OAuth2 Login (Authorization Code Flow with PKCE)
+
+This backend supports Google OAuth2 login using the Authorization Code Flow with PKCE (Proof Key for Code Exchange), which is the recommended approach for native mobile apps and SPAs.
+
+### Configuration
+
+Add your Google OAuth2 credentials to your config file. Note that you can configure different client credentials for iOS and Web applications:
+
+```yaml
+google:
+  ios:
+    client_id: "your-ios-google-client-id"
+    client_secret: "your-ios-google-client-secret"
+    redirect_urls:
+      - "com.yourapp.scheme://oauth/callback"  # iOS app deep link
+  web:
+    client_id: "your-web-google-client-id"
+    client_secret: "your-web-google-client-secret"
+    redirect_urls:
+      - "http://localhost:3000/auth/callback"  # Local development web app
+      - "https://yourapp.com/auth/callback"    # Production web app
+```
+
+### API Endpoints
+
+#### Unified Google OAuth2 Exchange (Recommended)
+**POST** `/api/v1/auth/google/exchange`
+
+Authenticate using Google OAuth2 with automatic login/registration detection. This is the recommended approach where clients only need one "Sign in with Google" button.
+
+**Request Body:**
+```json
+{
+  "code": "google_authorization_code",
+  "code_verifier": "pkce_code_verifier",
+  "redirect_uri": "https://yourapp.com/auth/callback",
+  "client_type": "web"
+}
+```
+
+**Parameters:**
+- `code`: Google authorization code from OAuth2 flow
+- `code_verifier`: PKCE code verifier for security
+- `redirect_uri`: Must match one of the configured redirect URLs
+- `client_type`: Either `"ios"` or `"web"` to specify which client configuration to use
+
+**Response (200 OK - Existing User Login):**
+```json
+{
+  "success": true,
+  "data": {
+    "access_token": "jwt_token_here",
+    "token_type": "Bearer",
+    "expires_in": 604800,
+    "is_new_user": false
+  },
+  "message": "User authenticated successfully"
+}
+```
+
+**Response (201 Created - New User Registration):**
+```json
+{
+  "success": true,
+  "data": {
+    "access_token": "jwt_token_here",
+    "token_type": "Bearer",
+    "expires_in": 604800,
+    "is_new_user": true
+  },
+  "message": "User registered and authenticated successfully"
+}
+```
+
+### Client Implementation Guide
+
+#### Frontend Flow (PKCE)
+
+1. **Generate PKCE Parameters:**
+```javascript
+// Generate code verifier (43-128 characters)
+const codeVerifier = generateRandomString(128);
+
+// Generate code challenge
+const codeChallenge = base64URLEncode(sha256(codeVerifier));
+```
+
+2. **Redirect to Google Authorization:**
+```javascript
+const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+  `client_id=${CLIENT_ID}&` +
+  `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+  `response_type=code&` +
+  `scope=openid email profile&` +
+  `code_challenge=${codeChallenge}&` +
+  `code_challenge_method=S256&` +
+  `state=${generateRandomString(32)}`;
+
+window.location.href = authUrl;
+```
+
+3. **Handle Callback and Exchange Code:**
+```javascript
+// Extract authorization code from callback URL
+const urlParams = new URLSearchParams(window.location.search);
+const code = urlParams.get('code');
+
+// Exchange for JWT with the backend
+const response = await fetch('/api/v1/auth/google/exchange', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    code: code,
+    code_verifier: codeVerifier,
+    redirect_uri: REDIRECT_URI,
+    client_type: 'web'
+  }),
+});
+
+const result = await response.json();
+if (result.success) {
+  // Store JWT token
+  localStorage.setItem('access_token', result.data.access_token);
+}
+```
+
+### Error Responses
+
+Common error responses:
+
+```json
+{
+  "success": false,
+  "message": "Invalid OAuth authorization code",
+  "error": "invalid_oauth_code"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Invalid redirect URL",
+  "error": "invalid_redirect_url"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Email already exists",
+  "error": "email_already_exists"
+}
+```

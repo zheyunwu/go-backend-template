@@ -27,6 +27,7 @@ type Container struct {
 	UserInteractionRepository repositories.UserInteractionRepository
 
 	// Service层
+	GoogleOAuthService     services.GoogleOAuthService
 	UserService            services.UserService
 	CategoryService        services.CategoryService
 	ProductService         services.ProductService
@@ -86,7 +87,8 @@ func (c *Container) initRepositoryLayer(db *gorm.DB) {
 
 // 初始化Service层
 func (c *Container) initServiceLayer(cfg *config.Config) {
-	c.UserService = services.NewUserService(cfg, c.UserRepository)
+	c.GoogleOAuthService = services.NewGoogleOAuthService(cfg)
+	c.UserService = services.NewUserService(cfg, c.UserRepository, c.GoogleOAuthService)
 	c.CategoryService = services.NewCategoryService(c.CategoryRepository)
 	c.ProductService = services.NewProductService(c.ProductRepository, c.CategoryRepository)
 	c.UserInteractionService = services.NewUserInteractionService(c.UserInteractionRepository, c.ProductRepository)

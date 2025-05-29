@@ -168,3 +168,13 @@ type LoginWithPasswordRequest struct {
 	EmailOrPhone string `json:"email_or_phone" binding:"required"`
 	Password     string `json:"password" binding:"required"`
 }
+
+// Google OAuth2 相关 DTOs
+
+// GoogleOAuthRequest Google OAuth2统一请求（登录或注册）
+type GoogleOAuthRequest struct {
+	Code         string `json:"code" binding:"required"`                      // OAuth authorization code
+	CodeVerifier string `json:"code_verifier" binding:"required"`             // PKCE code verifier
+	RedirectURI  string `json:"redirect_uri" binding:"required"`              // 重定向URI，必须与配置中的匹配
+	ClientType   string `json:"client_type" binding:"required,oneof=ios web"` // 客户端类型：ios 或 web
+}

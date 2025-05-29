@@ -202,3 +202,36 @@ func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
 		"expires_in":   3600 * 24 * 7, // Assuming 7 days expiration
 	}, ""))
 }
+
+// ExchangeGoogleOAuth 统一的Google OAuth处理（自动判断登录/注册）
+func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
+	// 解析请求体
+	var payload dto.GoogleOAuthRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid Google OAuth request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 进行认证（自动判断登录/注册）
+	token, isNewUser, err := h.UserService.ExchangeGoogleOAuth(&payload)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回token和用户状态
+	responseData := gin.H{
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   3600 * 24 * 7, // 7天过期
+		"is_new_user":  isNewUser,     // 标识是否为新注册用户
+	}
+
+	// 根据是否为新用户返回不同的HTTP状态码
+	if isNewUser {
+		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "User registered and authenticated successfully"))
+	} else {
+		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "User authenticated successfully"))
+	}
+}

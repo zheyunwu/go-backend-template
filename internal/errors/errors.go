@@ -59,6 +59,14 @@ var (
 	ErrAIModelNotAvailable = NewAppError("ai_model_not_available", "AI model is not available", http.StatusServiceUnavailable)
 	ErrNoRecognitionResult = NewAppError("no_recognition_result", "No recognition result", http.StatusNotFound)
 
+	// Google OAuth2相关错误
+	ErrInvalidOAuthCode         = NewAppError("invalid_oauth_code", "Invalid OAuth authorization code", http.StatusBadRequest)
+	ErrOAuthTokenExchange       = NewAppError("oauth_token_exchange", "Failed to exchange OAuth code for token", http.StatusBadRequest)
+	ErrOAuthUserInfoFetch       = NewAppError("oauth_user_info_fetch", "Failed to fetch user info from OAuth provider", http.StatusBadRequest)
+	ErrInvalidRedirectURL       = NewAppError("invalid_redirect_url", "Invalid redirect URL", http.StatusBadRequest)
+	ErrInvalidClientType        = NewAppError("invalid_client_type", "Invalid client type for OAuth", http.StatusBadRequest)
+	ErrGoogleUserInfoIncomplete = NewAppError("google_user_info_incomplete", "Google user info is incomplete", http.StatusBadRequest)
+
 	// 反馈相关错误
 	ErrFeedbackNotFound         = NewAppError("feedback_not_found", "Feedback not found", http.StatusNotFound)
 	ErrInvalidFeedback          = NewAppError("invalid_feedback", "Invalid feedback content", http.StatusBadRequest)

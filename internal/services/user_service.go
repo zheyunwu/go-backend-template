@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -36,19 +37,24 @@ type UserService interface {
 	/* 微信小程序端 */
 	RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error)
 	LoginFromWechatMiniProgram(unionID *string, openID *string) (string, error)
+	/* Google OAuth2端 */
+	// 统一的Google OAuth处理方法（自动判断登录/注册）
+	ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error) // 返回 (token, isNewUser, error)
 }
 
 // userService 用户服务实现
 type userService struct {
-	config   *config.Config
-	userRepo repositories.UserRepository
+	config             *config.Config
+	userRepo           repositories.UserRepository
+	googleOAuthService GoogleOAuthService
 }
 
 // NewUserService 创建一个用户服务实例
-func NewUserService(config *config.Config, userRepo repositories.UserRepository) UserService {
+func NewUserService(config *config.Config, userRepo repositories.UserRepository, googleOAuthService GoogleOAuthService) UserService {
 	return &userService{
-		config:   config,
-		userRepo: userRepo,
+		config:             config,
+		userRepo:           userRepo,
+		googleOAuthService: googleOAuthService,
 	}
 }
 
@@ -487,4 +493,120 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 		"openID", openID)
 
 	return token, nil
+}
+
+/*
+Google OAuth2端
+*/
+
+// AuthenticateWithGoogle 统一的Google OAuth处理方法（自动判断登录/注册）
+func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error) {
+	// 使用GoogleOAuthService获取用户信息
+	googleUserInfo, err := s.googleOAuthService.ExchangeCodeForUserInfo(
+		context.Background(),
+		req.Code,
+		req.CodeVerifier,
+		req.RedirectURI,
+		req.ClientType,
+	)
+	if err != nil {
+		slog.Error("Failed to exchange Google OAuth code", "error", err)
+		return "", false, err
+	}
+
+	var user *models.User
+
+	// 检查用户是否已通过Google注册
+	user, err = s.userRepo.GetUserByProvider("google", googleUserInfo.ID)
+	if err == nil {
+		// 检查用户是否被封禁
+		if user.IsBanned {
+			return "", false, errors.ErrUserBanned
+		}
+
+		// 用户已注册，直接返回登录token
+		token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+		if err != nil {
+			slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)
+			return "", false, fmt.Errorf("failed to generate authentication token: %w", err)
+		}
+
+		// 更新最后登录时间
+		now := time.Now()
+		s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+
+		slog.Info("Google login successful",
+			"userId", user.ID,
+			"email", googleUserInfo.Email,
+			"providerUID", googleUserInfo.ID)
+
+		return token, false, nil
+	} else if err != gorm.ErrRecordNotFound {
+		slog.Error("Failed to find user by Google provider",
+			"providerUID", googleUserInfo.ID,
+			"error", err)
+		return "", false, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	// 用户不存在，需要注册新用户
+	// 检查邮箱是否已被其他用户使用
+	if _, err := s.userRepo.GetUserByField("email", googleUserInfo.Email); err == nil {
+		return "", false, errors.ErrEmailAlreadyExists
+	}
+
+	// 创建新用户Model
+	user = &models.User{
+		Name:              googleUserInfo.Name,
+		Email:             &googleUserInfo.Email,
+		PreferredLanguage: "en", // 默认语言
+	}
+
+	// 如果Google提供了头像URL，使用它
+	if googleUserInfo.Picture != "" {
+		user.AvatarURL = &googleUserInfo.Picture
+	}
+
+	// 如果Google提供了语言偏好，使用它
+	if googleUserInfo.Locale != "" {
+		user.PreferredLanguage = googleUserInfo.Locale
+	}
+
+	// 调用repo层创建用户
+	if err := s.userRepo.CreateUser(user); err != nil {
+		slog.Error("Failed to create user from Google registration",
+			"email", googleUserInfo.Email,
+			"googleId", googleUserInfo.ID,
+			"error", err)
+		return "", false, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// 创建UserProvider记录
+	userProvider := models.UserProvider{
+		UserID:      user.ID,
+		Provider:    "google",
+		ProviderUID: googleUserInfo.ID,
+	}
+
+	if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
+		slog.Error("Failed to create user provider for Google registration",
+			"userId", user.ID,
+			"provider", "google",
+			"providerUID", googleUserInfo.ID,
+			"error", err)
+		return "", false, fmt.Errorf("failed to create user provider: %w", err)
+	}
+
+	slog.Info("User registered successfully with Google",
+		"userId", user.ID,
+		"email", googleUserInfo.Email,
+		"providerUID", googleUserInfo.ID)
+
+	// 生成JWT token
+	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)
+		return "", false, fmt.Errorf("failed to generate authentication token: %w", err)
+	}
+
+	return token, true, nil
 }
