@@ -308,6 +308,7 @@ const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
   `client_id=${CLIENT_ID}&` +
   `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
   `response_type=code&` +
+  `prompt=consent&` +
   `scope=openid email profile&` +
   `code_challenge=${codeChallenge}&` +
   `code_challenge_method=S256&` +
