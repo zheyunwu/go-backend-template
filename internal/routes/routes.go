@@ -1,12 +1,16 @@
 package routes
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-backend-template/internal/di"
 	"github.com/go-backend-template/internal/middlewares"
 )
 
 func InitRoutes(r *gin.Engine, container *di.Container) {
+	// 使用默认的CORS中间件，允许所有来源，按需配置
+	r.Use(cors.Default())
+
 	// 全局中间件
 	r.Use(middlewares.RequestLogger())
 	r.Use(middlewares.ErrorHandler())
