@@ -102,7 +102,7 @@ func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// RegisterWithPassword 使用密码注册用户
+// RegisterWithPassword 邮箱密码注册
 func (h *AuthHandler) RegisterWithPassword(ctx *gin.Context) {
 	// 解析请求体
 	var payload dto.RegisterWithPasswordRequest
@@ -124,7 +124,7 @@ func (h *AuthHandler) RegisterWithPassword(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
-// LoginWithPassword 用户密码登录
+// LoginWithPassword 邮箱密码登录
 func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 	// 解析请求体
 	var payload dto.LoginWithPasswordRequest
@@ -149,7 +149,7 @@ func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 	}, ""))
 }
 
-// RegisterFromWechatMiniProgram 使用微信小程序注册用户
+// RegisterFromWechatMiniProgram 微信小程序注册
 func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
 	// 获取并验证 OpenID 和 UnionID
 	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
@@ -178,7 +178,7 @@ func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
-// LoginFromWechatMiniProgram handles login from WeChat Mini Program
+// LoginFromWechatMiniProgram 微信小程序端登录
 func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
 	// Extract openID and unionID from header
 	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
@@ -203,7 +203,35 @@ func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
 	}, ""))
 }
 
-// ExchangeGoogleOAuth 统一的Google OAuth处理（自动判断登录/注册）
+// ExchangeWechatOAuth 微信OAuth授权码交换（自动判断登录/注册）
+func (h *AuthHandler) ExchangeWechatOAuth(ctx *gin.Context) {
+	var payload dto.WechatOAuthRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid Google OAuth request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("参数错误: "+err.Error()))
+		return
+	}
+
+	token, isNewUser, err := h.UserService.ExchangeWechatOAuth(&payload)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	responseData := gin.H{
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   3600 * 24 * 7,
+		"is_new_user":  isNewUser,
+	}
+	if isNewUser {
+		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "用户注册并登录成功"))
+	} else {
+		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "用户登录成功"))
+	}
+}
+
+// ExchangeGoogleOAuth Google OAuth授权码交换（自动判断登录/注册）
 func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
 	// 解析请求体
 	var payload dto.GoogleOAuthRequest

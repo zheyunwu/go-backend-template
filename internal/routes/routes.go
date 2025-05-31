@@ -44,6 +44,7 @@ func initRoutes(api *gin.RouterGroup, container *di.Container) {
 		authRoutes.POST("/wxmini/register", container.AuthHandler.RegisterFromWechatMiniProgram) // 微信小程序注册
 		authRoutes.POST("/wxmini/login", container.AuthHandler.LoginFromWechatMiniProgram)       // 微信小程序登录
 
+		authRoutes.POST("/wechat/exchange", container.AuthHandler.ExchangeWechatOAuth) // 微信登录（Authorization Code Flow）
 		authRoutes.POST("/google/exchange", container.AuthHandler.ExchangeGoogleOAuth) // Google登录（Authorization Code Flow with PKCE）
 	}
 

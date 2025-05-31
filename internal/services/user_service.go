@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/go-backend-template/config"
@@ -28,7 +30,7 @@ type UserService interface {
 	DeleteUser(id uint) error
 	BanUser(id uint, banned bool) error // banned为true时封禁，false时解除封禁
 
-	/* 面向User的业务逻辑 */
+	/* Auth逻辑 */
 	CheckUserExists(fieldType string, value string) (bool, error)
 	UpdateProfile(id uint, req *dto.UpdateProfileRequest, authenticatedUser *models.User) error
 	/* 传统注册登录相关 */
@@ -37,9 +39,10 @@ type UserService interface {
 	/* 微信小程序端 */
 	RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error)
 	LoginFromWechatMiniProgram(unionID *string, openID *string) (string, error)
-	/* Google OAuth2端 */
-	// 统一的Google OAuth处理方法（自动判断登录/注册）
-	ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error) // 返回 (token, isNewUser, error)
+	/* App/Web端 - 微信OAuth2.0 */
+	ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, bool, error)
+	/* App/Web端 - Google OAuth2.0 */
+	ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error)
 }
 
 // userService 用户服务实现
@@ -211,7 +214,7 @@ func (s *userService) BanUser(id uint, isBanned bool) error {
 }
 
 /*
-面向User的业务逻辑
+Auth逻辑
 */
 
 // CheckUserExists 检查用户是否存在
@@ -496,10 +499,148 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 }
 
 /*
-Google OAuth2端
+App/Web端 - 微信OAuth2.0
 */
 
-// AuthenticateWithGoogle 统一的Google OAuth处理方法（自动判断登录/注册）
+// WechatOAuthTokenResponse 微信OAuth2 code换token响应
+// [参考] APP端微信登录：https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Development_Guide.html
+// [参考] Web端微信登录：https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html
+type WechatOAuthTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	RefreshToken string `json:"refresh_token"`
+	OpenID       string `json:"openid"`
+	Scope        string `json:"scope"`
+	UnionID      string `json:"unionid,omitempty"`
+	ErrCode      int    `json:"errcode,omitempty"`
+	ErrMsg       string `json:"errmsg,omitempty"`
+}
+
+// ExchangeWechatOAuth 处理微信OAuth2.0（自动判断登录/注册）
+func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, bool, error) {
+	// 1. 用 code 换取 access_token 和 openid/unionid
+	appid := ""
+	secret := ""
+	if req.ClientType == "web" {
+		appid = s.config.Wechat.Web.AppID
+		secret = s.config.Wechat.Web.Secret
+	} else if req.ClientType == "app" {
+		appid = s.config.Wechat.App.AppID
+		secret = s.config.Wechat.App.Secret
+	} else {
+		return "", false, fmt.Errorf("invalid client_type")
+	}
+
+	url := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", appid, secret, req.Code)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to request wechat oauth: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var tokenResp WechatOAuthTokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return "", false, fmt.Errorf("failed to decode wechat oauth response: %w", err)
+	}
+	if tokenResp.ErrCode != 0 {
+		return "", false, fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
+	}
+
+	openid := tokenResp.OpenID
+	unionid := tokenResp.UnionID
+
+	// 2. 检查 openid/unionid 是否已绑定用户
+	var user *models.User
+	isNewUser := false
+
+	// 情况1: openid直接找到用户
+	if openid != "" {
+		user, err = s.userRepo.GetUserByProvider("wechat", openid)
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return "", false, fmt.Errorf("failed to find user by openid: %w", err)
+		}
+	}
+
+	// 情况2: unionid不为空时，尝试通过unionid查找用户
+	if (user == nil || user.ID == 0) && unionid != "" {
+		user, err = s.userRepo.GetUserByUnionID(unionid)
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return "", false, fmt.Errorf("failed to find user by unionid: %w", err)
+		}
+
+		// 创建 UserProvider 记录
+		if user != nil && user.ID > 0 {
+			userProvider := models.UserProvider{
+				UserID:        user.ID,
+				Provider:      "wechat",
+				ProviderUID:   openid,
+				WechatUnionID: &unionid, // unionid可能为空，所以用指针
+			}
+			if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
+				return "", false, fmt.Errorf("failed to create user provider: %w", err)
+			}
+			slog.Info("UserProvider created successfully for unionid",
+				"userId", user.ID,
+				"provider", "wechat",
+				"providerUID", openid,
+				"unionID", unionid)
+		}
+	}
+
+	// 情况3: unionid和openid都没有找到用户
+	if user == nil || user.ID == 0 {
+		// 创建新用户
+		user = &models.User{
+			Name:              fmt.Sprintf("微信用户_%s", openid[len(openid)-6:]),
+			PreferredLanguage: "zh",
+		}
+		if err := s.userRepo.CreateUser(user); err != nil {
+			return "", false, fmt.Errorf("failed to create user: %w", err)
+		}
+		userProvider := models.UserProvider{
+			UserID:      user.ID,
+			Provider:    "wechat",
+			ProviderUID: openid,
+		}
+		if unionid != "" {
+			userProvider.WechatUnionID = &unionid
+		}
+		if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
+			return "", false, fmt.Errorf("failed to create user provider: %w", err)
+		}
+		isNewUser = true
+
+		slog.Info("New user created from WeChat OAuth",
+			"userId", user.ID,
+			"provider", "wechat",
+			"providerUID", openid,
+			"unionID", unionid)
+	}
+
+	// 检查用户是否被封禁
+	if user.IsBanned {
+		return "", false, errors.ErrUserBanned
+	}
+
+	// 3. 返回 JWT token
+	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to generate authentication token: %w", err)
+	}
+
+	// 更新最后登录时间
+	now := time.Now()
+	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+
+	return token, isNewUser, nil
+}
+
+/*
+App/Web端 - Google OAuth2.0
+*/
+
+// ExchangeGoogleOAuth 处理Google OAuth2.0（自动判断登录/注册）
 func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error) {
 	// 使用GoogleOAuthService获取用户信息
 	googleUserInfo, err := s.googleOAuthService.ExchangeCodeForUserInfo(
@@ -514,6 +655,7 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 		return "", false, err
 	}
 
+	// 2. 检查用户是否已通过Google注册
 	var user *models.User
 
 	// 检查用户是否已通过Google注册
@@ -601,7 +743,7 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 		"email", googleUserInfo.Email,
 		"providerUID", googleUserInfo.ID)
 
-	// 生成JWT token
+	// 3. 返回JWT token
 	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
 		slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)

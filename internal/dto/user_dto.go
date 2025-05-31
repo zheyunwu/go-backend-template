@@ -50,9 +50,9 @@ type UpdateProfileRequest struct {
 	Name              string            `json:"name"`
 	AvatarURL         *string           `json:"avatar_url"`
 	Gender            models.GenderType `json:"gender"`
-	Email             *string           `json:"email"`      // Changed from string to *string
-	Phone             *string           `json:"phone"`      // Changed from string to *string
-	BirthDate         *string           `json:"birth_date"` // Changed from string to *string
+	Email             *string           `json:"email"`
+	Phone             *string           `json:"phone"`
+	BirthDate         *string           `json:"birth_date"`
 	PreferredLanguage string            `json:"preferred_language"`
 }
 
@@ -169,7 +169,13 @@ type LoginWithPasswordRequest struct {
 	Password     string `json:"password" binding:"required"`
 }
 
-// Google OAuth2 相关 DTOs
+// OAuth2 相关 DTOs
+
+// WechatOAuthRequest 微信OAuth2统一请求（登录或注册）
+type WechatOAuthRequest struct {
+	Code       string `json:"code" binding:"required"`                      // 微信OAuth授权码
+	ClientType string `json:"client_type" binding:"required,oneof=web app"` // 客户端类型：web 或 app
+}
 
 // GoogleOAuthRequest Google OAuth2统一请求（登录或注册）
 type GoogleOAuthRequest struct {

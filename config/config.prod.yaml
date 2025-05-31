@@ -46,3 +46,11 @@
 #     redirect_urls:
 #       - "http://localhost:3000/auth/callback"  # 本地开发Web应用
 #       - "https://yourapp.com/auth/callback"    # 生产环境Web应用
+
+# wechat:
+#   web:
+#     appid: "your-wechat-web-appid"
+#     secret: "your-wechat-web-secret"
+#   app:
+#     appid: "your-wechat-app-appid"
+#     secret: "your-wechat-app-secret"

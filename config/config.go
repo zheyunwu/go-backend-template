@@ -61,6 +61,18 @@ type Config struct {
 		COSBucket string `mapstructure:"cos_bucket" env:"COS_BUCKET"` // 云存储桶名称
 		COSRegion string `mapstructure:"cos_region" env:"COS_REGION"` // 云存储区域，如 ap-shanghai
 	} `mapstructure:"cloud"`
+
+	// 微信配置
+	Wechat struct {
+		Web struct {
+			AppID  string `mapstructure:"appid"`
+			Secret string `mapstructure:"secret"`
+		} `mapstructure:"web"`
+		App struct {
+			AppID  string `mapstructure:"appid"`
+			Secret string `mapstructure:"secret"`
+		} `mapstructure:"app"`
+	} `mapstructure:"wechat"`
 }
 
 func LoadConfig(env string) (*Config, error) {
