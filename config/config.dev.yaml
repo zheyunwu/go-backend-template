@@ -41,8 +41,8 @@ google:
     redirect_urls:
       - "com.yourapp.scheme://oauth/callback"  # iOS应用深链接
   web:
-    client_id: "1086017182007-ptsbp0qqlf6huljh804faa7g29sv224i.apps.googleusercontent.com"
-    client_secret: "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"
+    client_id: "your-web-google-client-id"
+    client_secret: "your-web-google-client-secret"
     redirect_urls:
       - "http://localhost:5173/auth/callback"  # 本地开发Web应用
       - "https://yourapp.com/auth/callback"    # 生产环境Web应用
