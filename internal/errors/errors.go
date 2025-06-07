@@ -25,13 +25,18 @@ var (
 	ErrEmailAlreadyExists      = NewAppError("email_already_exists", "Email already exists", http.StatusConflict)
 	ErrEmailOrPhoneNotProvided = NewAppError("email_or_phone_not_provided", "Email or phone number not provided", http.StatusBadRequest)
 	ErrInvalidEmail            = NewAppError("invalid_email", "Invalid email format", http.StatusBadRequest)
-	ErrInvalidPassword         = NewAppError("invalid_password", "Invalid password format", http.StatusBadRequest)
+	ErrInvalidPassword         = NewAppError("invalid_password", "Invalid password", http.StatusBadRequest)
 	ErrPasswordTooShort        = NewAppError("password_too_short", "Password must be at least 8 characters", http.StatusBadRequest)
 	ErrPasswordTooWeak         = NewAppError("password_too_weak", "Password is too weak", http.StatusBadRequest)
 	ErrUserBanned              = NewAppError("user_banned", "User is banned", http.StatusForbidden)
 	ErrInvalidToken            = NewAppError("invalid_token", "Invalid or expired token", http.StatusUnauthorized)
 	ErrInvalidVerificationCode = NewAppError("invalid_verification_code", "Invalid verification code", http.StatusBadRequest)
 	ErrVerificationCodeExpired = NewAppError("verification_code_expired", "Verification code expired", http.StatusBadRequest)
+
+	// 邮箱验证相关错误
+	ErrEmailNotVerified            = NewAppError("email_not_verified", "Email address is not verified", http.StatusUnauthorized)
+	ErrEmailAlreadyVerified        = NewAppError("email_already_verified", "Email address is already verified", http.StatusBadRequest)
+	ErrTooManyVerificationRequests = NewAppError("too_many_verification_requests", "Too many verification requests. Please wait before requesting again", http.StatusTooManyRequests)
 
 	// 商品相关错误
 	ErrProductNotFound   = NewAppError("product_not_found", "Product not found", http.StatusNotFound)

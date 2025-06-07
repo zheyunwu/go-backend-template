@@ -33,6 +33,15 @@ type UserService interface {
 	/* Auth逻辑 */
 	CheckUserExists(fieldType string, value string) (bool, error)
 	UpdateProfile(id uint, req *dto.UpdateProfileRequest, authenticatedUser *models.User) error
+
+	/* 邮箱验证相关 */
+	SendEmailVerification(email string) error
+	VerifyEmail(email, code string) error
+
+	/* 密码重置相关 */
+	SendPasswordReset(email string) error
+	ResetPassword(email, resetToken, newPassword string) error
+
 	/* 传统注册登录相关 */
 	RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error)
 	LoginWithPassword(emailOrPhone, password string) (string, error)
@@ -47,17 +56,21 @@ type UserService interface {
 
 // userService 用户服务实现
 type userService struct {
-	config             *config.Config
-	userRepo           repositories.UserRepository
-	googleOAuthService GoogleOAuthService
+	config              *config.Config
+	userRepo            repositories.UserRepository
+	googleOAuthService  GoogleOAuthService
+	emailService        EmailService
+	verificationService VerificationService
 }
 
 // NewUserService 创建一个用户服务实例
-func NewUserService(config *config.Config, userRepo repositories.UserRepository, googleOAuthService GoogleOAuthService) UserService {
+func NewUserService(config *config.Config, userRepo repositories.UserRepository, googleOAuthService GoogleOAuthService, emailService EmailService, verificationService VerificationService) UserService {
 	return &userService{
-		config:             config,
-		userRepo:           userRepo,
-		googleOAuthService: googleOAuthService,
+		config:              config,
+		userRepo:            userRepo,
+		googleOAuthService:  googleOAuthService,
+		emailService:        emailService,
+		verificationService: verificationService,
 	}
 }
 
@@ -141,6 +154,25 @@ func (s *userService) CreateUser(req *dto.RegisterWithPasswordRequest) (uint, er
 			"phone", req.Phone,
 			"error", err)
 		return 0, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// 如果用户提供了邮箱，自动发送验证邮件
+	if req.Email != nil && *req.Email != "" {
+		// 生成验证码
+		code, err := s.verificationService.GenerateEmailVerificationCode(*req.Email)
+		if err != nil {
+			slog.Warn("Failed to generate email verification code after user creation", "userId", user.ID, "email", *req.Email, "error", err)
+			// 这里不返回错误，因为用户已经创建成功，只是验证邮件发送失败
+		} else {
+			// 发送验证邮件，使用用户的语言偏好
+			err = s.emailService.SendEmailVerification(*req.Email, user.Name, code, user.Locale)
+			if err != nil {
+				slog.Warn("Failed to send verification email after user creation", "userId", user.ID, "email", *req.Email, "error", err)
+				// 这里也不返回错误，因为用户已经创建成功
+			} else {
+				slog.Info("Verification email sent successfully after user creation", "userId", user.ID, "email", *req.Email, "language", user.Locale)
+			}
+		}
 	}
 
 	return user.ID, nil
@@ -268,6 +300,165 @@ func (s *userService) UpdateProfile(id uint, req *dto.UpdateProfileRequest, auth
 }
 
 /*
+邮箱验证相关
+*/
+
+// SendEmailVerification 发送邮箱验证码
+func (s *userService) SendEmailVerification(email string) error {
+	// 检查用户是否存在
+	user, err := s.userRepo.GetUserByField("email", email)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrUserNotFound
+		}
+		slog.Error("Failed to find user by email", "email", email, "error", err)
+		return fmt.Errorf("database error: %w", err)
+	}
+
+	// 检查邮箱是否已验证
+	if user.IsEmailVerified {
+		return errors.ErrEmailAlreadyVerified
+	}
+
+	// 生成验证码
+	code, err := s.verificationService.GenerateEmailVerificationCode(email)
+	if err != nil {
+		slog.Error("Failed to generate email verification code", "email", email, "error", err)
+		return fmt.Errorf("failed to generate verification code: %w", err)
+	}
+
+	// 发送验证邮件
+	err = s.emailService.SendEmailVerification(email, user.Name, code, user.Locale)
+	if err != nil {
+		slog.Error("Failed to send verification email", "email", email, "error", err)
+		return fmt.Errorf("failed to send verification email: %w", err)
+	}
+
+	slog.Info("Email verification sent successfully", "email", email)
+	return nil
+}
+
+// VerifyEmail 验证邮箱
+func (s *userService) VerifyEmail(email, code string) error {
+	// 检查用户是否存在
+	user, err := s.userRepo.GetUserByField("email", email)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrUserNotFound
+		}
+		slog.Error("Failed to find user by email", "email", email, "error", err)
+		return fmt.Errorf("database error: %w", err)
+	}
+
+	// 检查邮箱是否已验证
+	if user.IsEmailVerified {
+		return errors.ErrEmailAlreadyVerified
+	}
+
+	// 验证验证码
+	isValid, err := s.verificationService.VerifyEmailVerificationCode(email, code)
+	if err != nil {
+		slog.Error("Failed to verify email verification code", "email", email, "error", err)
+		return fmt.Errorf("failed to verify code: %w", err)
+	}
+
+	if !isValid {
+		return errors.ErrInvalidVerificationCode
+	}
+
+	// 更新用户邮箱验证状态
+	updates := map[string]interface{}{
+		"is_email_verified": true,
+	}
+
+	if err := s.userRepo.UpdateUser(user.ID, updates); err != nil {
+		slog.Error("Failed to update email verification status", "userId", user.ID, "error", err)
+		return fmt.Errorf("failed to update verification status: %w", err)
+	}
+
+	slog.Info("Email verified successfully", "email", email, "userId", user.ID)
+	return nil
+}
+
+/*
+密码重置相关
+*/
+
+// SendPasswordReset 发送密码重置邮件
+func (s *userService) SendPasswordReset(email string) error {
+	// 检查用户是否存在
+	user, err := s.userRepo.GetUserByField("email", email)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrUserNotFound
+		}
+		slog.Error("Failed to find user by email", "email", email, "error", err)
+		return fmt.Errorf("database error: %w", err)
+	}
+
+	// 生成重置令牌
+	token, err := s.verificationService.GeneratePasswordResetToken(email)
+	if err != nil {
+		slog.Error("Failed to generate password reset token", "email", email, "error", err)
+		return fmt.Errorf("failed to generate reset token: %w", err)
+	}
+
+	// 发送重置邮件
+	err = s.emailService.SendPasswordReset(email, user.Name, token, user.Locale)
+	if err != nil {
+		slog.Error("Failed to send password reset email", "email", email, "error", err)
+		return fmt.Errorf("failed to send reset email: %w", err)
+	}
+
+	slog.Info("Password reset email sent successfully", "email", email)
+	return nil
+}
+
+// ResetPassword 重置密码
+func (s *userService) ResetPassword(email, resetToken, newPassword string) error {
+	// 检查用户是否存在
+	user, err := s.userRepo.GetUserByField("email", email)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrUserNotFound
+		}
+		slog.Error("Failed to find user by email", "email", email, "error", err)
+		return fmt.Errorf("database error: %w", err)
+	}
+
+	// 验证重置令牌
+	isValid, err := s.verificationService.VerifyPasswordResetToken(email, resetToken)
+	if err != nil {
+		slog.Error("Failed to verify password reset token", "email", email, "error", err)
+		return fmt.Errorf("failed to verify reset token: %w", err)
+	}
+
+	if !isValid {
+		return errors.ErrInvalidVerificationCode
+	}
+
+	// 哈希新密码
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil {
+		slog.Error("Failed to hash new password", "email", email, "error", err)
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// 更新用户密码
+	updates := map[string]interface{}{
+		"password": hashedPassword,
+	}
+
+	if err := s.userRepo.UpdateUser(user.ID, updates); err != nil {
+		slog.Error("Failed to update user password", "userId", user.ID, "error", err)
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	slog.Info("Password reset successfully", "email", email, "userId", user.ID)
+	return nil
+}
+
+/*
 传统注册登录相关
 */
 
@@ -302,6 +493,12 @@ func (s *userService) LoginWithPassword(emailOrPhone, password string) (string, 
 	// 检查用户是否被封禁
 	if user.IsBanned {
 		return "", errors.ErrUserBanned
+	}
+
+	// 检查有无密码
+	if user.Password == nil || *user.Password == "" {
+		slog.Warn("User has no password set", "userId", user.ID)
+		return "", errors.ErrInvalidPassword
 	}
 
 	// 验证密码
@@ -592,8 +789,8 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 	if user == nil || user.ID == 0 {
 		// 创建新用户
 		user = &models.User{
-			Name:              fmt.Sprintf("微信用户_%s", openid[len(openid)-6:]),
-			PreferredLanguage: "zh",
+			Name:   fmt.Sprintf("微信用户_%s", openid[len(openid)-6:]),
+			Locale: "zh-CN",
 		}
 		if err := s.userRepo.CreateUser(user); err != nil {
 			return "", false, fmt.Errorf("failed to create user: %w", err)
@@ -677,9 +874,9 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 
 		// 创建新用户Model
 		user = &models.User{
-			Name:              googleUserInfo.Name,
-			Email:             &googleUserInfo.Email,
-			PreferredLanguage: "en", // 默认语言
+			Name:   googleUserInfo.Name,
+			Email:  &googleUserInfo.Email,
+			Locale: "en-US", // 默认语言
 		}
 
 		// 如果Google提供了头像URL，使用它
@@ -689,7 +886,7 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 
 		// 如果Google提供了语言偏好，使用它
 		if googleUserInfo.Locale != "" {
-			user.PreferredLanguage = googleUserInfo.Locale
+			user.Locale = googleUserInfo.Locale
 		}
 
 		// 调用repo层创建用户

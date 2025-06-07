@@ -40,7 +40,7 @@ COPY --from=builder /app/config ./config
 EXPOSE 8080
 
 # 设置环境变量
-ENV APP_ENV=prod
+ENV APP_ENV=dev
 
 # 执行启动命令，优先运行数据库迁移，然后启动服务器
 CMD ["/app/main", "server"]

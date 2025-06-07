@@ -263,3 +263,91 @@ func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "User authenticated successfully"))
 	}
 }
+
+// SendEmailVerification 发送邮箱验证码
+func (h *AuthHandler) SendEmailVerification(ctx *gin.Context) {
+	// 解析请求体
+	var payload dto.SendEmailVerificationRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid email verification request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 发送验证码
+	err := h.UserService.SendEmailVerification(payload.Email)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	slog.Info("Email verification sent", "email", payload.Email)
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Verification code sent successfully"))
+}
+
+// VerifyEmail 验证邮箱
+func (h *AuthHandler) VerifyEmail(ctx *gin.Context) {
+	// 解析请求体
+	var payload dto.VerifyEmailRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid verify email request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 验证邮箱
+	err := h.UserService.VerifyEmail(payload.Email, payload.Code)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	slog.Info("Email verified successfully", "email", payload.Email)
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Email verified successfully"))
+}
+
+// SendPasswordReset 发送密码重置邮件
+func (h *AuthHandler) SendPasswordReset(ctx *gin.Context) {
+	// 解析请求体
+	var payload dto.PasswordResetRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid password reset request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 发送密码重置邮件
+	err := h.UserService.SendPasswordReset(payload.Email)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	slog.Info("Password reset email sent", "email", payload.Email)
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Password reset email sent successfully"))
+}
+
+// ResetPassword 重置密码
+func (h *AuthHandler) ResetPassword(ctx *gin.Context) {
+	// 解析请求体
+	var payload dto.PasswordResetConfirmRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid password reset confirm request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 重置密码
+	err := h.UserService.ResetPassword(payload.Email, payload.ResetToken, payload.NewPassword)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	slog.Info("Password reset successfully", "email", payload.Email)
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Password reset successfully"))
+}

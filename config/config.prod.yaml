@@ -27,13 +27,6 @@
 #   secret: "super-secret-prod-key"
 #   expire_hours: 720
 
-# ai:
-#   openai_api_key: ""
-#   moonshot_api_url: "https://api.moonshot.cn/v1"
-#   moonshot_api_key: ""
-#   deepseek_api_url: "https://api.deepseek.com"
-#   deepseek_api_key: ""
-
 # google:
 #   ios:
 #     client_id: "your-ios-google-client-id"
@@ -54,3 +47,33 @@
 #   app:
 #     appid: "your-wechat-app-appid"
 #     secret: "your-wechat-app-secret"
+
+# email:
+#   provider: "sendgrid"  # sendgrid 或 smtp
+#   sendgrid_api_key: ""  # SendGrid API Key
+#   from_email: "noreply@yourapp.com"
+#   from_name: "YourApp"
+#   smtp:
+#     host: "smtp.gmail.com"
+#     port: 587
+#     username: "your-email@gmail.com"
+#     password: "your-app-password"
+#     tls: true
+
+# redis:
+#   host: "localhost"
+#   port: 6379
+#   password: ""
+#   db: 0
+
+# ai:
+#   openai_api_key: ""
+#   moonshot_api_url: "https://api.moonshot.cn/v1"
+#   moonshot_api_key: ""
+#   deepseek_api_url: "https://api.deepseek.com"
+#   deepseek_api_key: ""
+
+# wechat_cloudrun:
+#   storage:
+#     cos_bucket: "your-wechat-cloudrun-cos-bucket"
+#     cos_region: "ap-shanghai"

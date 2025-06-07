@@ -32,14 +32,6 @@ type Config struct {
 		ExpireHours int    `mapstructure:"expire_hours"`
 	} `mapstructure:"jwt"`
 
-	AI struct {
-		OpenAIAPIKey   string `mapstructure:"openai_api_key"`
-		MoonshotAPIURL string `mapstructure:"moonshot_api_url"`
-		MoonshotAPIKey string `mapstructure:"moonshot_api_key"`
-		DeepSeekAPIURL string `mapstructure:"deepseek_api_url"`
-		DeepSeekAPIKey string `mapstructure:"deepseek_api_key"`
-	} `mapstructure:"ai"`
-
 	// Google OAuth2 配置
 	Google struct {
 		// iOS客户端配置
@@ -56,13 +48,7 @@ type Config struct {
 		} `mapstructure:"web"`
 	} `mapstructure:"google"`
 
-	// 微信云托管相关配置
-	Cloud struct {
-		COSBucket string `mapstructure:"cos_bucket" env:"COS_BUCKET"` // 云存储桶名称
-		COSRegion string `mapstructure:"cos_region" env:"COS_REGION"` // 云存储区域，如 ap-shanghai
-	} `mapstructure:"cloud"`
-
-	// 微信配置
+	// 微信OAuth2配置
 	Wechat struct {
 		Web struct {
 			AppID  string `mapstructure:"appid"`
@@ -73,6 +59,47 @@ type Config struct {
 			Secret string `mapstructure:"secret"`
 		} `mapstructure:"app"`
 	} `mapstructure:"wechat"`
+
+	// 邮件服务配置
+	Email struct {
+		Provider       string `mapstructure:"provider"`         // 邮件服务提供商: sendgrid, smtp
+		SendGridAPIKey string `mapstructure:"sendgrid_api_key"` // SendGrid API Key
+		FromEmail      string `mapstructure:"from_email"`       // 发送邮箱地址
+		FromName       string `mapstructure:"from_name"`        // 发送者名称
+		// SMTP配置 (当provider为smtp时使用)
+		SMTP struct {
+			Host     string `mapstructure:"host"`
+			Port     int    `mapstructure:"port"`
+			Username string `mapstructure:"username"`
+			Password string `mapstructure:"password"`
+			TLS      bool   `mapstructure:"tls"`
+		} `mapstructure:"smtp"`
+	} `mapstructure:"email"`
+
+	// Redis配置
+	Redis struct {
+		Host     string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		Password string `mapstructure:"password"`
+		DB       int    `mapstructure:"db"`
+	} `mapstructure:"redis"`
+
+	// AI相关配置
+	AI struct {
+		OpenAIAPIKey   string `mapstructure:"openai_api_key"`
+		MoonshotAPIURL string `mapstructure:"moonshot_api_url"`
+		MoonshotAPIKey string `mapstructure:"moonshot_api_key"`
+		DeepSeekAPIURL string `mapstructure:"deepseek_api_url"`
+		DeepSeekAPIKey string `mapstructure:"deepseek_api_key"`
+	} `mapstructure:"ai"`
+
+	// 微信云托管相关配置
+	WeChatCloudRun struct {
+		Storage struct {
+			COSBucket string `mapstructure:"cos_bucket"` // 云存储桶名称
+			COSRegion string `mapstructure:"cos_region"` // 云存储区域，如 ap-shanghai
+		} `mapstructure:"storage"`
+	} `mapstructure:"wechat_cloudrun"`
 }
 
 func LoadConfig(env string) (*Config, error) {
@@ -81,10 +108,10 @@ func LoadConfig(env string) (*Config, error) {
 	v.SetConfigName("config." + env)
 	v.SetConfigType("yaml")
 	v.AddConfigPath("./config")
-	v.AutomaticEnv() // 支持环境变量覆盖
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.BindEnv("cloud.cos_bucket", "COS_BUCKET")
-	v.BindEnv("cloud.cos_region", "COS_REGION")
+	v.AutomaticEnv()                                   // 支持环境变量覆盖
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // 将点号替换为下划线，便于环境变量使用
+	v.BindEnv("wechat_cloudrun.storage.cos_bucket", "COS_BUCKET")
+	v.BindEnv("wechat_cloudrun.storage.cos_region", "COS_REGION")
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("error loading config file: %w", err)

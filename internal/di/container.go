@@ -8,6 +8,7 @@ import (
 	"github.com/go-backend-template/internal/repositories"
 	"github.com/go-backend-template/internal/services"
 	"github.com/openai/openai-go" // imported as openai
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -16,9 +17,15 @@ type Container struct {
 	// 配置
 	Config         *config.Config
 	DB             *gorm.DB
+	Redis          *redis.Client
 	OpenAIClient   *openai.Client
 	MoonshotClient *openai.Client
 	DeepSeekClient *openai.Client
+
+	// Service层 (基础服务)
+	EmailService        services.EmailService
+	VerificationService services.VerificationService
+	GoogleOAuthService  services.GoogleOAuthService
 
 	// Repository层
 	UserRepository            repositories.UserRepository
@@ -26,8 +33,7 @@ type Container struct {
 	ProductRepository         repositories.ProductRepository
 	UserInteractionRepository repositories.UserInteractionRepository
 
-	// Service层
-	GoogleOAuthService     services.GoogleOAuthService
+	// Service层 (业务服务)
 	UserService            services.UserService
 	CategoryService        services.CategoryService
 	ProductService         services.ProductService
@@ -54,6 +60,7 @@ func NewContainer(env string) *Container {
 		panic("Failed to load config: " + err.Error())
 	}
 	db := infra.InitDB(cfg)
+	redis := infra.InitRedis(cfg)
 	openaiClient := infra.InitOpenAIClient(cfg)
 	moonshotClient := infra.InitMoonshotClient(cfg)
 	deepSeekClient := infra.InitDeepSeekClient(cfg)
@@ -61,9 +68,15 @@ func NewContainer(env string) *Container {
 	// 设置配置和数据库连接
 	container.Config = cfg
 	container.DB = db
+	container.Redis = redis
 	container.OpenAIClient = openaiClient
 	container.MoonshotClient = moonshotClient
 	container.DeepSeekClient = deepSeekClient
+
+	// 初始化基础服务
+	container.EmailService = services.NewEmailService(cfg)
+	container.VerificationService = services.NewVerificationService(redis)
+	container.GoogleOAuthService = services.NewGoogleOAuthService(cfg)
 
 	// 初始化仓库层
 	container.initRepositoryLayer(db)
@@ -87,8 +100,7 @@ func (c *Container) initRepositoryLayer(db *gorm.DB) {
 
 // 初始化Service层
 func (c *Container) initServiceLayer(cfg *config.Config) {
-	c.GoogleOAuthService = services.NewGoogleOAuthService(cfg)
-	c.UserService = services.NewUserService(cfg, c.UserRepository, c.GoogleOAuthService)
+	c.UserService = services.NewUserService(cfg, c.UserRepository, c.GoogleOAuthService, c.EmailService, c.VerificationService)
 	c.CategoryService = services.NewCategoryService(c.CategoryRepository)
 	c.ProductService = services.NewProductService(c.ProductRepository, c.CategoryRepository)
 	c.UserInteractionService = services.NewUserInteractionService(c.UserInteractionRepository, c.ProductRepository)

@@ -10,14 +10,14 @@ import (
 
 // UserProfileDTO 用户信息
 type UserProfileDTO struct {
-	ID                uint              `json:"id"`
-	Name              string            `json:"name"`
-	AvatarURL         *string           `json:"avatar_url"`
-	Gender            models.GenderType `json:"gender"`
-	Email             *string           `json:"email"`
-	Phone             *string           `json:"phone"`
-	BirthDate         *time.Time        `json:"birth_date"`
-	PreferredLanguage string            `json:"preferred_language"`
+	ID        uint              `json:"id"`
+	Name      string            `json:"name"`
+	AvatarURL *string           `json:"avatar_url"`
+	Gender    models.GenderType `json:"gender"`
+	Email     *string           `json:"email"`
+	Phone     *string           `json:"phone"`
+	BirthDate *time.Time        `json:"birth_date"`
+	Locale    string            `json:"locale"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -30,16 +30,16 @@ func ToUserProfileDTO(user *models.User) *UserProfileDTO {
 	}
 
 	return &UserProfileDTO{
-		ID:                user.ID,
-		Name:              user.Name,
-		AvatarURL:         user.AvatarURL,
-		Gender:            user.Gender,
-		Email:             user.Email,
-		Phone:             user.Phone,
-		BirthDate:         user.BirthDate,
-		PreferredLanguage: user.PreferredLanguage,
-		CreatedAt:         user.CreatedAt,
-		UpdatedAt:         user.UpdatedAt,
+		ID:        user.ID,
+		Name:      user.Name,
+		AvatarURL: user.AvatarURL,
+		Gender:    user.Gender,
+		Email:     user.Email,
+		Phone:     user.Phone,
+		BirthDate: user.BirthDate,
+		Locale:    user.Locale,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}
 }
 
@@ -47,13 +47,13 @@ func ToUserProfileDTO(user *models.User) *UserProfileDTO {
 
 // UpdateProfileRequest 用户更新个人资料请求
 type UpdateProfileRequest struct {
-	Name              string            `json:"name"`
-	AvatarURL         *string           `json:"avatar_url"`
-	Gender            models.GenderType `json:"gender"`
-	Email             *string           `json:"email"`
-	Phone             *string           `json:"phone"`
-	BirthDate         *string           `json:"birth_date"`
-	PreferredLanguage string            `json:"preferred_language"`
+	Name      string            `json:"name"`
+	AvatarURL *string           `json:"avatar_url"`
+	Gender    models.GenderType `json:"gender"`
+	Email     *string           `json:"email"`
+	Phone     *string           `json:"phone"`
+	BirthDate *string           `json:"birth_date"`
+	Locale    string            `json:"locale"`
 }
 
 // ToMap 将更新请求转换为更新字段映射
@@ -82,8 +82,8 @@ func (r *UpdateProfileRequest) ToUpdatesMap() map[string]interface{} {
 			updates["BirthDate"] = birthDate
 		}
 	}
-	if r.PreferredLanguage != "" {
-		updates["PreferredLanguage"] = r.PreferredLanguage
+	if r.Locale != "" {
+		updates["Locale"] = r.Locale
 	}
 	return updates
 }
@@ -116,8 +116,8 @@ func (r *RegisterFromWechatMiniProgramRequest) ToModel() *models.User {
 			user.BirthDate = &birthDate
 		}
 	}
-	if r.PreferredLanguage != "" {
-		user.PreferredLanguage = r.PreferredLanguage
+	if r.Locale != "" {
+		user.Locale = r.Locale
 	}
 
 	return &user
@@ -151,8 +151,8 @@ func (r *RegisterWithPasswordRequest) ToModel(hashedPassword string) *models.Use
 			user.BirthDate = &birthDate
 		}
 	}
-	if r.PreferredLanguage != "" {
-		user.PreferredLanguage = r.PreferredLanguage
+	if r.Locale != "" {
+		user.Locale = r.Locale
 	}
 
 	if hashedPassword != "" {
@@ -183,4 +183,24 @@ type GoogleOAuthRequest struct {
 	CodeVerifier string `json:"code_verifier" binding:"required"`             // PKCE code verifier
 	RedirectURI  string `json:"redirect_uri" binding:"required"`              // 重定向URI，必须与配置中的匹配
 	ClientType   string `json:"client_type" binding:"required,oneof=ios web"` // 客户端类型：ios 或 web
+}
+
+// 邮箱验证相关 DTO
+type SendEmailVerificationRequest struct {
+	Email string `json:"email" binding:"required,email"` // 邮箱地址
+}
+
+type VerifyEmailRequest struct {
+	Email string `json:"email" binding:"required,email"` // 邮箱地址
+	Code  string `json:"code" binding:"required,len=6"`  // 6位验证码
+}
+
+type PasswordResetRequest struct {
+	Email string `json:"email" binding:"required,email"` // 邮箱地址
+}
+
+type PasswordResetConfirmRequest struct {
+	Email       string `json:"email" binding:"required,email"`        // 邮箱地址
+	ResetToken  string `json:"reset_token" binding:"required,len=8"`  // 8位重置令牌
+	NewPassword string `json:"new_password" binding:"required,min=8"` // 新密码
 }

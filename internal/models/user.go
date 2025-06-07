@@ -30,17 +30,18 @@ type UserProvider struct {
 
 // 用户表
 type User struct {
-	ID       uint    `json:"id" gorm:"primaryKey;<-:create"` // 内部系统的 UserID
-	Email    *string `json:"email" gorm:"size:100;uniqueIndex:idx_email"`
-	Phone    *string `json:"phone" gorm:"size:20;uniqueIndex:idx_phone"`
-	Password *string `json:"-" gorm:"size:255"` // 密码字段，存储哈希值，不直接暴露
+	ID              uint    `json:"id" gorm:"primaryKey;<-:create"` // 内部系统的 UserID
+	Email           *string `json:"email" gorm:"size:100;uniqueIndex:idx_email"`
+	IsEmailVerified bool    `json:"is_email_verified" gorm:"default:false"` // 邮箱是否已验证
+	Phone           *string `json:"phone" gorm:"size:20;uniqueIndex:idx_phone"`
+	Password        *string `json:"-" gorm:"size:255"` // 密码字段，存储哈希值，不直接暴露
 
 	Name      string     `json:"name" gorm:"size:100"`
 	AvatarURL *string    `json:"avatar_url" gorm:"size:255"`
 	Gender    GenderType `json:"gender" gorm:"type:gender_enum;default:'PREFER_NOT_TO_SAY'"` // 性别（PostgreSQL）
 	// Gender            GenderType `json:"gender" gorm:"type:enum('PREFER_NOT_TO_SAY', 'MALE', 'FEMALE', 'OTHER');default:'PREFER_NOT_TO_SAY'"` // 性别（MySQL）
-	BirthDate         *time.Time `json:"birth_date" gorm:"type:date"`                    // 显式指定为DATE类型而非默认的DATETIME
-	PreferredLanguage string     `json:"preferred_language" gorm:"size:10;default:'zh'"` // 用户偏好语言，默认为中文
+	BirthDate *time.Time `json:"birth_date" gorm:"type:date"`                  // 显式指定为DATE类型而非默认的DATETIME
+	Locale    string     `gorm:"size:35;not null;default:en-US" json:"locale"` // 用户语言地区，遵循IETF BCP 47标准
 
 	Role      string     `json:"role" gorm:"size:20;default:'user'"` // user, admin
 	IsBanned  bool       `json:"is_banned" gorm:"default:false"`     // 新增字段：用户封禁状态，默认为false

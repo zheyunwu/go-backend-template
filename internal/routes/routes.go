@@ -31,6 +31,10 @@ func initRoutes(api *gin.RouterGroup, container *di.Container) {
 	requiredAuthMiddleware := middlewares.RequiredAuthenticate(container.Config, container.UserService)
 	optionalAuthMiddleware := middlewares.OptionalAuthenticate(container.Config, container.UserService)
 
+	rateLimiter := middlewares.NewRateLimiter(container.Redis)
+	emailVerificationRateLimit := rateLimiter.EmailVerificationRateLimit()
+	passwordResetRateLimit := rateLimiter.PasswordResetRateLimit()
+
 	// Auth相关路由
 	authRoutes := api.Group("/auth")
 	{
@@ -41,9 +45,19 @@ func initRoutes(api *gin.RouterGroup, container *di.Container) {
 		authRoutes.POST("/register", container.AuthHandler.RegisterWithPassword) // 使用密码注册
 		authRoutes.POST("/login", container.AuthHandler.LoginWithPassword)       // 使用密码登录
 
+		// 邮箱验证相关 (with rate limiting)
+		authRoutes.POST("/email/send-verification", emailVerificationRateLimit, container.AuthHandler.SendEmailVerification) // 发送邮箱验证码
+		authRoutes.POST("/email/verify", container.AuthHandler.VerifyEmail)                                                  // 验证邮箱
+
+		// 密码重置相关 (with rate limiting)
+		authRoutes.POST("/password/reset-request", passwordResetRateLimit, container.AuthHandler.SendPasswordReset) // 发送密码重置邮件
+		authRoutes.POST("/password/reset", container.AuthHandler.ResetPassword)                                     // 重置密码
+
+		// 微信小程序端
 		authRoutes.POST("/wxmini/register", container.AuthHandler.RegisterFromWechatMiniProgram) // 微信小程序注册
 		authRoutes.POST("/wxmini/login", container.AuthHandler.LoginFromWechatMiniProgram)       // 微信小程序登录
 
+		// OAuth登录相关
 		authRoutes.POST("/wechat/exchange", container.AuthHandler.ExchangeWechatOAuth) // 微信登录（Authorization Code Flow）
 		authRoutes.POST("/google/exchange", container.AuthHandler.ExchangeGoogleOAuth) // Google登录（Authorization Code Flow with PKCE）
 	}
