@@ -57,9 +57,14 @@ func initRoutes(api *gin.RouterGroup, container *di.Container) {
 		authRoutes.POST("/wxmini/register", container.AuthHandler.RegisterFromWechatMiniProgram) // 微信小程序注册
 		authRoutes.POST("/wxmini/login", container.AuthHandler.LoginFromWechatMiniProgram)       // 微信小程序登录
 
-		// OAuth登录相关
-		authRoutes.POST("/wechat/exchange", container.AuthHandler.ExchangeWechatOAuth) // 微信登录（Authorization Code Flow）
-		authRoutes.POST("/google/exchange", container.AuthHandler.ExchangeGoogleOAuth) // Google登录（Authorization Code Flow with PKCE）
+		// OAuth2
+		authRoutes.POST("/wechat/exchange", container.AuthHandler.ExchangeWechatOAuth)                         // 微信登录（Authorization Code Flow）
+		authRoutes.POST("/wechat/bind", requiredAuthMiddleware, container.AuthHandler.BindWechatAccount)       // 绑定微信账号
+		authRoutes.DELETE("/wechat/unbind", requiredAuthMiddleware, container.AuthHandler.UnbindWechatAccount) // 解绑微信账号
+
+		authRoutes.POST("/google/exchange", container.AuthHandler.ExchangeGoogleOAuth)                         // Google登录（Authorization Code Flow with PKCE）
+		authRoutes.POST("/google/bind", requiredAuthMiddleware, container.AuthHandler.BindGoogleAccount)       // 绑定Google账号
+		authRoutes.DELETE("/google/unbind", requiredAuthMiddleware, container.AuthHandler.UnbindGoogleAccount) // 解绑Google账号
 	}
 
 	// 产品相关路由

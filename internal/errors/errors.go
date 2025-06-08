@@ -38,6 +38,10 @@ var (
 	ErrEmailAlreadyVerified        = NewAppError("email_already_verified", "Email address is already verified", http.StatusBadRequest)
 	ErrTooManyVerificationRequests = NewAppError("too_many_verification_requests", "Too many verification requests. Please wait before requesting again", http.StatusTooManyRequests)
 
+	// 账号绑定相关错误
+	ErrProviderAlreadyBound = NewAppError("provider_already_bound", "Account is already bound to this or another user", http.StatusConflict)
+	ErrProviderNotBound     = NewAppError("provider_not_bound", "Account is not bound", http.StatusNotFound)
+
 	// 商品相关错误
 	ErrProductNotFound   = NewAppError("product_not_found", "Product not found", http.StatusNotFound)
 	ErrProductNameEmpty  = NewAppError("product_name_empty", "Product name cannot be empty", http.StatusBadRequest)

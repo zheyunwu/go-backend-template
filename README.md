@@ -8,6 +8,7 @@
 - 🔐 JWT 认证系统
 - 📧 邮件验证功能（SendGrid/SMTP）
 - 🔑 OAuth2 登录（Google、微信）
+- 🔗 账号绑定和解绑（Google、微信）
 - 📊 Redis 缓存和限流
 - 📝 CRUD操作示例
 - 🐳 Docker 支持

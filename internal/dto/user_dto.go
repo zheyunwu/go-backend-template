@@ -169,23 +169,8 @@ type LoginWithPasswordRequest struct {
 	Password     string `json:"password" binding:"required"`
 }
 
-// OAuth2 相关 DTOs
-
-// WechatOAuthRequest 微信OAuth2统一请求（登录或注册）
-type WechatOAuthRequest struct {
-	Code       string `json:"code" binding:"required"`                      // 微信OAuth授权码
-	ClientType string `json:"client_type" binding:"required,oneof=web app"` // 客户端类型：web 或 app
-}
-
-// GoogleOAuthRequest Google OAuth2统一请求（登录或注册）
-type GoogleOAuthRequest struct {
-	Code         string `json:"code" binding:"required"`                      // OAuth authorization code
-	CodeVerifier string `json:"code_verifier" binding:"required"`             // PKCE code verifier
-	RedirectURI  string `json:"redirect_uri" binding:"required"`              // 重定向URI，必须与配置中的匹配
-	ClientType   string `json:"client_type" binding:"required,oneof=ios web"` // 客户端类型：ios 或 web
-}
-
 // 邮箱验证相关 DTO
+
 type SendEmailVerificationRequest struct {
 	Email string `json:"email" binding:"required,email"` // 邮箱地址
 }
@@ -203,4 +188,32 @@ type PasswordResetConfirmRequest struct {
 	Email       string `json:"email" binding:"required,email"`        // 邮箱地址
 	ResetToken  string `json:"reset_token" binding:"required,len=8"`  // 8位重置令牌
 	NewPassword string `json:"new_password" binding:"required,min=8"` // 新密码
+}
+
+// OAuth2 相关 DTOs
+
+// WechatOAuthRequest 微信OAuth2统一请求（登录或注册）
+type WechatOAuthRequest struct {
+	Code       string `json:"code" binding:"required"`                      // 微信OAuth授权码
+	ClientType string `json:"client_type" binding:"required,oneof=web app"` // 客户端类型：web 或 app
+}
+
+// GoogleOAuthRequest Google OAuth2统一请求（登录或注册）
+type GoogleOAuthRequest struct {
+	Code         string `json:"code" binding:"required"`                      // OAuth authorization code
+	CodeVerifier string `json:"code_verifier" binding:"required"`             // PKCE code verifier
+	RedirectURI  string `json:"redirect_uri" binding:"required"`              // 重定向URI，必须与配置中的匹配
+	ClientType   string `json:"client_type" binding:"required,oneof=ios web"` // 客户端类型：ios 或 web
+}
+
+// 账号绑定相关 DTOs
+
+// BindWechatAccountRequest 绑定微信账号请求
+type BindWechatAccountRequest struct {
+	WechatOAuthRequest // 直接使用WechatOAuthRequest作为绑定请求
+}
+
+// BindGoogleAccountRequest 绑定Google账号请求
+type BindGoogleAccountRequest struct {
+	GoogleOAuthRequest // 直接使用GoogleOAuthRequest作为绑定请求
 }

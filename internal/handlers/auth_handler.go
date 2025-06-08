@@ -149,121 +149,6 @@ func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 	}, ""))
 }
 
-// RegisterFromWechatMiniProgram 微信小程序注册
-func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
-	// 获取并验证 OpenID 和 UnionID
-	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Missing WeChat credentials"))
-		return
-	}
-
-	// 解析请求体
-	var payload dto.RegisterFromWechatMiniProgramRequest
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user creation request", "error", err)
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
-		return
-	}
-
-	// 调用 Service层 创建 User
-	createdUserID, err := h.UserService.RegisterFromWechatMiniProgram(&payload, unionID, openID)
-	if err != nil {
-		handler_utils.HandleError(ctx, err)
-		return
-	}
-
-	// 返回201 Created
-	slog.Info("User created", "userId", createdUserID)
-	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
-}
-
-// LoginFromWechatMiniProgram 微信小程序端登录
-func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
-	// Extract openID and unionID from header
-	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Missing WeChat credentials"))
-		return
-	}
-
-	// Call Service layer to authenticate and get token
-	token, err := h.UserService.LoginFromWechatMiniProgram(unionID, openID)
-
-	if err != nil {
-		handler_utils.HandleError(ctx, err)
-		return
-	}
-
-	// Return token
-	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   3600 * 24 * 7, // Assuming 7 days expiration
-	}, ""))
-}
-
-// ExchangeWechatOAuth 微信OAuth授权码交换（自动判断登录/注册）
-func (h *AuthHandler) ExchangeWechatOAuth(ctx *gin.Context) {
-	var payload dto.WechatOAuthRequest
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid Google OAuth request", "error", err)
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("参数错误: "+err.Error()))
-		return
-	}
-
-	token, isNewUser, err := h.UserService.ExchangeWechatOAuth(&payload)
-	if err != nil {
-		handler_utils.HandleError(ctx, err)
-		return
-	}
-
-	responseData := gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   3600 * 24 * 7,
-		"is_new_user":  isNewUser,
-	}
-	if isNewUser {
-		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "用户注册并登录成功"))
-	} else {
-		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "用户登录成功"))
-	}
-}
-
-// ExchangeGoogleOAuth Google OAuth授权码交换（自动判断登录/注册）
-func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
-	// 解析请求体
-	var payload dto.GoogleOAuthRequest
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid Google OAuth request", "error", err)
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
-		return
-	}
-
-	// 调用 Service层 进行认证（自动判断登录/注册）
-	token, isNewUser, err := h.UserService.ExchangeGoogleOAuth(&payload)
-	if err != nil {
-		handler_utils.HandleError(ctx, err)
-		return
-	}
-
-	// 返回token和用户状态
-	responseData := gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   3600 * 24 * 7, // 7天过期
-		"is_new_user":  isNewUser,     // 标识是否为新注册用户
-	}
-
-	// 根据是否为新用户返回不同的HTTP状态码
-	if isNewUser {
-		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "User registered and authenticated successfully"))
-	} else {
-		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "User authenticated successfully"))
-	}
-}
-
 // SendEmailVerification 发送邮箱验证码
 func (h *AuthHandler) SendEmailVerification(ctx *gin.Context) {
 	// 解析请求体
@@ -350,4 +235,211 @@ func (h *AuthHandler) ResetPassword(ctx *gin.Context) {
 	// 返回成功响应
 	slog.Info("Password reset successfully", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Password reset successfully"))
+}
+
+// RegisterFromWechatMiniProgram 微信小程序注册
+func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
+	// 获取并验证 OpenID 和 UnionID
+	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Missing WeChat credentials"))
+		return
+	}
+
+	// 解析请求体
+	var payload dto.RegisterFromWechatMiniProgramRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid user creation request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 创建 User
+	createdUserID, err := h.UserService.RegisterFromWechatMiniProgram(&payload, unionID, openID)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回201 Created
+	slog.Info("User created", "userId", createdUserID)
+	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
+}
+
+// LoginFromWechatMiniProgram 微信小程序端登录
+func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
+	// Extract openID and unionID from header
+	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Missing WeChat credentials"))
+		return
+	}
+
+	// Call Service layer to authenticate and get token
+	token, err := h.UserService.LoginFromWechatMiniProgram(unionID, openID)
+
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// Return token
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   3600 * 24 * 7, // Assuming 7 days expiration
+	}, ""))
+}
+
+// ExchangeWechatOAuth 微信OAuth授权码交换（自动判断登录/注册）
+func (h *AuthHandler) ExchangeWechatOAuth(ctx *gin.Context) {
+	var payload dto.WechatOAuthRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid Google OAuth request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("参数错误: "+err.Error()))
+		return
+	}
+
+	token, isNewUser, err := h.UserService.ExchangeWechatOAuth(&payload)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	responseData := gin.H{
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   3600 * 24 * 7,
+		"is_new_user":  isNewUser,
+	}
+	if isNewUser {
+		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "用户注册并登录成功"))
+	} else {
+		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "用户登录成功"))
+	}
+}
+
+// BindWechatAccount 绑定微信账号
+func (h *AuthHandler) BindWechatAccount(ctx *gin.Context) {
+	// 获取当前authenticatedUser
+	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
+	if !ok {
+		return
+	}
+
+	// 解析请求体
+	var payload dto.BindWechatAccountRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid bind WeChat account request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 绑定微信账号
+	err := h.UserService.BindWechatAccount(authenticatedUser.ID, &payload, authenticatedUser)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "WeChat account bound successfully"))
+}
+
+// UnbindWechatAccount 解绑微信账号
+func (h *AuthHandler) UnbindWechatAccount(ctx *gin.Context) {
+	// 获取当前authenticatedUser
+	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
+	if !ok {
+		return
+	}
+
+	// 调用 Service层 解绑微信账号
+	err := h.UserService.UnbindWechatAccount(authenticatedUser.ID, authenticatedUser)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "WeChat account unbound successfully"))
+}
+
+// ExchangeGoogleOAuth Google OAuth授权码交换（自动判断登录/注册）
+func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
+	// 解析请求体
+	var payload dto.GoogleOAuthRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid Google OAuth request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 进行认证（自动判断登录/注册）
+	token, isNewUser, err := h.UserService.ExchangeGoogleOAuth(&payload)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回token和用户状态
+	responseData := gin.H{
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   3600 * 24 * 7, // 7天过期
+		"is_new_user":  isNewUser,     // 标识是否为新注册用户
+	}
+
+	// 根据是否为新用户返回不同的HTTP状态码
+	if isNewUser {
+		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "User registered and authenticated successfully"))
+	} else {
+		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "User authenticated successfully"))
+	}
+}
+
+// BindGoogleAccount 绑定Google账号
+func (h *AuthHandler) BindGoogleAccount(ctx *gin.Context) {
+	// 获取当前authenticatedUser
+	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
+	if !ok {
+		return
+	}
+
+	// 解析请求体
+	var payload dto.BindGoogleAccountRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid bind Google account request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 绑定Google账号
+	err := h.UserService.BindGoogleAccount(authenticatedUser.ID, &payload, authenticatedUser)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Google account bound successfully"))
+}
+
+// UnbindGoogleAccount 解绑Google账号
+func (h *AuthHandler) UnbindGoogleAccount(ctx *gin.Context) {
+	// 获取当前authenticatedUser
+	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
+	if !ok {
+		return
+	}
+
+	// 调用 Service层 解绑Google账号
+	err := h.UserService.UnbindGoogleAccount(authenticatedUser.ID, authenticatedUser)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Google account unbound successfully"))
 }

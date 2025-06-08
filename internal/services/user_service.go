@@ -34,6 +34,10 @@ type UserService interface {
 	CheckUserExists(fieldType string, value string) (bool, error)
 	UpdateProfile(id uint, req *dto.UpdateProfileRequest, authenticatedUser *models.User) error
 
+	/* 传统注册登录相关 */
+	RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error)
+	LoginWithPassword(emailOrPhone, password string) (string, error)
+
 	/* 邮箱验证相关 */
 	SendEmailVerification(email string) error
 	VerifyEmail(email, code string) error
@@ -42,16 +46,18 @@ type UserService interface {
 	SendPasswordReset(email string) error
 	ResetPassword(email, resetToken, newPassword string) error
 
-	/* 传统注册登录相关 */
-	RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error)
-	LoginWithPassword(emailOrPhone, password string) (string, error)
 	/* 微信小程序端 */
 	RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error)
 	LoginFromWechatMiniProgram(unionID *string, openID *string) (string, error)
-	/* App/Web端 - 微信OAuth2.0 */
+
+	/* 微信OAuth2.0（App/Web端） */
 	ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, bool, error)
-	/* App/Web端 - Google OAuth2.0 */
+	BindWechatAccount(userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error
+	UnbindWechatAccount(userID uint, authenticatedUser *models.User) error
+	/* Google OAuth2.0（App/Web端） */
 	ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error)
+	BindGoogleAccount(userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error
+	UnbindGoogleAccount(userID uint, authenticatedUser *models.User) error
 }
 
 // userService 用户服务实现
@@ -300,6 +306,70 @@ func (s *userService) UpdateProfile(id uint, req *dto.UpdateProfileRequest, auth
 }
 
 /*
+传统注册登录相关
+*/
+
+// RegisterWithPassword 使用密码注册用户
+func (s *userService) RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error) {
+	// 转交给CreateUser处理
+	return s.CreateUser(req)
+}
+
+// LoginWithPassword 验证用户密码并生成JWT token
+func (s *userService) LoginWithPassword(emailOrPhone, password string) (string, error) {
+	var user *models.User
+	var err error
+
+	// 先尝试用邮箱查找用户
+	user, err = s.userRepo.GetUserByField("email", emailOrPhone)
+	if err != nil && err == gorm.ErrRecordNotFound {
+		// 如果邮箱找不到，尝试用手机号查找
+		user, err = s.userRepo.GetUserByField("phone", emailOrPhone)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return "", errors.ErrUserNotFound
+			}
+			slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
+			return "", fmt.Errorf("database error: %w", err)
+		}
+	} else if err != nil {
+		slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
+		return "", fmt.Errorf("database error: %w", err)
+	}
+
+	// 检查用户是否被封禁
+	if user.IsBanned {
+		return "", errors.ErrUserBanned
+	}
+
+	// 检查有无密码
+	if user.Password == nil || *user.Password == "" {
+		slog.Warn("User has no password set", "userId", user.ID)
+		return "", errors.ErrInvalidPassword
+	}
+
+	// 验证密码
+	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(password))
+	if err != nil {
+		slog.Warn("Password verification failed", "userId", user.ID)
+		return "", errors.ErrInvalidPassword
+	}
+
+	// 生成JWT token
+	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)
+		return "", fmt.Errorf("failed to generate authentication token: %w", err)
+	}
+
+	// 更新最后登录时间
+	now := time.Now()
+	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+
+	return token, nil
+}
+
+/*
 邮箱验证相关
 */
 
@@ -456,70 +526,6 @@ func (s *userService) ResetPassword(email, resetToken, newPassword string) error
 
 	slog.Info("Password reset successfully", "email", email, "userId", user.ID)
 	return nil
-}
-
-/*
-传统注册登录相关
-*/
-
-// RegisterWithPassword 使用密码注册用户
-func (s *userService) RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error) {
-	// 转交给CreateUser处理
-	return s.CreateUser(req)
-}
-
-// LoginWithPassword 验证用户密码并生成JWT token
-func (s *userService) LoginWithPassword(emailOrPhone, password string) (string, error) {
-	var user *models.User
-	var err error
-
-	// 先尝试用邮箱查找用户
-	user, err = s.userRepo.GetUserByField("email", emailOrPhone)
-	if err != nil && err == gorm.ErrRecordNotFound {
-		// 如果邮箱找不到，尝试用手机号查找
-		user, err = s.userRepo.GetUserByField("phone", emailOrPhone)
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return "", errors.ErrUserNotFound
-			}
-			slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
-			return "", fmt.Errorf("database error: %w", err)
-		}
-	} else if err != nil {
-		slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
-		return "", fmt.Errorf("database error: %w", err)
-	}
-
-	// 检查用户是否被封禁
-	if user.IsBanned {
-		return "", errors.ErrUserBanned
-	}
-
-	// 检查有无密码
-	if user.Password == nil || *user.Password == "" {
-		slog.Warn("User has no password set", "userId", user.ID)
-		return "", errors.ErrInvalidPassword
-	}
-
-	// 验证密码
-	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(password))
-	if err != nil {
-		slog.Warn("Password verification failed", "userId", user.ID)
-		return "", errors.ErrInvalidPassword
-	}
-
-	// 生成JWT token
-	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
-	if err != nil {
-		slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)
-		return "", fmt.Errorf("failed to generate authentication token: %w", err)
-	}
-
-	// 更新最后登录时间
-	now := time.Now()
-	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
-
-	return token, nil
 }
 
 /*
@@ -696,7 +702,7 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 }
 
 /*
-App/Web端 - 微信OAuth2.0
+微信OAuth2.0 （App/Web端）
 */
 
 // WechatOAuthTokenResponse 微信OAuth2 code换token响应
@@ -790,7 +796,7 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 		// 创建新用户
 		user = &models.User{
 			Name:   fmt.Sprintf("微信用户_%s", openid[len(openid)-6:]),
-			Locale: "zh-CN",
+			Locale: "zh",
 		}
 		if err := s.userRepo.CreateUser(user); err != nil {
 			return "", false, fmt.Errorf("failed to create user: %w", err)
@@ -833,8 +839,135 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 	return token, isNewUser, nil
 }
 
+// BindWechatAccount 绑定微信账号
+func (s *userService) BindWechatAccount(userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error {
+	// 权限检查：确保用户只能绑定自己的账号
+	if userID != authenticatedUser.ID {
+		slog.Warn("Permission denied for WeChat account binding", "userId", userID, "requesterId", authenticatedUser.ID)
+		return errors.ErrPermissionDenied
+	}
+
+	// 1. 用 code 换取 access_token 和 openid/unionid
+	appid := ""
+	secret := ""
+	if req.ClientType == "web" {
+		appid = s.config.Wechat.Web.AppID
+		secret = s.config.Wechat.Web.Secret
+	} else if req.ClientType == "app" {
+		appid = s.config.Wechat.App.AppID
+		secret = s.config.Wechat.App.Secret
+	} else {
+		return fmt.Errorf("invalid client_type")
+	}
+
+	url := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", appid, secret, req.Code)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to request wechat oauth: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var tokenResp WechatOAuthTokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return fmt.Errorf("failed to decode wechat oauth response: %w", err)
+	}
+	if tokenResp.ErrCode != 0 {
+		return fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
+	}
+
+	openid := tokenResp.OpenID
+	unionid := tokenResp.UnionID
+
+	// 2. 检查该微信账号是否已被其他用户绑定
+	existingProvider, err := s.userRepo.GetUserByProvider("wechat", openid)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		slog.Error("Failed to check existing WeChat provider", "openId", openid, "error", err)
+		return fmt.Errorf("failed to check existing provider: %w", err)
+	}
+
+	if existingProvider != nil && existingProvider.ID != 0 {
+		return errors.ErrProviderAlreadyBound
+	}
+
+	// 3. 检查当前用户是否已绑定微信账号
+	_, err = s.userRepo.GetUserProvider(userID, "wechat")
+	if err == nil {
+		return errors.ErrProviderAlreadyBound
+	} else if err != gorm.ErrRecordNotFound {
+		slog.Error("Failed to check user's WeChat provider", "userId", userID, "error", err)
+		return fmt.Errorf("failed to check user provider: %w", err)
+	}
+
+	// 4. 创建绑定记录
+	userProvider := &models.UserProvider{
+		UserID:      userID,
+		Provider:    "wechat",
+		ProviderUID: openid,
+	}
+	if unionid != "" {
+		userProvider.WechatUnionID = &unionid
+	}
+
+	if err := s.userRepo.CreateUserProvider(userProvider); err != nil {
+		slog.Error("Failed to bind WeChat account",
+			"userId", userID,
+			"provider", "wechat",
+			"providerUID", openid,
+			"unionID", unionid,
+			"error", err)
+		return fmt.Errorf("failed to bind WeChat account: %w", err)
+	}
+
+	slog.Info("WeChat account bound successfully",
+		"userId", userID,
+		"provider", "wechat",
+		"providerUID", openid,
+		"unionID", unionid)
+
+	return nil
+}
+
+// UnbindWechatAccount 解绑微信账号
+func (s *userService) UnbindWechatAccount(userID uint, authenticatedUser *models.User) error {
+	// 权限检查：确保用户只能解绑自己的账号
+	if userID != authenticatedUser.ID {
+		slog.Warn("Permission denied for WeChat account unbinding", "userId", userID, "requesterId", authenticatedUser.ID)
+		return errors.ErrPermissionDenied
+	}
+
+	// 检查用户是否已提供验证过的邮箱，否则解绑后再也无法登录
+	user, err := s.GetUser(userID)
+	if err != nil {
+		return err
+	}
+
+	if user.Email == nil || !user.IsEmailVerified {
+		return errors.ErrEmailNotVerified
+	}
+
+	// 检查是否已绑定微信账号
+	_, err = s.userRepo.GetUserProvider(userID, "wechat")
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrProviderNotBound
+		}
+		slog.Error("Failed to check user's WeChat provider", "userId", userID, "error", err)
+		return fmt.Errorf("failed to check user provider: %w", err)
+	}
+
+	// 删除绑定记录
+	if err := s.userRepo.DeleteUserProvider(userID, "wechat"); err != nil {
+		slog.Error("Failed to unbind WeChat account", "userId", userID, "error", err)
+		return fmt.Errorf("failed to unbind WeChat account: %w", err)
+	}
+
+	slog.Info("WeChat account unbound successfully", "userId", userID)
+	return nil
+}
+
 /*
-App/Web端 - Google OAuth2.0
+Google OAuth2.0（App/Web端）
 */
 
 // ExchangeGoogleOAuth 处理Google OAuth2.0（自动判断登录/注册）
@@ -874,9 +1007,10 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 
 		// 创建新用户Model
 		user = &models.User{
-			Name:   googleUserInfo.Name,
-			Email:  &googleUserInfo.Email,
-			Locale: "en-US", // 默认语言
+			Name:            googleUserInfo.Name,
+			Email:           &googleUserInfo.Email,
+			Locale:          "en", // 默认语言
+			IsEmailVerified: true,
 		}
 
 		// 如果Google提供了头像URL，使用它
@@ -939,4 +1073,97 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
 
 	return token, isNewUser, nil
+}
+
+// BindGoogleAccount 绑定Google账号
+func (s *userService) BindGoogleAccount(userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error {
+	// 权限检查：确保用户只能绑定自己的账号
+	if userID != authenticatedUser.ID {
+		slog.Warn("Permission denied for Google account binding", "userId", userID, "requesterId", authenticatedUser.ID)
+		return errors.ErrPermissionDenied
+	}
+
+	// 1. 用auth code换取用户信息
+	googleUserInfo, err := s.googleOAuthService.ExchangeCodeForUserInfo(
+		context.Background(),
+		req.Code,
+		req.CodeVerifier,
+		req.RedirectURI,
+		req.ClientType,
+	)
+	if err != nil {
+		slog.Error("Failed to exchange Google OAuth code for binding", "error", err, "userId", userID)
+		return err
+	}
+
+	// 2. 检查该Google账号是否已被其他用户绑定
+	existingProvider, err := s.userRepo.GetUserByProvider("google", googleUserInfo.ID)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		slog.Error("Failed to check existing Google provider", "googleId", googleUserInfo.ID, "error", err)
+		return fmt.Errorf("failed to check existing provider: %w", err)
+	}
+
+	if existingProvider != nil && existingProvider.ID != 0 {
+		return errors.ErrProviderAlreadyBound
+	}
+
+	// 3. 检查当前用户是否已绑定Google账号
+	_, err = s.userRepo.GetUserProvider(userID, "google")
+	if err == nil {
+		return errors.ErrProviderAlreadyBound
+	} else if err != gorm.ErrRecordNotFound {
+		slog.Error("Failed to check user's Google provider", "userId", userID, "error", err)
+		return fmt.Errorf("failed to check user provider: %w", err)
+	}
+
+	// 4. 创建绑定记录
+	userProvider := &models.UserProvider{
+		UserID:      userID,
+		Provider:    "google",
+		ProviderUID: googleUserInfo.ID,
+	}
+
+	if err := s.userRepo.CreateUserProvider(userProvider); err != nil {
+		slog.Error("Failed to bind Google account",
+			"userId", userID,
+			"provider", "google",
+			"providerUID", googleUserInfo.ID,
+			"error", err)
+		return fmt.Errorf("failed to bind Google account: %w", err)
+	}
+
+	slog.Info("Google account bound successfully",
+		"userId", userID,
+		"provider", "google",
+		"providerUID", googleUserInfo.ID)
+
+	return nil
+}
+
+// UnbindGoogleAccount 解绑Google账号
+func (s *userService) UnbindGoogleAccount(userID uint, authenticatedUser *models.User) error {
+	// 权限检查：确保用户只能解绑自己的账号
+	if userID != authenticatedUser.ID {
+		slog.Warn("Permission denied for Google account unbinding", "userId", userID, "requesterId", authenticatedUser.ID)
+		return errors.ErrPermissionDenied
+	}
+
+	// 检查是否已绑定Google账号
+	_, err := s.userRepo.GetUserProvider(userID, "google")
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrProviderNotBound
+		}
+		slog.Error("Failed to check user's Google provider", "userId", userID, "error", err)
+		return fmt.Errorf("failed to check user provider: %w", err)
+	}
+
+	// 删除绑定记录
+	if err := s.userRepo.DeleteUserProvider(userID, "google"); err != nil {
+		slog.Error("Failed to unbind Google account", "userId", userID, "error", err)
+		return fmt.Errorf("failed to unbind Google account: %w", err)
+	}
+
+	slog.Info("Google account unbound successfully", "userId", userID)
+	return nil
 }

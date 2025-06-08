@@ -2,7 +2,9 @@
 
 此后端支持 Google 和微信提供商的 OAuth2 身份验证，使用适合不同客户端类型的安全授权流程。
 
-## Google OAuth2 (授权码流程 + PKCE)
+## 1 Google OAuth2 (授权码流程 + PKCE)
+
+[Google官方文档 (Auth Code + PKCE)](https://developers.google.com/identity/protocols/oauth2/native-app)
 
 ### 配置
 
@@ -25,52 +27,73 @@ google:
 
 ### API 端点
 
-- Auth Code换JWT
-  ```
-  POST /api/v1/auth/google/exchange
-  Content-Type: application/json
+1. Google登录 (Auth Code换Token)
+    ```
+    POST /api/v1/auth/google/exchange
+    Content-Type: application/json
 
-  {
-    "code": "google_authorization_code",
-    "code_verifier": "pkce_code_verifier",
-    "redirect_uri": "https://yourapp.com/auth/callback",
-    "client_type": "web"
-  }
-  ```
+    {
+        "code": "google_authorization_code",
+        "code_verifier": "pkce_code_verifier",
+        "redirect_uri": "https://yourapp.com/auth/callback",
+        "client_type": "web"
+    }
+    ```
 
-  **参数解释：**
-  - `code`: 来自 OAuth2 流程的 Google 授权码
-  - `code_verifier`: 用于安全性的 PKCE 代码验证器
-  - `redirect_uri`: 必须匹配配置的重定向 URL 之一
-  - `client_type`: `"ios"` 或 `"web"`
+    **参数解释：**
+    - `code`: 来自 OAuth2 流程的 Google 授权码
+    - `code_verifier`: 用于安全性的 PKCE 代码验证器
+    - `redirect_uri`: 必须匹配配置的重定向 URL 之一
+    - `client_type`: `"ios"` 或 `"web"`
 
-  **响应 (200 OK - 现有用户登录)：**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "access_token": "jwt_token_here",
-      "token_type": "Bearer",
-      "expires_in": 604800,
-      "is_new_user": false
-    },
-    "message": "用户认证成功"
-  }
-  ```
+    **响应 (200 OK - 现有用户登录)：**
+    ```json
+    {
+        "success": true,
+        "data": {
+            "access_token": "jwt_token_here",
+            "token_type": "Bearer",
+            "expires_in": 604800,
+            "is_new_user": false
+        },
+        "message": "用户认证成功"
+    }
+    ```
 
-  **响应 (201 Created - 新用户注册)：**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "access_token": "jwt_token_here",
-      "token_type": "Bearer",
-      "expires_in": 604800,
-      "is_new_user": true
-    },
-    "message": "用户注册并认证成功"
-  }
-  ```
+    **响应 (201 Created - 新用户注册)：**
+    ```json
+    {
+        "success": true,
+        "data": {
+            "access_token": "jwt_token_here",
+            "token_type": "Bearer",
+            "expires_in": 604800,
+            "is_new_user": true
+        },
+        "message": "用户注册并认证成功"
+    }
+    ```
+
+2. 绑定Google账号
+    ```http
+    POST /api/v1/auth/google/bind
+    Content-Type: application/json
+    Authorization: Bearer <access_token>
+
+    {
+        "code": "google_oauth_authorization_code",
+        "code_verifier": "pkce_code_verifier",
+        "redirect_uri": "https://yourapp.com/auth/callback",
+        "client_type": "web"  // 或 "ios"
+    }
+    ```
+
+3. 解绑Google账号
+    ```http
+    POST /api/v1/auth/google/unbind
+    Content-Type: application/json
+    Authorization: Bearer <access_token>
+    ```
 
 ### Google Login 客户端实现指南 (PKCE)
 
@@ -125,7 +148,10 @@ google:
     }
     ```
 
-## 微信 OAuth2
+## 2 微信 OAuth2
+
+[微信官方文档 - 网站应用](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)
+[微信官方文档 - 移动应用](https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Development_Guide.html)
 
 ### 配置
 
@@ -141,22 +167,42 @@ wechat:
 
 ### API 端点
 
-- Auth Code换JWT
-  ```
-  POST /api/v1/auth/wechat/exchange
-  Content-Type: application/json
+1. 微信登录 (Auth Code换Token)
+    ```
+    POST /api/v1/auth/wechat/exchange
+    Content-Type: application/json
 
-  {
-    "code": "wechat_authorization_code",
-    "client_type": "web"
-  }
-  ```
+    {
+        "code": "wechat_authorization_code",
+        "client_type": "web"
+    }
+    ```
+2. 绑定微信账号
+    ```http
+    POST /api/v1/auth/wechat/bind
+    Content-Type: application/json
+    Authorization: Bearer <access_token>
 
-## 微信小程序
+    {
+        "code": "google_oauth_authorization_code",
+        "code_verifier": "pkce_code_verifier",
+        "redirect_uri": "https://yourapp.com/auth/callback",
+        "client_type": "web"  // 或 "ios"
+    }
+    ```
+
+3. 解绑微信账号
+    ```http
+    POST /api/v1/auth/wechat/unbind
+    Content-Type: application/json
+    Authorization: Bearer <access_token>
+    ```
+
+## 3 微信小程序
 
 对于微信小程序集成，使用专用端点：
 
-- 通过微信小程序注册
+1. 通过微信小程序注册
   ```
   POST /api/v1/auth/wxmini/register
   Content-Type: application/json
@@ -173,41 +219,10 @@ wechat:
   }
   ```
 
-- 通过微信小程序登录
+2. 通过微信小程序登录
   ```
   POST /api/v1/auth/wxmini/login
   Content-Type: application/json
   x-wx-unionid: <用户union_id>
   x-wx-openid: <用户open_id>
   ```
-
-## 错误响应
-
-### 常见错误
-
-**无效授权码：**
-```json
-{
-  "success": false,
-  "message": "无效的 OAuth 授权码",
-  "error": "invalid_oauth_code"
-}
-```
-
-**无效重定向 URL：**
-```json
-{
-  "success": false,
-  "message": "无效的重定向 URL",
-  "error": "invalid_redirect_url"
-}
-```
-
-**邮箱已存在：**
-```json
-{
-  "success": false,
-  "message": "邮箱已存在",
-  "error": "email_already_exists"
-}
-```

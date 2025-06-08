@@ -32,9 +32,9 @@ type UserProvider struct {
 type User struct {
 	ID              uint    `json:"id" gorm:"primaryKey;<-:create"` // 内部系统的 UserID
 	Email           *string `json:"email" gorm:"size:100;uniqueIndex:idx_email"`
-	IsEmailVerified bool    `json:"is_email_verified" gorm:"default:false"` // 邮箱是否已验证
-	Phone           *string `json:"phone" gorm:"size:20;uniqueIndex:idx_phone"`
-	Password        *string `json:"-" gorm:"size:255"` // 密码字段，存储哈希值，不直接暴露
+	IsEmailVerified bool    `json:"is_email_verified" gorm:"default:false"`     // 邮箱是否已验证
+	Phone           *string `json:"phone" gorm:"size:20;uniqueIndex:idx_phone"` // 手机号遵循 E.164 格式
+	Password        *string `json:"-" gorm:"size:255"`                          // 密码字段，存储哈希值，不直接暴露
 
 	Name      string     `json:"name" gorm:"size:100"`
 	AvatarURL *string    `json:"avatar_url" gorm:"size:255"`

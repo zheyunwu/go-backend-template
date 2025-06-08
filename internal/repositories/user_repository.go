@@ -18,6 +18,8 @@ type UserRepository interface {
 	CreateUserProvider(userProvider *models.UserProvider) error
 	GetUserByProvider(provider string, providerUID string) (*models.User, error)
 	GetUserByUnionID(unionID string) (*models.User, error)
+	DeleteUserProvider(userID uint, provider string) error
+	GetUserProvider(userID uint, provider string) (*models.UserProvider, error)
 }
 
 type userRepository struct {
@@ -119,4 +121,14 @@ func (r *userRepository) GetUserByUnionID(unionID string) (*models.User, error) 
 		Where("user_providers.wechat_union_id = ?", unionID).
 		First(&user).Error
 	return &user, err
+}
+
+func (r *userRepository) DeleteUserProvider(userID uint, provider string) error {
+	return r.db.Where("user_id = ? AND provider = ?", userID, provider).Delete(&models.UserProvider{}).Error
+}
+
+func (r *userRepository) GetUserProvider(userID uint, provider string) (*models.UserProvider, error) {
+	var userProvider models.UserProvider
+	err := r.db.Where("user_id = ? AND provider = ?", userID, provider).First(&userProvider).Error
+	return &userProvider, err
 }
