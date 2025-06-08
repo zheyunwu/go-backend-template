@@ -72,7 +72,14 @@ APP_ENV=prod go run cmd/*.go server
 # 构建镜像
 docker build -t go-backend-template .
 
-# 运行容器
+# 运行容器（直接用容器内的config.prod.yaml）
+docker run -d \
+  --name go-backend \
+  -p 8080:8080 \
+  -e APP_ENV=prod \
+  go-backend-template
+
+# 运行容器（用ENV覆盖config文件，具体说明请参考"配置"部分）
 docker run -d \
   --name go-backend \
   -p 8080:8080 \
@@ -154,11 +161,12 @@ go-backend-template/
 ├── internal/                  # 应用内部逻辑
 │   ├── di/                    # 依赖注入容器
 │   ├── dto/                   # DTO定义
-│   ├── errors/                # 自定义错误
+│   ├── errors/                # 自定义Errors
 │   ├── routes/                # 路由定义
 │   ├── infra/
-│   │   ├── db.go              # DB 连接 & 初始化
-│   │   ├── llm.go             # LLM Client初始化
+│   │   ├── db.go              # DB Client 连接 & 初始化
+│   │   ├── redis.go           # Redis Client 连接 & 初始化
+│   │   ├── llm.go             # LLM Client 初始化
 │   ├── handlers/              # HTTP请求处理层
 │   │   ├── admin_handlers/    # 面向后台管理的API Handlers
 │   │   ├── handler_utils/     # Handler层公共逻辑
@@ -173,6 +181,7 @@ go-backend-template/
 │   │   ├── authenticate.go    # 鉴权（JWT -> user）
 │   │   ├── error_handler.go   # 全局错误处理
 │   │   ├── query_parser.go    # 解析查询参数
+│   │   ├── rate_limiter.go    # 速率限制
 │   │   ├── request_logger.go  # 记录HTTP请求的生命周期
 │   ├── utils/                 # 工具函数
 ├── pkg/                       # 公共库
@@ -186,8 +195,8 @@ go-backend-template/
 
 ## 📋 API 规范
 
-### List接口Query Parameters
-支持以下查询参数：
+### 查询参数 Query Parameters
+List接口通过[QueryParamParser 中间件](internal/middlewares/query_parser.go)统一支持以下查询参数：
 - `page`, `limit` - 分页
 - `search` - 搜索
 - `filter` - 过滤 (JSON格式)
@@ -197,7 +206,7 @@ go-backend-template/
 
 ### 响应格式
 
-**列表接口：**
+**List接口：**
 ```json
 {
   "status": "success",
@@ -211,7 +220,7 @@ go-backend-template/
 }
 ```
 
-**单条记录：**
+**Get接口：**
 ```json
 {
   "status": "success",
@@ -219,7 +228,7 @@ go-backend-template/
 }
 ```
 
-**错误响应：**
+**错误响应格式：**
 ```json
 {
   "status": "error",
