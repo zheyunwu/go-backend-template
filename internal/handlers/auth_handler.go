@@ -91,14 +91,14 @@ func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
 	}
 
 	// 调用 Service层 更新 User
-	err := h.UserService.UpdateProfile(authenticatedUser.ID, &payload, authenticatedUser)
+	err := h.UserService.UpdateUser(authenticatedUser.ID, &payload)
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
 	// 返回204 No Content
-	slog.Info("User updated", "requesterId", authenticatedUser.ID)
+	slog.Info("User Profile updated", "requesterId", authenticatedUser.ID)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 

@@ -10,14 +10,15 @@ import (
 
 // UserProfileDTO 用户信息
 type UserProfileDTO struct {
-	ID        uint              `json:"id"`
-	Name      string            `json:"name"`
-	AvatarURL *string           `json:"avatar_url"`
-	Gender    models.GenderType `json:"gender"`
-	Email     *string           `json:"email"`
-	Phone     *string           `json:"phone"`
-	BirthDate *time.Time        `json:"birth_date"`
-	Locale    string            `json:"locale"`
+	ID              uint              `json:"id"`
+	Name            string            `json:"name"`
+	AvatarURL       *string           `json:"avatar_url"`
+	Gender          models.GenderType `json:"gender"`
+	Email           *string           `json:"email"`
+	IsEmailVerified bool              `json:"is_email_verified"`
+	Phone           *string           `json:"phone"`
+	BirthDate       *time.Time        `json:"birth_date"`
+	Locale          string            `json:"locale"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -30,16 +31,17 @@ func ToUserProfileDTO(user *models.User) *UserProfileDTO {
 	}
 
 	return &UserProfileDTO{
-		ID:        user.ID,
-		Name:      user.Name,
-		AvatarURL: user.AvatarURL,
-		Gender:    user.Gender,
-		Email:     user.Email,
-		Phone:     user.Phone,
-		BirthDate: user.BirthDate,
-		Locale:    user.Locale,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		ID:              user.ID,
+		Name:            user.Name,
+		AvatarURL:       user.AvatarURL,
+		Gender:          user.Gender,
+		Email:           user.Email,
+		IsEmailVerified: user.IsEmailVerified,
+		Phone:           user.Phone,
+		BirthDate:       user.BirthDate,
+		Locale:          user.Locale,
+		CreatedAt:       user.CreatedAt,
+		UpdatedAt:       user.UpdatedAt,
 	}
 }
 

@@ -32,7 +32,6 @@ type UserService interface {
 
 	/* Auth逻辑 */
 	CheckUserExists(fieldType string, value string) (bool, error)
-	UpdateProfile(id uint, req *dto.UpdateProfileRequest, authenticatedUser *models.User) error
 
 	/* 传统注册登录相关 */
 	RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error)
@@ -198,13 +197,28 @@ func hashPassword(password string) (string, error) {
 // UpdateUser 更新用户
 func (s *userService) UpdateUser(id uint, req *dto.UpdateProfileRequest) error {
 	// 检查用户是否存在
-	_, err := s.GetUser(id)
+	user, err := s.GetUser(id)
 	if err != nil {
 		return err
 	}
 
-	// 调用DTO的ToMap方法构建更新字段映射
+	// 将DTO转换为更新字段Map
 	updates := req.ToUpdatesMap()
+
+	// 如果更新了Email，检查是否已存在、并设定为未验证状态
+	if req.Email != nil && *req.Email != "" && (user.Email == nil || *user.Email != *req.Email) {
+		existingUser, err := s.userRepo.GetUserByField("email", *req.Email)
+		if err != nil && err != gorm.ErrRecordNotFound {
+			slog.Error("Failed to check existing email", "email", *req.Email, "error", err)
+			return fmt.Errorf("failed to check existing email: %w", err)
+		}
+		if existingUser != nil && existingUser.ID != 0 && existingUser.ID != id {
+			slog.Warn("Email already exists", "email", *req.Email)
+			return errors.ErrEmailAlreadyExists
+		}
+		// 如果Email已更新，设置为未验证状态
+		updates["is_email_verified"] = false
+	}
 
 	// 调用repo层进行更新
 	if err := s.userRepo.UpdateUser(id, updates); err != nil {
@@ -278,31 +292,6 @@ func (s *userService) CheckUserExists(fieldType string, value string) (bool, err
 		return false, err
 	}
 	return true, nil
-}
-
-// UpdateProfile 更新用户信息
-func (s *userService) UpdateProfile(id uint, req *dto.UpdateProfileRequest, authenticatedUser *models.User) error {
-	// 查询目标资源，验证目标资源是否属于请求者userID
-	user, err := s.GetUser(id)
-	if err != nil {
-		return err
-	}
-
-	if user.ID != authenticatedUser.ID {
-		slog.Warn("Permission denied for user update", "userId", id, "requesterId", authenticatedUser.ID)
-		return errors.ErrPermissionDenied
-	}
-
-	// 将DTO转换为更新字段Map
-	updates := req.ToUpdatesMap()
-
-	// 调用repo层进行更新
-	if err := s.userRepo.UpdateUser(id, updates); err != nil {
-		slog.Error("Failed to update user", "userId", id, "error", err)
-		return fmt.Errorf("failed to update user: %w", err)
-	}
-
-	return nil
 }
 
 /*
