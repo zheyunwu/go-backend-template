@@ -90,6 +90,11 @@ func (r *UpdateProfileRequest) ToUpdatesMap() map[string]interface{} {
 	return updates
 }
 
+type UpdatePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required,min=8"` // 当前密码
+	NewPassword     string `json:"new_password" binding:"required,min=8"`     // 新密码
+}
+
 // RegisterFromWechatMiniProgramRequest 微信小程序注册请求
 type RegisterFromWechatMiniProgramRequest struct {
 	UpdateProfileRequest

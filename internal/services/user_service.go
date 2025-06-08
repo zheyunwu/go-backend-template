@@ -32,6 +32,7 @@ type UserService interface {
 
 	/* Auth逻辑 */
 	CheckUserExists(fieldType string, value string) (bool, error)
+	UpdatePassword(userID uint, currentPassword, newPassword string) error
 
 	/* 传统注册登录相关 */
 	RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error)
@@ -292,6 +293,52 @@ func (s *userService) CheckUserExists(fieldType string, value string) (bool, err
 		return false, err
 	}
 	return true, nil
+}
+
+// UpdatePassword 更新用户密码
+func (s *userService) UpdatePassword(userID uint, currentPassword, newPassword string) error {
+	// 检查用户是否存在
+	user, err := s.userRepo.GetUser(userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrUserNotFound
+		}
+		slog.Error("Failed to find user", "userId", userID, "error", err)
+		return fmt.Errorf("database error: %w", err)
+	}
+
+	// 验证当前密码
+	if user.Password == nil || *user.Password == "" {
+		slog.Warn("User has no password set", "userId", user.ID)
+		return errors.ErrInvalidPassword
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(currentPassword))
+	if err != nil {
+		slog.Warn("Current password verification failed", "userId", user.ID)
+		return errors.ErrInvalidPassword
+	}
+
+	// 哈希新密码
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil {
+		slog.Error("Failed to hash new password", "userId", user.ID, "error", err)
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// 更新用户密码
+	updates := map[string]interface{}{
+		"password": hashedPassword,
+	}
+
+	// 调用repo层更新用户密码
+	if err := s.userRepo.UpdateUser(user.ID, updates); err != nil {
+		slog.Error("Failed to update user password", "userId", user.ID, "error", err)
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	slog.Info("Password updated successfully", "userId", user.ID)
+	return nil
 }
 
 /*

@@ -102,6 +102,34 @@ func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
+// UpdatePassword 更新密码
+func (h *AuthHandler) UpdatePassword(ctx *gin.Context) {
+	// 获取当前authenticatedUser
+	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
+	if !ok {
+		return
+	}
+
+	// 解析请求体
+	var payload dto.UpdatePasswordRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid password update request", "requesterId", authenticatedUser.ID, "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 更新密码
+	err := h.UserService.UpdatePassword(authenticatedUser.ID, payload.CurrentPassword, payload.NewPassword)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回204 No Content
+	slog.Info("Password updated successfully", "requesterId", authenticatedUser.ID)
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
 // RegisterWithPassword 邮箱密码注册
 func (h *AuthHandler) RegisterWithPassword(ctx *gin.Context) {
 	// 解析请求体

@@ -38,9 +38,10 @@ func initRoutes(api *gin.RouterGroup, container *di.Container) {
 	// Auth相关路由
 	authRoutes := api.Group("/auth")
 	{
-		authRoutes.GET("/user_exists", container.AuthHandler.CheckUserExists)                     // 检查用户是否存在
-		authRoutes.GET("/profile", requiredAuthMiddleware, container.AuthHandler.GetProfile)      // 获取用户信息，可用作微信登录
-		authRoutes.PATCH("/profile", requiredAuthMiddleware, container.AuthHandler.UpdateProfile) // 更新用户信息
+		authRoutes.GET("/user_exists", container.AuthHandler.CheckUserExists)                       // 检查用户是否存在
+		authRoutes.GET("/profile", requiredAuthMiddleware, container.AuthHandler.GetProfile)        // 获取用户信息，可用作微信登录
+		authRoutes.PATCH("/profile", requiredAuthMiddleware, container.AuthHandler.UpdateProfile)   // 更新用户信息
+		authRoutes.PATCH("/password", requiredAuthMiddleware, container.AuthHandler.UpdatePassword) // 更新密码
 
 		authRoutes.POST("/register", container.AuthHandler.RegisterWithPassword) // 使用密码注册
 		authRoutes.POST("/login", container.AuthHandler.LoginWithPassword)       // 使用密码登录
