@@ -20,18 +20,18 @@ func InitRoutes(r *gin.Engine, container *di.Container) {
 	api := r.Group("/api/v1")
 	initRoutes(api, container)
 
-	// 初始化后台管理API路由组
+	// 初始化Admin API路由组
 	adminApi := r.Group("/admin-api/v1")
 	initAdminRoutes(adminApi, container)
 }
 
-// User API路由
+// 公共API路由
 func initRoutes(api *gin.RouterGroup, container *di.Container) {
 	// 中间件
-	requiredAuthMiddleware := middlewares.RequiredAuthenticate(container.Config, container.UserService)
-	optionalAuthMiddleware := middlewares.OptionalAuthenticate(container.Config, container.UserService)
+	requiredAuthMiddleware := middlewares.RequiredAuthenticate(container.Config, container.UserService) // 必须登录
+	optionalAuthMiddleware := middlewares.OptionalAuthenticate(container.Config, container.UserService) // 可选登录
 
-	rateLimiter := middlewares.NewRateLimiter(container.Redis)
+	rateLimiter := middlewares.NewRateLimiter(container.Redis) // 速率限制
 	emailVerificationRateLimit := rateLimiter.EmailVerificationRateLimit()
 	passwordResetRateLimit := rateLimiter.PasswordResetRateLimit()
 
