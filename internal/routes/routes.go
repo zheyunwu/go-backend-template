@@ -38,9 +38,8 @@ func initRoutes(api *gin.RouterGroup, container *di.Container) {
 	// Auth相关路由
 	authRoutes := api.Group("/auth")
 	{
-		authRoutes.GET("/user_exists", container.AuthHandler.CheckUserExists)                       // 检查用户是否存在
-		authRoutes.GET("/profile", requiredAuthMiddleware, container.AuthHandler.GetProfile)        // 获取用户信息，可用作微信登录
-		authRoutes.PATCH("/profile", requiredAuthMiddleware, container.AuthHandler.UpdateProfile)   // 更新用户信息
+		authRoutes.GET("/profile", requiredAuthMiddleware, container.AuthHandler.GetProfile)        // 获取用户个人资料
+		authRoutes.PATCH("/profile", requiredAuthMiddleware, container.AuthHandler.UpdateProfile)   // 更新用户个人资料
 		authRoutes.PATCH("/password", requiredAuthMiddleware, container.AuthHandler.UpdatePassword) // 更新密码
 
 		authRoutes.POST("/register", container.AuthHandler.RegisterWithPassword) // 使用密码注册
@@ -102,6 +101,7 @@ func initAdminRoutes(admin *gin.RouterGroup, container *di.Container) {
 		userRoutes.POST("", container.UserHandlerForAdmin.CreateUser)
 		userRoutes.PATCH("/:id", container.UserHandlerForAdmin.UpdateUser)
 		userRoutes.DELETE("/:id", container.UserHandlerForAdmin.DeleteUser)
+		userRoutes.PATCH("/:id/restore", container.UserHandlerForAdmin.RestoreUser) // 恢复软删除的用户
 		userRoutes.PATCH("/:id/ban", container.UserHandlerForAdmin.BanUser)
 	}
 

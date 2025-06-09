@@ -32,7 +32,6 @@ type UserService interface {
 	BanUser(id uint, banned bool) error // banned为true时封禁，false时解除封禁
 
 	/* Auth逻辑 */
-	CheckUserExists(fieldType string, value string) (bool, error)
 	UpdatePassword(userID uint, currentPassword, newPassword string) error
 
 	/* 传统注册登录相关 */
@@ -285,6 +284,8 @@ func (s *userService) BanUser(id uint, isBanned bool) error {
 	updates := map[string]interface{}{
 		"is_banned": isBanned,
 	}
+
+	// 调用repo层更新用户封禁状态
 	if err := s.userRepo.UpdateUser(id, updates); err != nil {
 		slog.Error("Failed to update ban status", "userId", id, "error", err)
 		return fmt.Errorf("failed to update ban status: %w", err)
@@ -295,31 +296,6 @@ func (s *userService) BanUser(id uint, isBanned bool) error {
 /*
 Auth逻辑
 */
-
-// CheckUserExists 检查用户是否存在
-func (s *userService) CheckUserExists(fieldType string, value string) (bool, error) {
-	var err error
-
-	switch fieldType {
-	case "mini_program_open_id":
-		// 通过UserProvider表查询微信小程序openID
-		_, err = s.userRepo.GetUserByProvider("wechat_mini_program", value)
-	case "union_id":
-		// 通过UserProvider表查询微信UnionID
-		_, err = s.userRepo.GetUserByUnionID(value)
-	default:
-		// 其他字段直接在User表中查询
-		_, err = s.userRepo.GetUserByField(fieldType, value)
-	}
-
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
 
 // UpdatePassword 更新用户密码
 func (s *userService) UpdatePassword(userID uint, currentPassword, newPassword string) error {

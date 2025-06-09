@@ -21,6 +21,13 @@ func ParseUintParam(ctx *gin.Context, paramName string) (uint64, error) {
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid "+paramName+" parameter"))
 		return 0, err
 	}
+
+	if id == 0 {
+		slog.Warn("Parameter cannot be zero", "param", paramName, "value", idStr)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid "+paramName+" parameter"))
+		return 0, errors.NewAppError("InvalidParameter", "Parameter cannot be zero", http.StatusBadRequest)
+	}
+
 	return id, nil
 }
 

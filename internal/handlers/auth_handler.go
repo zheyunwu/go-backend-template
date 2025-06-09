@@ -21,38 +21,7 @@ func NewAuthHandler(UserService services.UserService) *AuthHandler {
 	}
 }
 
-// UserExists 检查用户是否存在
-func (h *AuthHandler) CheckUserExists(ctx *gin.Context) {
-	// 获取请求参数
-	fieldType := ctx.Query("field_type")
-	if fieldType == "" {
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("field_type is required"))
-		return
-	}
-
-	// fieldType 如果是 "mini_program_open_id" 或 "unionid" 则需要从请求头中获取
-	var value string
-	if fieldType == "mini_program_open_id" {
-		value = ctx.GetHeader("x-wx-openid")
-	} else if fieldType == "union_id" {
-		value = ctx.GetHeader("x-wx-unionid")
-	} else {
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid field_type: "+fieldType))
-		return
-	}
-
-	// 调用 Service层 检查用户是否存在
-	exists, err := h.UserService.CheckUserExists(fieldType, value)
-	if err != nil {
-		handler_utils.HandleError(ctx, err)
-		return
-	}
-
-	// 返回200 OK
-	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{"exists": exists}, ""))
-}
-
-// GetProfileByUserID 根据UserID查询用户信息
+// GetProfile 获取用户个人资料
 func (h *AuthHandler) GetProfile(ctx *gin.Context) {
 	// 获取当前authenticatedUser
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
@@ -74,7 +43,7 @@ func (h *AuthHandler) GetProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(userProfile, ""))
 }
 
-// UpdateProfile 更新用户信息
+// UpdateProfile 更新用户个人资料
 func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
 	// 获取当前authenticatedUser
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
