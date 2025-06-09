@@ -8,13 +8,13 @@ import (
 
 type UserRepository interface {
 	// 通用CRUD查询
-	ListUsers(params *query_params.QueryParams) ([]models.User, int, error)
-	GetUser(id uint) (*models.User, error)
+	ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, int, error)
+	GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error)
 	CreateUser(user *models.User) error
-	UpdateUser(id uint, updates map[string]interface{}) error
+	UpdateUser(id uint, updates map[string]interface{}, includeSoftDeleted ...bool) error
 	DeleteUser(id uint) error
 	// 定制查询
-	GetUserByField(field string, value string) (*models.User, error)
+	GetUserByField(field string, value string, includeSoftDeleted ...bool) (*models.User, error)
 	CreateUserProvider(userProvider *models.UserProvider) error
 	GetUserByProvider(provider string, providerUID string) (*models.User, error)
 	GetUserByUnionID(unionID string) (*models.User, error)
@@ -34,11 +34,16 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 5个通用CRUD查询
 */
 
-func (r *userRepository) ListUsers(params *query_params.QueryParams) ([]models.User, int, error) {
+func (r *userRepository) ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, int, error) {
 	var users []models.User
 	var totalCount int64
 
 	query := r.db.Model(&models.User{})
+
+	// 如果明确传入了true，则包含软删除的记录
+	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
+		query = query.Unscoped()
+	}
 
 	// 处理搜索 search、过滤 filter、排序 sort
 	if params.Search != "" {
@@ -73,9 +78,16 @@ func (r *userRepository) ListUsers(params *query_params.QueryParams) ([]models.U
 	return users, int(totalCount), err
 }
 
-func (r *userRepository) GetUser(id uint) (*models.User, error) {
+func (r *userRepository) GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error) {
 	var user models.User
-	err := r.db.Preload("UserProviders").First(&user, id).Error
+	query := r.db
+
+	// 如果明确传入了true，则包含软删除的记录
+	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
+		query = query.Unscoped()
+	}
+
+	err := query.Preload("UserProviders").First(&user, id).Error
 	return &user, err
 }
 
@@ -83,9 +95,16 @@ func (r *userRepository) CreateUser(user *models.User) error {
 	return r.db.Create(user).Error
 }
 
-func (r *userRepository) UpdateUser(id uint, updates map[string]interface{}) error {
+func (r *userRepository) UpdateUser(id uint, updates map[string]interface{}, includeSoftDeleted ...bool) error {
 	// Partial update
-	return r.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error
+	query := r.db.Model(&models.User{})
+
+	// 如果明确传入了true，则包含软删除的记录
+	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
+		query = query.Unscoped()
+	}
+
+	return query.Where("id = ?", id).Updates(updates).Error
 }
 
 func (r *userRepository) DeleteUser(id uint) error {
@@ -97,9 +116,16 @@ func (r *userRepository) DeleteUser(id uint) error {
 定制查询
 */
 
-func (r *userRepository) GetUserByField(field string, value string) (*models.User, error) {
+func (r *userRepository) GetUserByField(field string, value string, includeSoftDeleted ...bool) (*models.User, error) {
 	var user models.User
-	err := r.db.Where(field+" = ?", value).First(&user).Error
+	query := r.db
+
+	// 如果明确传入了true，则包含软删除的记录
+	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
+		query = query.Unscoped()
+	}
+
+	err := query.Where(field+" = ?", value).First(&user).Error
 	return &user, err
 }
 

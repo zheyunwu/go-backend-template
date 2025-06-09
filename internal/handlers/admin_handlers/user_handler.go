@@ -37,8 +37,11 @@ func (h *UserHandler) ListUsers(ctx *gin.Context) {
 		return
 	}
 
+	// 检查是否需要包含软删除的记录
+	includeSoftDeleted := ctx.Query("include_soft_deleted") == "true"
+
 	// 获取用户列表
-	users, pagination, err := h.UserService.ListUsers(queryParams)
+	users, pagination, err := h.UserService.ListUsers(queryParams, includeSoftDeleted)
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
@@ -56,8 +59,11 @@ func (h *UserHandler) GetUser(ctx *gin.Context) {
 		return
 	}
 
+	// 检查是否需要包含软删除的记录
+	includeSoftDeleted := ctx.Query("include_soft_deleted") == "true"
+
 	// 调用 Service层 获取 User
-	user, err := h.UserService.GetUser(uint(id))
+	user, err := h.UserService.GetUser(uint(id), includeSoftDeleted)
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
@@ -134,6 +140,25 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 
 	// 返回204 No Content
 	slog.Info("User deleted", "userId", id)
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+// RestoreUser 恢复软删除的用户
+func (h *UserHandler) RestoreUser(ctx *gin.Context) {
+	// 解析用户ID
+	id, err := handler_utils.ParseUintParam(ctx, "id")
+	if err != nil {
+		return
+	}
+
+	// 调用 Service层 恢复软删除的 User
+	err = h.UserService.RestoreUser(uint(id))
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	slog.Info("User restored", "userId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 

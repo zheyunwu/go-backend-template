@@ -23,11 +23,12 @@ import (
 // UserService 定义用户相关的业务逻辑接口
 type UserService interface {
 	/* 面向Admin的业务逻辑 */
-	ListUsers(params *query_params.QueryParams) ([]models.User, *response.Pagination, error)
-	GetUser(id uint) (*models.User, error)
+	ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, *response.Pagination, error)
+	GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error)
 	CreateUser(req *dto.RegisterWithPasswordRequest) (uint, error)
 	UpdateUser(id uint, req *dto.UpdateProfileRequest) error
 	DeleteUser(id uint) error
+	RestoreUser(id uint) error          // 软删除的用户恢复
 	BanUser(id uint, banned bool) error // banned为true时封禁，false时解除封禁
 
 	/* Auth逻辑 */
@@ -85,9 +86,9 @@ func NewUserService(config *config.Config, userRepo repositories.UserRepository,
 */
 
 // ListUsers 获取用户列表
-func (s *userService) ListUsers(params *query_params.QueryParams) ([]models.User, *response.Pagination, error) {
+func (s *userService) ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, *response.Pagination, error) {
 	// 调用Repo层 获取用户列表
-	userList, total, err := s.userRepo.ListUsers(params)
+	userList, total, err := s.userRepo.ListUsers(params, includeSoftDeleted...)
 	if err != nil {
 		slog.Error("Failed to list users", "error", err)
 		return nil, nil, fmt.Errorf("failed to list users: %w", err)
@@ -110,9 +111,9 @@ func (s *userService) ListUsers(params *query_params.QueryParams) ([]models.User
 }
 
 // GetUser 获取用户详情
-func (s *userService) GetUser(id uint) (*models.User, error) {
+func (s *userService) GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error) {
 	// 调用repo层获取用户
-	user, err := s.userRepo.GetUser(id)
+	user, err := s.userRepo.GetUser(id, includeSoftDeleted...)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrUserNotFound
@@ -133,12 +134,12 @@ func (s *userService) CreateUser(req *dto.RegisterWithPasswordRequest) (uint, er
 
 	// 验证是否有重复的邮箱或手机号
 	if req.Email != nil && *req.Email != "" {
-		if _, err := s.userRepo.GetUserByField("email", *req.Email); err == nil {
+		if _, err := s.userRepo.GetUserByField("email", *req.Email, true); err == nil {
 			return 0, errors.ErrEmailAlreadyExists
 		}
 	}
 	if req.Phone != nil && *req.Phone != "" {
-		if _, err := s.userRepo.GetUserByField("phone", *req.Phone); err == nil {
+		if _, err := s.userRepo.GetUserByField("phone", *req.Phone, true); err == nil {
 			return 0, errors.ErrPhoneAlreadyExists
 		}
 	}
@@ -242,6 +243,31 @@ func (s *userService) DeleteUser(id uint) error {
 	if err := s.userRepo.DeleteUser(id); err != nil {
 		slog.Error("Failed to delete user", "userId", id, "error", err)
 		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	return nil
+}
+
+// RestoreUser 恢复软删除的用户
+func (s *userService) RestoreUser(id uint) error {
+	// 检查用户是否存在
+	user, err := s.GetUser(id, true) // 包含软删除的记录
+	if err != nil {
+		return err
+	}
+
+	// 如果用户没有被软删除，直接返回
+	if !user.DeletedAt.Valid {
+		return nil
+	}
+
+	// 构建更新字段映射
+	updates := map[string]interface{}{"deleted_at": nil}
+
+	// 调用repo层恢复用户
+	if err := s.userRepo.UpdateUser(id, updates, true); err != nil {
+		slog.Error("Failed to restore user", "userId", id, "error", err)
+		return fmt.Errorf("failed to restore user: %w", err)
 	}
 
 	return nil
@@ -622,12 +648,12 @@ func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatM
 
 	// 验证是否有重复的邮箱或手机号
 	if req.Email != nil && *req.Email != "" {
-		if _, err := s.userRepo.GetUserByField("email", *req.Email); err == nil {
+		if _, err := s.userRepo.GetUserByField("email", *req.Email, true); err == nil {
 			return 0, errors.ErrEmailAlreadyExists
 		}
 	}
 	if req.Phone != nil && *req.Phone != "" {
-		if _, err := s.userRepo.GetUserByField("phone", *req.Phone); err == nil {
+		if _, err := s.userRepo.GetUserByField("phone", *req.Phone, true); err == nil {
 			return 0, errors.ErrPhoneAlreadyExists
 		}
 	}
@@ -1037,7 +1063,7 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 	// 情况2: 用户不存在，需要注册新用户
 	if user == nil || user.ID == 0 {
 		// 检查邮箱是否已被其他用户使用
-		if _, err := s.userRepo.GetUserByField("email", googleUserInfo.Email); err == nil {
+		if _, err := s.userRepo.GetUserByField("email", googleUserInfo.Email, true); err == nil {
 			return "", false, errors.ErrEmailAlreadyExists
 		}
 
