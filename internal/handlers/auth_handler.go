@@ -132,7 +132,7 @@ func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 	}
 
 	// 调用 Service层 进行认证并获取token
-	token, err := h.UserService.LoginWithPassword(payload.EmailOrPhone, payload.Password)
+	accessToken, refreshToken, err := h.UserService.LoginWithPassword(payload.EmailOrPhone, payload.Password)
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
@@ -140,10 +140,37 @@ func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 
 	// 返回token
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   3600 * 24 * 7, // Assuming 7 days expiration
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"token_type":    "Bearer",
+		"expires_in":    3600 * 24 * 7, // Assuming 7 days expiration
 	}, ""))
+}
+
+// RefreshToken 刷新访问令牌
+func (h *AuthHandler) RefreshToken(ctx *gin.Context) {
+	// 解析请求体
+	var payload dto.RefreshTokenRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		slog.Warn("Invalid refresh token request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
+		return
+	}
+
+	// 调用 Service层 刷新token
+	newAccessToken, newRefreshToken, err := h.UserService.RefreshAccessToken(payload.RefreshToken)
+	if err != nil {
+		handler_utils.HandleError(ctx, err)
+		return
+	}
+
+	// 返回新的token
+	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
+		"access_token":  newAccessToken,
+		"refresh_token": newRefreshToken,
+		"token_type":    "Bearer",
+		"expires_in":    3600 * 24 * 7, // 7天过期
+	}, "Token refreshed successfully"))
 }
 
 // SendEmailVerification 发送邮箱验证码
@@ -273,7 +300,7 @@ func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
 	}
 
 	// Call Service layer to authenticate and get token
-	token, err := h.UserService.LoginFromWechatMiniProgram(unionID, openID)
+	accessToken, refreshToken, err := h.UserService.LoginFromWechatMiniProgram(unionID, openID)
 
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
@@ -282,9 +309,10 @@ func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
 
 	// Return token
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   3600 * 24 * 7, // Assuming 7 days expiration
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"token_type":    "Bearer",
+		"expires_in":    3600 * 24 * 7, // Assuming 7 days expiration
 	}, ""))
 }
 
@@ -297,17 +325,18 @@ func (h *AuthHandler) ExchangeWechatOAuth(ctx *gin.Context) {
 		return
 	}
 
-	token, isNewUser, err := h.UserService.ExchangeWechatOAuth(&payload)
+	accessToken, refreshToken, isNewUser, err := h.UserService.ExchangeWechatOAuth(&payload)
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
 	responseData := gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   3600 * 24 * 7,
-		"is_new_user":  isNewUser,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"token_type":    "Bearer",
+		"expires_in":    3600 * 24 * 7,
+		"is_new_user":   isNewUser,
 	}
 	if isNewUser {
 		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "用户注册并登录成功"))
@@ -373,7 +402,7 @@ func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
 	}
 
 	// 调用 Service层 进行认证（自动判断登录/注册）
-	token, isNewUser, err := h.UserService.ExchangeGoogleOAuth(&payload)
+	accessToken, refreshToken, isNewUser, err := h.UserService.ExchangeGoogleOAuth(&payload)
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
@@ -381,10 +410,11 @@ func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
 
 	// 返回token和用户状态
 	responseData := gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   3600 * 24 * 7, // 7天过期
-		"is_new_user":  isNewUser,     // 标识是否为新注册用户
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"token_type":    "Bearer",
+		"expires_in":    3600 * 24 * 7, // 7天过期
+		"is_new_user":   isNewUser,     // 标识是否为新注册用户
 	}
 
 	// 根据是否为新用户返回不同的HTTP状态码

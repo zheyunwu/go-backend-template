@@ -36,7 +36,8 @@ type UserService interface {
 
 	/* 传统注册登录相关 */
 	RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error)
-	LoginWithPassword(emailOrPhone, password string) (string, error)
+	LoginWithPassword(emailOrPhone, password string) (string, string, error) // 返回 (accessToken, refreshToken, error)
+	RefreshAccessToken(refreshToken string) (string, string, error)          // 返回 (newAccessToken, newRefreshToken, error)
 
 	/* 邮箱验证相关 */
 	SendEmailVerification(email string) error
@@ -48,14 +49,14 @@ type UserService interface {
 
 	/* 微信小程序端 */
 	RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error)
-	LoginFromWechatMiniProgram(unionID *string, openID *string) (string, error)
+	LoginFromWechatMiniProgram(unionID *string, openID *string) (string, string, error) // 返回 (accessToken, refreshToken, error)
 
 	/* 微信OAuth2.0（App/Web端） */
-	ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, bool, error)
+	ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, string, bool, error) // 返回 (accessToken, refreshToken, isNewUser, error)
 	BindWechatAccount(userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error
 	UnbindWechatAccount(userID uint, authenticatedUser *models.User) error
 	/* Google OAuth2.0（App/Web端） */
-	ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error)
+	ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, string, bool, error) // 返回 (accessToken, refreshToken, isNewUser, error)
 	BindGoogleAccount(userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error
 	UnbindGoogleAccount(userID uint, authenticatedUser *models.User) error
 }
@@ -354,7 +355,7 @@ func (s *userService) RegisterWithPassword(req *dto.RegisterWithPasswordRequest)
 }
 
 // LoginWithPassword 验证用户密码并生成JWT token
-func (s *userService) LoginWithPassword(emailOrPhone, password string) (string, error) {
+func (s *userService) LoginWithPassword(emailOrPhone, password string) (string, string, error) {
 	var user *models.User
 	var err error
 
@@ -365,46 +366,101 @@ func (s *userService) LoginWithPassword(emailOrPhone, password string) (string, 
 		user, err = s.userRepo.GetUserByField("phone", emailOrPhone)
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
-				return "", errors.ErrUserNotFound
+				return "", "", errors.ErrUserNotFound
 			}
 			slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
-			return "", fmt.Errorf("database error: %w", err)
+			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	} else if err != nil {
 		slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
-		return "", fmt.Errorf("database error: %w", err)
+		return "", "", fmt.Errorf("database error: %w", err)
 	}
 
 	// 检查用户是否被封禁
 	if user.IsBanned {
-		return "", errors.ErrUserBanned
+		return "", "", errors.ErrUserBanned
 	}
 
 	// 检查有无密码
 	if user.Password == nil || *user.Password == "" {
 		slog.Warn("User has no password set", "userId", user.ID)
-		return "", errors.ErrInvalidPassword
+		return "", "", errors.ErrInvalidPassword
 	}
 
 	// 验证密码
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(password))
 	if err != nil {
 		slog.Warn("Password verification failed", "userId", user.ID)
-		return "", errors.ErrInvalidPassword
+		return "", "", errors.ErrInvalidPassword
 	}
 
-	// 生成JWT token
-	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	// 生成JWT access token
+	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)
-		return "", fmt.Errorf("failed to generate authentication token: %w", err)
+		slog.Error("Failed to generate access token", "error", err, "userId", user.ID)
+		return "", "", fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// 生成JWT refresh token
+	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		slog.Error("Failed to generate refresh token", "error", err, "userId", user.ID)
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
 	// 更新最后登录时间
 	now := time.Now()
 	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
 
-	return token, nil
+	return accessToken, refreshToken, nil
+}
+
+// RefreshAccessToken 使用刷新令牌获取新的访问令牌
+func (s *userService) RefreshAccessToken(refreshToken string) (string, string, error) {
+	// 1. 验证刷新令牌
+	refreshTokenDetails, err := jwt.ValidateToken(refreshToken, s.config.JWT.Secret)
+	if err != nil || refreshTokenDetails.TokenType != jwt.RefreshToken {
+		slog.Debug("Refresh token validation failed", "error", err)
+		return "", "", errors.ErrInvalidToken
+	}
+
+	// 2. 验证用户是否存在且未被封禁
+	user, err := s.userRepo.GetUser(refreshTokenDetails.UserID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			slog.Warn("User not found for refresh token", "userId", refreshTokenDetails.UserID)
+			return "", "", errors.ErrUserNotFound
+		}
+		slog.Error("Failed to get user during token refresh", "userId", refreshTokenDetails.UserID, "error", err)
+		return "", "", fmt.Errorf("database error: %w", err)
+	}
+
+	// 3. 检查用户是否被封禁
+	if user.IsBanned {
+		slog.Warn("Refresh token rejected for banned user", "userId", user.ID)
+		return "", "", errors.ErrUserBanned
+	}
+
+	// 4. 生成新的访问令牌
+	newAccessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		slog.Error("Failed to generate new access token", "userId", user.ID, "error", err)
+		return "", "", fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// 5. 生成新的刷新令牌（可选，用于刷新令牌轮转）
+	newRefreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		slog.Error("Failed to generate new refresh token", "userId", user.ID, "error", err)
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	// 6. 更新最后登录时间
+	now := time.Now()
+	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+
+	slog.Info("Access token refreshed successfully", "userId", user.ID)
+	return newAccessToken, newRefreshToken, nil
 }
 
 /*
@@ -682,10 +738,10 @@ func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatM
 }
 
 // LoginFromWechatMiniProgram 微信小程序登录
-func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string) (string, error) {
+func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string) (string, string, error) {
 	// 如果unionID和openID都为nil，则直接返回错误
 	if unionID == nil && openID == nil {
-		return "", errors.ErrUserNotFound
+		return "", "", errors.ErrUserNotFound
 	}
 
 	var user *models.User
@@ -697,7 +753,7 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 		user, err = s.userRepo.GetUserByUnionID(*unionID)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			slog.Error("Failed to find user by unionID", "unionID", *unionID, "error", err)
-			return "", fmt.Errorf("database error: %w", err)
+			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	}
 
@@ -706,25 +762,32 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 		user, err = s.userRepo.GetUserByProvider("wechat_mini_program", *openID)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			slog.Error("Failed to find user by provider", "provider", "wechat_mini_program", "providerUID", *openID, "error", err)
-			return "", fmt.Errorf("database error: %w", err)
+			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	}
 
 	// 如果还是没有找到用户，返回用户未找到错误
 	if user == nil || user.ID == 0 {
-		return "", errors.ErrUserNotFound
+		return "", "", errors.ErrUserNotFound
 	}
 
 	// 检查用户是否被封禁
 	if user.IsBanned {
-		return "", errors.ErrUserBanned
+		return "", "", errors.ErrUserBanned
 	}
 
-	// 生成JWT token
-	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	// 生成JWT access token
+	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)
-		return "", fmt.Errorf("failed to generate authentication token: %w", err)
+		slog.Error("Failed to generate access token", "error", err, "userId", user.ID)
+		return "", "", fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// 生成JWT refresh token
+	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		slog.Error("Failed to generate refresh token", "error", err, "userId", user.ID)
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
 	// 更新最后登录时间
@@ -736,7 +799,7 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 		"unionID", unionID,
 		"openID", openID)
 
-	return token, nil
+	return accessToken, refreshToken, nil
 }
 
 /*
@@ -758,7 +821,7 @@ type WechatOAuthTokenResponse struct {
 }
 
 // ExchangeWechatOAuth 处理微信OAuth2.0（自动判断登录/注册）
-func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, bool, error) {
+func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, string, bool, error) {
 	// 1. 用 code 换取 access_token 和 openid/unionid
 	appid := ""
 	secret := ""
@@ -769,23 +832,23 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 		appid = s.config.Wechat.App.AppID
 		secret = s.config.Wechat.App.Secret
 	} else {
-		return "", false, fmt.Errorf("invalid client_type")
+		return "", "", false, fmt.Errorf("invalid client_type")
 	}
 
 	url := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", appid, secret, req.Code)
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to request wechat oauth: %w", err)
+		return "", "", false, fmt.Errorf("failed to request wechat oauth: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var tokenResp WechatOAuthTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		return "", false, fmt.Errorf("failed to decode wechat oauth response: %w", err)
+		return "", "", false, fmt.Errorf("failed to decode wechat oauth response: %w", err)
 	}
 	if tokenResp.ErrCode != 0 {
-		return "", false, fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
+		return "", "", false, fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
 	}
 
 	openid := tokenResp.OpenID
@@ -799,7 +862,7 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 	if openid != "" {
 		user, err = s.userRepo.GetUserByProvider("wechat", openid)
 		if err != nil && err != gorm.ErrRecordNotFound {
-			return "", false, fmt.Errorf("failed to find user by openid: %w", err)
+			return "", "", false, fmt.Errorf("failed to find user by openid: %w", err)
 		}
 	}
 
@@ -807,7 +870,7 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 	if (user == nil || user.ID == 0) && unionid != "" {
 		user, err = s.userRepo.GetUserByUnionID(unionid)
 		if err != nil && err != gorm.ErrRecordNotFound {
-			return "", false, fmt.Errorf("failed to find user by unionid: %w", err)
+			return "", "", false, fmt.Errorf("failed to find user by unionid: %w", err)
 		}
 
 		// 创建 UserProvider 记录
@@ -819,7 +882,7 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 				WechatUnionID: &unionid, // unionid可能为空，所以用指针
 			}
 			if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
-				return "", false, fmt.Errorf("failed to create user provider: %w", err)
+				return "", "", false, fmt.Errorf("failed to create user provider: %w", err)
 			}
 			slog.Info("UserProvider created successfully for unionid",
 				"userId", user.ID,
@@ -837,7 +900,7 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 			Locale: "zh",
 		}
 		if err := s.userRepo.CreateUser(user); err != nil {
-			return "", false, fmt.Errorf("failed to create user: %w", err)
+			return "", "", false, fmt.Errorf("failed to create user: %w", err)
 		}
 		userProvider := models.UserProvider{
 			UserID:      user.ID,
@@ -848,7 +911,7 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 			userProvider.WechatUnionID = &unionid
 		}
 		if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
-			return "", false, fmt.Errorf("failed to create user provider: %w", err)
+			return "", "", false, fmt.Errorf("failed to create user provider: %w", err)
 		}
 		isNewUser = true
 
@@ -861,20 +924,26 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 
 	// 检查用户是否被封禁
 	if user.IsBanned {
-		return "", false, errors.ErrUserBanned
+		return "", "", false, errors.ErrUserBanned
 	}
 
-	// 3. 返回 JWT token
-	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	// 3. 生成JWT access token
+	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to generate authentication token: %w", err)
+		return "", "", false, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// 4. 生成JWT refresh token
+	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		return "", "", false, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
 	// 更新最后登录时间
 	now := time.Now()
 	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
 
-	return token, isNewUser, nil
+	return accessToken, refreshToken, isNewUser, nil
 }
 
 // BindWechatAccount 绑定微信账号
@@ -1009,7 +1078,7 @@ Google OAuth2.0（App/Web端）
 */
 
 // ExchangeGoogleOAuth 处理Google OAuth2.0（自动判断登录/注册）
-func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, bool, error) {
+func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, string, bool, error) {
 	// 1. 用auth code换取用户信息
 	googleUserInfo, err := s.googleOAuthService.ExchangeCodeForUserInfo(
 		context.Background(),
@@ -1020,7 +1089,7 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 	)
 	if err != nil {
 		slog.Error("Failed to exchange Google OAuth code", "error", err)
-		return "", false, err
+		return "", "", false, err
 	}
 
 	// 2. 检查用户是否已通过Google注册
@@ -1033,14 +1102,14 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 		slog.Error("Failed to find user by Google provider",
 			"providerUID", googleUserInfo.ID,
 			"error", err)
-		return "", false, fmt.Errorf("failed to find user: %w", err)
+		return "", "", false, fmt.Errorf("failed to find user: %w", err)
 	}
 
 	// 情况2: 用户不存在，需要注册新用户
 	if user == nil || user.ID == 0 {
 		// 检查邮箱是否已被其他用户使用
 		if _, err := s.userRepo.GetUserByField("email", googleUserInfo.Email, true); err == nil {
-			return "", false, errors.ErrEmailAlreadyExists
+			return "", "", false, errors.ErrEmailAlreadyExists
 		}
 
 		// 创建新用户Model
@@ -1067,7 +1136,7 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 				"email", googleUserInfo.Email,
 				"googleId", googleUserInfo.ID,
 				"error", err)
-			return "", false, fmt.Errorf("failed to create user: %w", err)
+			return "", "", false, fmt.Errorf("failed to create user: %w", err)
 		}
 
 		// 创建UserProvider记录
@@ -1083,7 +1152,7 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 				"provider", "google",
 				"providerUID", googleUserInfo.ID,
 				"error", err)
-			return "", false, fmt.Errorf("failed to create user provider: %w", err)
+			return "", "", false, fmt.Errorf("failed to create user provider: %w", err)
 		}
 		isNewUser = true
 
@@ -1096,21 +1165,28 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 	// 检查用户是否被封禁
 	if user.IsBanned {
 		slog.Warn("User is banned", "userId", user.ID, "email", googleUserInfo.Email)
-		return "", false, errors.ErrUserBanned
+		return "", "", false, errors.ErrUserBanned
 	}
 
-	// 3. 返回JWT token
-	token, err := jwt.GenerateToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	// 3. 生成JWT access token
+	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate JWT", "error", err, "userId", user.ID)
-		return "", false, fmt.Errorf("failed to generate authentication token: %w", err)
+		slog.Error("Failed to generate access token", "error", err, "userId", user.ID)
+		return "", "", false, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// 4. 生成JWT refresh token
+	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
+	if err != nil {
+		slog.Error("Failed to generate refresh token", "error", err, "userId", user.ID)
+		return "", "", false, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
 	// 更新最后登录时间
 	now := time.Now()
 	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
 
-	return token, isNewUser, nil
+	return accessToken, refreshToken, isNewUser, nil
 }
 
 // BindGoogleAccount 绑定Google账号

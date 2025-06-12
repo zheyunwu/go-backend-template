@@ -176,6 +176,11 @@ type LoginWithPasswordRequest struct {
 	Password     string `json:"password" binding:"required"`
 }
 
+// RefreshTokenRequest 刷新访问令牌请求
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"` // 刷新令牌
+}
+
 // 邮箱验证相关 DTO
 
 type SendEmailVerificationRequest struct {

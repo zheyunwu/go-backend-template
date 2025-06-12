@@ -7,31 +7,43 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// TokenType represents the type of JWT token
+type TokenType string
+
+const (
+	AccessToken  TokenType = "access"
+	RefreshToken TokenType = "refresh"
+)
+
 // Claims represents the JWT claims structure
 type Claims struct {
-	UserID uint   `json:"user_id"`
-	Role   string `json:"role"`
+	UserID    uint      `json:"user_id"`
+	Role      string    `json:"role"`
+	TokenType TokenType `json:"token_type"` // 新增字段用于区分token类型
 	jwt.RegisteredClaims
 }
 
 // TokenDetails contains decoded token information
 type TokenDetails struct {
-	UserID uint
-	Role   string
+	UserID    uint
+	Role      string
+	TokenType TokenType
 }
 
-// GenerateToken creates a new JWT token for a user
-func GenerateToken(userID uint, role string, jwt_secret string, jwt_expiration_hours int) (string, error) {
+// generateTokenWithDuration creates a JWT token with custom expiration duration
+func generateTokenWithDuration(userID uint, role string, tokenType TokenType, jwt_secret string, duration time.Duration) (string, error) {
 	// Set token expiration time
-	expirationTime := time.Now().Add(time.Hour * time.Duration(jwt_expiration_hours))
+	expirationTime := time.Now().Add(duration)
 
-	// Create claims with user ID, role and expiration time
+	// Create claims with user ID, role, token type and expiration time
 	claims := &Claims{
-		UserID: userID,
-		Role:   role,
+		UserID:    userID,
+		Role:      role,
+		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			Issuer:    "go-backend-template",
 		},
 	}
 
@@ -45,6 +57,24 @@ func GenerateToken(userID uint, role string, jwt_secret string, jwt_expiration_h
 	}
 
 	return tokenString, nil
+}
+
+// GenerateAccessToken creates a new JWT access token for a user
+func GenerateAccessToken(userID uint, role string, jwt_secret string, jwt_expiration_hours int) (string, error) {
+	duration := time.Hour * time.Duration(jwt_expiration_hours)
+	return generateTokenWithDuration(userID, role, AccessToken, jwt_secret, duration)
+}
+
+// GenerateRefreshToken creates a new JWT refresh token for a user
+func GenerateRefreshToken(userID uint, role string, jwt_secret string, jwt_expiration_hours int) (string, error) {
+	// Refresh token typically expires in 30 days (720 hours) or longer
+	refreshExpirationHours := jwt_expiration_hours * 10 // 10x longer than access token
+	if refreshExpirationHours < 720 {                   // minimum 30 days
+		refreshExpirationHours = 720
+	}
+
+	duration := time.Hour * time.Duration(refreshExpirationHours)
+	return generateTokenWithDuration(userID, role, RefreshToken, jwt_secret, duration)
 }
 
 // ValidateToken validates the JWT token and returns the user details
@@ -71,7 +101,8 @@ func ValidateToken(tokenString string, jwt_secret string) (*TokenDetails, error)
 
 	// Return user details from claims
 	return &TokenDetails{
-		UserID: claims.UserID,
-		Role:   claims.Role,
+		UserID:    claims.UserID,
+		Role:      claims.Role,
+		TokenType: claims.TokenType,
 	}, nil
 }

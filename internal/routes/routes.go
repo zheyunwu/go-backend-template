@@ -44,6 +44,7 @@ func initRoutes(api *gin.RouterGroup, container *di.Container) {
 
 		authRoutes.POST("/register", container.AuthHandler.RegisterWithPassword) // 使用密码注册
 		authRoutes.POST("/login", container.AuthHandler.LoginWithPassword)       // 使用密码登录
+		authRoutes.POST("/refresh", container.AuthHandler.RefreshToken)          // 刷新访问令牌
 
 		// 邮箱验证相关 (with rate limiting)
 		authRoutes.POST("/email/send-verification", emailVerificationRateLimit, container.AuthHandler.SendEmailVerification) // 发送邮箱验证码

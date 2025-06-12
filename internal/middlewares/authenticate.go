@@ -128,7 +128,7 @@ func authenticateWithJWT(ctx *gin.Context, config *config.Config) (*models.UserA
 
 	tokenString := authHeader[7:] // Remove "Bearer " prefix
 	tokenDetails, err := jwt.ValidateToken(tokenString, config.JWT.Secret)
-	if err != nil {
+	if err != nil || tokenDetails.TokenType != jwt.AccessToken {
 		slog.Debug("JWT validation failed", "error", err)
 		return nil, false
 	}
