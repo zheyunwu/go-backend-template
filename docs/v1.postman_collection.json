@@ -1,0 +1,4166 @@
+{
+	"info": {
+		"_postman_id": "aa05b125-214f-43d4-b4ac-50c5181e165c",
+		"name": "v1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21312905",
+		"_collection_link": "https://lunar-robot-742498.postman.co/workspace/go-backend-template~72ee8dbe-987a-433f-a10a-9c0808332cbf/collection/21312905-aa05b125-214f-43d4-b4ac-50c5181e165c?action=share&source=collection_link&creator=21312905"
+	},
+	"item": [
+		{
+			"name": "Auth 鉴权",
+			"item": [
+				{
+					"name": "OAuth2",
+					"item": [
+						{
+							"name": "/auth/google/token Google登录",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"code\": \"4/0AUJR-x6xWeziFxCmXh2zalyEqqhg_HdLLMwMMuUql6Sf80h8SC9UhFInN_dt_j26hYy09g\",\n    \"code_verifier\": \"IYIV2bMHSl5FfKUYLMbr2HWLCu9swNnHkbiXddlHhbV8kLACyTZeShdPFEEYyf2z\",\n    \"redirect_uri\": \"http://localhost:5173/auth/callback\",\n    \"client_type\": \"web\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/google/exchange",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"google",
+										"exchange"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/auth/wechat/token 微信登录",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"code\": \"4/0AUJR-x6xWeziFxCmXh2zalyEqqhg_HdLLMwMMuUql6Sf80h8SC9UhFInN_dt_j26hYy09g\",\n    \"client_type\": \"web\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/wechat/token",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"wechat",
+										"token"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "微信小程序（云托管）",
+					"item": [
+						{
+							"name": "/auth/wxmini/register WX小程序端注册",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-wx-unionid",
+										"value": "{{UNION_ID}}",
+										"description": "微信平台union_id",
+										"type": "text"
+									},
+									{
+										"key": "x-wx-openid",
+										"value": "{{OPEN_ID}}",
+										"description": "微信小程序open_id",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/wxmini/register",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"wxmini",
+										"register"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "201 Created",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "x-wx-unionid",
+												"value": "{{UNION_ID}}",
+												"description": "微信平台union_id",
+												"type": "text"
+											},
+											{
+												"key": "x-wx-openid",
+												"value": "{{OPEN_ID}}",
+												"description": "微信小程序open_id",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST}}/auth/wxmini/register",
+											"host": [
+												"{{API_HOST}}"
+											],
+											"path": [
+												"auth",
+												"wxmini",
+												"register"
+											]
+										}
+									},
+									"status": "Created",
+									"code": 201,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 20:49:55 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "36"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 6\n    }\n}"
+								},
+								{
+									"name": "409 User already exists",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "x-wx-unionid",
+												"value": "{{UNION_ID}}",
+												"description": "微信平台union_id",
+												"type": "text"
+											},
+											{
+												"key": "x-wx-openid",
+												"value": "{{OPEN_ID}}",
+												"description": "微信小程序open_id",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST}}/auth/wxmini/register",
+											"host": [
+												"{{API_HOST}}"
+											],
+											"path": [
+												"auth",
+												"wxmini",
+												"register"
+											]
+										}
+									},
+									"status": "Conflict",
+									"code": 409,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 20:50:25 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "50"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"User already exists\"\n}"
+								},
+								{
+									"name": "400 OpenID not provided",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "x-wx-unionid",
+												"value": "{{UNION_ID}}",
+												"description": "微信平台union_id",
+												"type": "text"
+											},
+											{
+												"key": "x-wx-openid",
+												"value": "{{OPEN_ID}}",
+												"description": "微信小程序open_id",
+												"type": "text",
+												"disabled": true
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST}}/auth/wxmini/register",
+											"host": [
+												"{{API_HOST}}"
+											],
+											"path": [
+												"auth",
+												"wxmini",
+												"register"
+											]
+										}
+									},
+									"status": "Bad Request",
+									"code": 400,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:00:54 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "50"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"OpenID not provided\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/auth/wxmini/login WX小程序端登录",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.environment.set(\"ACCESS_TOKEN\", pm.response.json().data.access_token);"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-wx-unionid",
+										"value": "{{UNION_ID}}",
+										"description": "微信平台union_id",
+										"type": "text"
+									},
+									{
+										"key": "x-wx-openid",
+										"value": "{{OPEN_ID}}",
+										"description": "微信小程序open_id",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST}}/auth/wxmini/login",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"wxmini",
+										"login"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "200 OK",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "x-wx-unionid",
+												"value": "{{UNION_ID}}",
+												"description": "微信平台union_id",
+												"type": "text"
+											},
+											{
+												"key": "x-wx-openid",
+												"value": "{{OPEN_ID}}",
+												"description": "微信小程序open_id",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST}}/auth/wxmini/login",
+											"host": [
+												"{{API_HOST}}"
+											],
+											"path": [
+												"auth",
+												"wxmini",
+												"login"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 20:51:56 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "568"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJpc3MiOiJnby1iYWNrZW5kLXRlbXBsYXRlIiwiZXhwIjoxNzUwMTkzNTE2LCJpYXQiOjE3NDk5MzQzMTZ9.FoF_wbJ14Bfhs6XtBMm39LYllrH-SSeJSPUUitmxNm4\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MjUyNjMxNiwiaWF0IjoxNzQ5OTM0MzE2fQ.3qGzaiVELqGD7zBINumm-q1-iJe1SguKQMjIgvNfzVI\",\n        \"token_type\": \"Bearer\"\n    }\n}"
+								},
+								{
+									"name": "404 Not Found",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "x-wx-unionid",
+												"value": "{{UNION_ID}}-fake",
+												"description": "微信平台union_id",
+												"type": "text"
+											},
+											{
+												"key": "x-wx-openid",
+												"value": "{{OPEN_ID}}-fake",
+												"description": "微信小程序open_id",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST}}/auth/wxmini/login",
+											"host": [
+												"{{API_HOST}}"
+											],
+											"path": [
+												"auth",
+												"wxmini",
+												"login"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 20:53:15 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "45"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "/auth/profile 获取个人Profile",
+					"request": {
+						"auth": {
+							"type": "jwt",
+							"jwt": [
+								{
+									"key": "secret",
+									"value": "",
+									"type": "string"
+								},
+								{
+									"key": "isSecretBase64Encoded",
+									"value": false,
+									"type": "boolean"
+								},
+								{
+									"key": "addTokenTo",
+									"value": "header",
+									"type": "string"
+								},
+								{
+									"key": "algorithm",
+									"value": "HS256",
+									"type": "string"
+								},
+								{
+									"key": "payload",
+									"value": "{}",
+									"type": "string"
+								},
+								{
+									"key": "headerPrefix",
+									"value": "Bearer",
+									"type": "string"
+								},
+								{
+									"key": "queryParamKey",
+									"value": "token",
+									"type": "string"
+								},
+								{
+									"key": "header",
+									"value": "{}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"description": "JWT token",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_HOST}}/auth/profile",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"description": "JWT token",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST}}/auth/profile",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"profile"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:15:28 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "291"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 7,\n        \"name\": \"奥特曼\",\n        \"avatar_url\": \"\",\n        \"gender\": \"MALE\",\n        \"email\": \"kejosat522@nab4.com\",\n        \"is_email_verified\": false,\n        \"phone\": null,\n        \"birth_date\": \"2015-07-31T00:00:00Z\",\n        \"locale\": \"zh\",\n        \"created_at\": \"2025-06-14T21:10:14.11812Z\",\n        \"updated_at\": \"2025-06-14T21:12:21.748986Z\"\n    }\n}"
+						},
+						{
+							"name": "401 Unauthorized",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"description": "JWT token",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST}}/auth/profile",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"profile"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:15:45 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "43"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Unauthorized\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/profile 更新个人Profile",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"description": "JWT token",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"换个名222\",\n    \"avatar_url\": \"\",\n    \"gender\": \"FEMALE\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2028-12-32\",\n    \"locale\": \"zh\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/profile",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "204 Success",
+							"originalRequest": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"description": "JWT token",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"换个名\",\n    \"avatar_url\": \"\",\n    \"gender\": \"FEMALE\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2028-12-05\",\n    \"locale\": \"zh\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/profile",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"profile"
+									]
+								}
+							},
+							"status": "No Content",
+							"code": 204,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:19:11 GMT"
+								}
+							],
+							"cookie": [],
+							"body": null
+						}
+					]
+				},
+				{
+					"name": "/auth/password 修改密码",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"12345678\",\n    \"new_password\": \"999911119999\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/password",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"password"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "204 Success",
+							"originalRequest": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"current_password\": \"12345678\",\n    \"new_password\": \"99991111\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/password",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"password"
+									]
+								}
+							},
+							"status": "No Content",
+							"code": 204,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:17:53 GMT"
+								}
+							],
+							"cookie": [],
+							"body": null
+						},
+						{
+							"name": "400 Invalid password",
+							"originalRequest": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"current_password\": \"123456788\",\n    \"new_password\": \"99991111\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/password",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"password"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:17:35 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "47"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Invalid password\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/register 邮箱密码注册",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"avatar_url\": \"\",\n    \"gender\": \"MALE\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2015-07-31\",\n    \"locale\": \"zh\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/register",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "201 Registered",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"avatar_url\": \"\",\n    \"gender\": \"MALE\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2015-07-31\",\n    \"locale\": \"zh\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/register",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"register"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:10:14 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "36"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 7\n    }\n}"
+						},
+						{
+							"name": "409 Email already exists",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"avatar_url\": \"\",\n    \"gender\": \"MALE\",\n    \"email\": \"test@xxx.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/register",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"register"
+									]
+								}
+							},
+							"status": "Conflict",
+							"code": 409,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:09:11 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "51"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Email already exists\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/login 邮箱密码登录",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"ACCESS_TOKEN\", pm.response.json().data.access_token);",
+									"pm.environment.set(\"REFRESH_TOKEN\", pm.response.json().data.refresh_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email_or_phone\": \"kejosat522@nab4.com\",\n    \"password\": \"12345678\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/login",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email_or_phone\": \"kejosat522@nab4.com\",\n    \"password\": \"12345678\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/login",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:12:00 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "568"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJpc3MiOiJnby1iYWNrZW5kLXRlbXBsYXRlIiwiZXhwIjoxNzUwMTk0NzIwLCJpYXQiOjE3NDk5MzU1MjB9.kAOTYCMDT_qftpUrRjQp5CFDuUYoonOdC1IUP2llYIE\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MjUyNzUyMCwiaWF0IjoxNzQ5OTM1NTIwfQ.7BswNbIgRogTLrCMt1kS6bHcMBvHdWvnW9shUQucQOo\",\n        \"token_type\": \"Bearer\"\n    }\n}"
+						},
+						{
+							"name": "400 Invalid password",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email_or_phone\": \"kejosat522@nab4.com\",\n    \"password\": \"99991111\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/login",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:11:33 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "47"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Invalid password\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/refresh 刷新Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"ACCESS_TOKEN\", pm.response.json().data.access_token);",
+									"pm.environment.set(\"REFRESH_TOKEN\", pm.response.json().data.refresh_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh_token\": \"{{REFRESH_TOKEN}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/refresh",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"refresh_token\": \"{{REFRESH_TOKEN}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/refresh",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"refresh"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:12:21 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "609"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Token refreshed successfully\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJpc3MiOiJnby1iYWNrZW5kLXRlbXBsYXRlIiwiZXhwIjoxNzUwMTk0NzQxLCJpYXQiOjE3NDk5MzU1NDF9.NBL3FAerk5qw6U2naUZBCbzP07ALWyUsfQuIAkDMdRw\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MjUyNzU0MSwiaWF0IjoxNzQ5OTM1NTQxfQ.L4X4bl4sKZkiEmCXKCv1DzHc5ZfQaHih2-Mf0mKKIBI\",\n        \"token_type\": \"Bearer\"\n    }\n}"
+						},
+						{
+							"name": "401 Invalid token",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"refresh_token\": \"{{REFRESH_TOKEN}}-fake\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/refresh",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"refresh"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:12:45 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "55"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Invalid or expired token\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/email/send-verification 发送验证邮件",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"kejosat522@nab4.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/email/send-verification",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"email",
+								"send-verification"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/email/send-verification",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"email",
+										"send-verification"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "X-Ratelimit-Limit",
+									"value": "3"
+								},
+								{
+									"key": "X-Ratelimit-Remaining",
+									"value": "2"
+								},
+								{
+									"key": "X-Ratelimit-Window",
+									"value": "10m0s"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:13:23 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "68"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Verification code sent successfully\"\n}"
+						},
+						{
+							"name": "400 Already verified",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/email/send-verification",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"email",
+										"send-verification"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "X-Ratelimit-Limit",
+									"value": "3"
+								},
+								{
+									"key": "X-Ratelimit-Remaining",
+									"value": "1"
+								},
+								{
+									"key": "X-Ratelimit-Window",
+									"value": "10m0s"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:19:25 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "64"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Email address is already verified\"\n}"
+						},
+						{
+							"name": "404 User Not Found",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab47.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/email/send-verification",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"email",
+										"send-verification"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "X-Ratelimit-Limit",
+									"value": "3"
+								},
+								{
+									"key": "X-Ratelimit-Remaining",
+									"value": "2"
+								},
+								{
+									"key": "X-Ratelimit-Window",
+									"value": "10m0s"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:13:43 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "45"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/email/verify 验证邮箱",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"code\": \"614843\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/email/verify",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"email",
+								"verify"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 Verified",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"code\": \"614843\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/email/verify",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"email",
+										"verify"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:16:59 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "60"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Email verified successfully\"\n}"
+						},
+						{
+							"name": "400 Invalid code",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"code\": \"993269\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/email/verify",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"email",
+										"verify"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:14:42 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "56"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Invalid verification code\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/password/reset-request 请求重置密码",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"kejosat522@nab4.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/password/reset-request",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"password",
+								"reset-request"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/password/reset-request",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"password",
+										"reset-request"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "X-Ratelimit-Limit",
+									"value": "2"
+								},
+								{
+									"key": "X-Ratelimit-Remaining",
+									"value": "1"
+								},
+								{
+									"key": "X-Ratelimit-Window",
+									"value": "15m0s"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:21:39 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "71"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Password reset email sent successfully\"\n}"
+						},
+						{
+							"name": "404 User not found",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab49.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/password/reset-request",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"password",
+										"reset-request"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "X-Ratelimit-Limit",
+									"value": "2"
+								},
+								{
+									"key": "X-Ratelimit-Remaining",
+									"value": "1"
+								},
+								{
+									"key": "X-Ratelimit-Window",
+									"value": "15m0s"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:23:44 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "45"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/password/reset 重置密码",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"new_password\": \"11112222\",\n    \"reset_token\": \"20OBBLP1\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/auth/password/reset",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"auth",
+								"password",
+								"reset"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"new_password\": \"11112222\",\n    \"reset_token\": \"20OBBLP1\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/password/reset",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"password",
+										"reset"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:23:01 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "60"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Password reset successfully\"\n}"
+						},
+						{
+							"name": "400 Invalid code",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"new_password\": \"11112222\",\n    \"reset_token\": \"20OBBLP0\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/password/reset",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"password",
+										"reset"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:22:32 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "56"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Invalid verification code\"\n}"
+						},
+						{
+							"name": "404 User not found",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"kejosat522@nab46.com\",\n    \"new_password\": \"11112222\",\n    \"reset_token\": \"20OBBLP1\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/auth/password/reset",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"auth",
+										"password",
+										"reset"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 14 Jun 2025 21:23:18 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "45"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Product 产品",
+			"item": [
+				{
+					"name": "/products 获取产品列表",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_HOST}}/products?limit=5&page=1&sort=updated_at:desc",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"products"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "updated_at:desc"
+								},
+								{
+									"key": "search",
+									"value": "AJAX",
+									"description": "搜索内容",
+									"disabled": true
+								},
+								{
+									"key": "filter",
+									"value": "{\"categories\":[1]}",
+									"description": "条形码搜商品",
+									"disabled": true
+								},
+								{
+									"key": "is_liked",
+									"value": "true",
+									"description": "我点赞的",
+									"disabled": true
+								},
+								{
+									"key": "is_favorited",
+									"value": "true",
+									"description": "我收藏的",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST}}/products?limit=5&page=1&sort=updated_at:desc",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"products"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "5"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "sort",
+											"value": "updated_at:desc"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "{\"barcode\":\"4000417025005\"}",
+											"description": "条形码搜商品",
+											"disabled": true
+										},
+										{
+											"key": "is_liked",
+											"value": "true",
+											"disabled": true
+										},
+										{
+											"key": "is_favorited",
+											"value": "true",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 11 Mar 2025 17:24:28 GMT"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"data\": [\n        {\n            \"id\": 17,\n            \"barcode\": \"8888888822221\",\n            \"barcode_type\": \"EAN13\",\n            \"name\": \"更新后的名称\",\n            \"name_cn\": \"中文\",\n            \"description\": \"哈哈😄，更新一下\",\n            \"description_cn\": \"\",\n            \"category_id\": 0,\n            \"created_at\": \"2025-03-10T14:45:27+01:00\",\n            \"updated_at\": \"2025-03-10T16:25:43+01:00\",\n            \"images\": null,\n            \"retailers\": [\n                {\n                    \"name\": \"REWE\",\n                    \"url\": \"\"\n                }\n            ],\n            \"is_liked\": true,\n            \"is_favorited\": false\n        },\n        {\n            \"id\": 15,\n            \"barcode\": \"8888888888888\",\n            \"barcode_type\": \"EAN13\",\n            \"name\": \"更新后的名称\",\n            \"name_cn\": \"中文\",\n            \"description\": \"哈哈😄，更新一下\",\n            \"description_cn\": \"\",\n            \"category_id\": 0,\n            \"created_at\": \"2025-03-10T14:34:03+01:00\",\n            \"updated_at\": \"2025-03-10T15:39:30+01:00\",\n            \"images\": null,\n            \"retailers\": null,\n            \"is_liked\": false,\n            \"is_favorited\": false\n        },\n        {\n            \"id\": 18,\n            \"barcode\": \"\",\n            \"barcode_type\": \"\",\n            \"name\": \"BODY LOTION\",\n            \"name_cn\": \"\",\n            \"description\": \"\",\n            \"description_cn\": \"\",\n            \"category_id\": 0,\n            \"created_at\": \"2025-03-10T15:26:18+01:00\",\n            \"updated_at\": \"2025-03-10T15:26:18+01:00\",\n            \"images\": null,\n            \"retailers\": [\n                {\n                    \"name\": \"REWE\",\n                    \"url\": \"\"\n                }\n            ],\n            \"is_liked\": false,\n            \"is_favorited\": false\n        },\n        {\n            \"id\": 16,\n            \"barcode\": \"444222111\",\n            \"barcode_type\": \"\",\n            \"name\": \"事实上\",\n            \"name_cn\": \"\",\n            \"description\": \"\",\n            \"description_cn\": \"\",\n            \"category_id\": 0,\n            \"created_at\": \"2025-03-10T14:36:46+01:00\",\n            \"updated_at\": \"2025-03-10T14:36:46+01:00\",\n            \"images\": null,\n            \"retailers\": null,\n            \"is_liked\": false,\n            \"is_favorited\": true\n        },\n        {\n            \"id\": 12,\n            \"barcode\": \"7322541048949\",\n            \"barcode_type\": \"EAN13\",\n            \"name\": \"IKEA KALLAX Shelf Unit\",\n            \"name_cn\": \"宜家卡莱克搁架组合\",\n            \"description\": \"Versatile shelf unit for storage and display.\",\n            \"description_cn\": \"多功能搁架组合，可用于储物和展示，组装简便。\",\n            \"category_id\": 4,\n            \"created_at\": \"2025-03-09T21:24:29+01:00\",\n            \"updated_at\": \"2025-03-09T21:24:29+01:00\",\n            \"images\": [\n                {\n                    \"image_url\": \"https://deshop-guide.com/images/ikea_kallax_1.jpg\"\n                },\n                {\n                    \"image_url\": \"https://deshop-guide.com/images/ikea_kallax_assembly.jpg\"\n                },\n                {\n                    \"image_url\": \"https://deshop-guide.com/images/ikea_kallax_dimensions.jpg\"\n                }\n            ],\n            \"retailers\": [\n                {\n                    \"name\": \"IKEA\",\n                    \"url\": \"https://www.ikea.com/de/de/p/kallax-regal-weiss-70484888/\"\n                }\n            ],\n            \"is_liked\": false,\n            \"is_favorited\": false\n        }\n    ],\n    \"pagination\": {\n        \"total_count\": 16,\n        \"page_size\": 5,\n        \"current_page\": 1,\n        \"total_pages\": 4\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "/products/:id 获取产品详情",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_HOST}}/products/1",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"products",
+								"1"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST}}/products/1",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"products",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 11 Mar 2025 17:24:43 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "938"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 1,\n        \"barcode\": \"4009175171580\",\n        \"barcode_type\": \"EAN13\",\n        \"name\": \"Persil Universal Powder\",\n        \"name_cn\": \"宝洁万能洗衣粉\",\n        \"description\": \"Universal washing powder for all types of clothes.\",\n        \"description_cn\": \"适用于各种衣物的万能洗衣粉，有效去除污渍。\",\n        \"category_id\": 1,\n        \"created_at\": \"2025-03-09T21:24:29+01:00\",\n        \"updated_at\": \"2025-03-09T21:24:29+01:00\",\n        \"images\": [\n            {\n                \"image_url\": \"https://deshop-guide.com/images/persil_universal_1.jpg\"\n            },\n            {\n                \"image_url\": \"https://deshop-guide.com/images/persil_universal_2.jpg\"\n            },\n            {\n                \"image_url\": \"https://deshop-guide.com/images/persil_universal_usage.jpg\"\n            }\n        ],\n        \"retailers\": [\n            {\n                \"name\": \"REWE\",\n                \"url\": \"https://shop.rewe.de/p/persil-universal-pulver/8224227\"\n            },\n            {\n                \"name\": \"DM\",\n                \"url\": \"https://www.dm.de/persil-waschmittel-universal-pulver-p4009175171580.html\"\n            },\n            {\n                \"name\": \"Kaufland\",\n                \"url\": \"https://www.kaufland.de/persil-universal-pulver/p/17158\"\n            }\n        ],\n        \"is_liked\": true,\n        \"is_favorited\": false\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "/products/:id/like 点赞/取消",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"is_liked\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/products/1/like",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"products",
+								"1",
+								"like"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 成功",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"is_liked\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/products/1/like",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"products",
+										"1",
+										"like"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 11 Mar 2025 18:35:07 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "69"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"点赞成功\",\n    \"data\": {\n        \"is_like\": true\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "/products/:id/favorite 收藏/取消",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"is_favorited\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_HOST}}/products/1/favorite",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"products",
+								"1",
+								"favorite"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 成功",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"is_favorited\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST}}/products/16/favorite",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"products",
+										"16",
+										"favorite"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 11 Mar 2025 18:35:31 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "74"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"收藏成功\",\n    \"data\": {\n        \"is_favorited\": true\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "/products/:id/stats 获取产品统计信息",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_HOST}}/products/1/stats",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"products",
+								"1",
+								"stats"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST}}/products/1/stats",
+									"host": [
+										"{{API_HOST}}"
+									],
+									"path": [
+										"products",
+										"1",
+										"stats"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 11 Mar 2025 17:25:27 GMT"
+								},
+								{
+									"key": "Content-Length",
+									"value": "63"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"favorite_count\": 1,\n        \"like_count\": 1\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Category 分类",
+			"item": [
+				{
+					"name": "/categories 获取分类",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_HOST}}/categories",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"categories"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "sort",
+									"value": "updated_at:desc",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "AJAX",
+									"description": "搜索内容",
+									"disabled": true
+								},
+								{
+									"key": "filter",
+									"value": "{\"categories\":[\"洗衣剂\"]}",
+									"description": "条形码搜商品",
+									"disabled": true
+								},
+								{
+									"key": "is_liked",
+									"value": "true",
+									"description": "我点赞的",
+									"disabled": true
+								},
+								{
+									"key": "is_favorited",
+									"value": "true",
+									"description": "我收藏的",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "/categories 获取分类树状结构",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_HOST}}/categories/tree?depth=5",
+							"host": [
+								"{{API_HOST}}"
+							],
+							"path": [
+								"categories",
+								"tree"
+							],
+							"query": [
+								{
+									"key": "depth",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin APIs 后台管理APIs",
+			"item": [
+				{
+					"name": "User 用户",
+					"item": [
+						{
+							"name": "/users 获取用户列表",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/users?limit=100&page=1&sort=updated_at:desc&include_soft_deleted=true",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"users"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "100"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "sort",
+											"value": "updated_at:desc"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "{\"is_email_verified\":false, \"is_banned\":false}",
+											"disabled": true
+										},
+										{
+											"key": "include_soft_deleted",
+											"value": "true"
+										}
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "200 OK",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users?limit=100&page=1&sort=updated_at:desc&include_soft_deleted=true",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users"
+											],
+											"query": [
+												{
+													"key": "limit",
+													"value": "100"
+												},
+												{
+													"key": "page",
+													"value": "1"
+												},
+												{
+													"key": "sort",
+													"value": "updated_at:desc"
+												},
+												{
+													"key": "search",
+													"value": "",
+													"disabled": true
+												},
+												{
+													"key": "filter",
+													"value": "{\"is_email_verified\":false, \"is_banned\":false}",
+													"disabled": true
+												},
+												{
+													"key": "include_soft_deleted",
+													"value": "true"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:29:29 GMT"
+										},
+										{
+											"key": "Transfer-Encoding",
+											"value": "chunked"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": [\n        {\n            \"id\": 7,\n            \"email\": \"kejosat522@nab4.com\",\n            \"is_email_verified\": true,\n            \"phone\": null,\n            \"name\": \"换个名222\",\n            \"avatar_url\": \"\",\n            \"gender\": \"FEMALE\",\n            \"birth_date\": \"2028-12-05T00:00:00Z\",\n            \"locale\": \"zh\",\n            \"role\": \"admin\",\n            \"is_banned\": false,\n            \"last_login\": \"2025-06-14T21:12:21.748277Z\",\n            \"created_at\": \"2025-06-14T21:10:14.11812Z\",\n            \"updated_at\": \"2025-06-14T21:23:01.991312Z\",\n            \"deleted_at\": null,\n            \"user_providers\": []\n        },\n        {\n            \"id\": 6,\n            \"email\": null,\n            \"is_email_verified\": false,\n            \"phone\": null,\n            \"name\": \"小程序用户😄\",\n            \"avatar_url\": \"\",\n            \"gender\": \"PREFER_NOT_TO_SAY\",\n            \"birth_date\": \"2015-07-27T00:00:00Z\",\n            \"locale\": \"zh\",\n            \"role\": \"user\",\n            \"is_banned\": false,\n            \"last_login\": \"2025-06-14T20:53:10.025951Z\",\n            \"created_at\": \"2025-06-14T20:49:55.778878Z\",\n            \"updated_at\": \"2025-06-14T20:53:10.02687Z\",\n            \"deleted_at\": null,\n            \"user_providers\": [\n                {\n                    \"user_id\": 6,\n                    \"provider\": \"wechat_mini_program\",\n                    \"provider_uid\": \"TEST_OPEN_ID\",\n                    \"wechat_union_id\": \"TEST_UNION_ID\",\n                    \"access_token\": null,\n                    \"refresh_token\": null,\n                    \"expires_at\": null,\n                    \"created_at\": \"2025-06-14T20:49:55.788277Z\",\n                    \"updated_at\": \"2025-06-14T20:49:55.788277Z\"\n                }\n            ]\n        },\n        {\n            \"id\": 2,\n            \"email\": \"632593088cjs@gmail.com\",\n            \"is_email_verified\": false,\n            \"phone\": null,\n            \"name\": \"Hello\",\n            \"avatar_url\": \"\",\n            \"gender\": \"PREFER_NOT_TO_SAY\",\n            \"birth_date\": \"1997-12-27T00:00:00Z\",\n            \"locale\": \"zh-CN\",\n            \"role\": \"user\",\n            \"is_banned\": false,\n            \"last_login\": null,\n            \"created_at\": \"2025-05-31T10:29:45.703877Z\",\n            \"updated_at\": \"2025-06-14T19:43:59.125679Z\",\n            \"deleted_at\": null,\n            \"user_providers\": []\n        },\n        {\n            \"id\": 1,\n            \"email\": \"wuzheyun@gmail.com\",\n            \"is_email_verified\": false,\n            \"phone\": null,\n            \"name\": \"不知道叫什么昵称\",\n            \"avatar_url\": \"https://lh3.googleusercontent.com/a/ACg8ocKvduzPEkC133D7ORm-vktAaPc0jiP_T9Saun7x_pNDtuidoxfn=s96-c\",\n            \"gender\": \"MALE\",\n            \"birth_date\": \"2080-07-27T00:00:00Z\",\n            \"locale\": \"zh\",\n            \"role\": \"admin\",\n            \"is_banned\": false,\n            \"last_login\": \"2025-06-12T21:46:55.779811Z\",\n            \"created_at\": \"2025-05-31T10:26:07.499825Z\",\n            \"updated_at\": \"2025-06-12T21:46:55.781526Z\",\n            \"deleted_at\": null,\n            \"user_providers\": [\n                {\n                    \"user_id\": 1,\n                    \"provider\": \"google\",\n                    \"provider_uid\": \"113742735122254802048\",\n                    \"wechat_union_id\": null,\n                    \"access_token\": null,\n                    \"refresh_token\": null,\n                    \"expires_at\": null,\n                    \"created_at\": \"2025-05-31T10:26:07.504817Z\",\n                    \"updated_at\": \"2025-05-31T10:26:07.504817Z\"\n                }\n            ]\n        },\n        {\n            \"id\": 4,\n            \"email\": \"henoro6894@pngzero.com\",\n            \"is_email_verified\": false,\n            \"phone\": null,\n            \"name\": \"测试更新用户5551\",\n            \"avatar_url\": \"\",\n            \"gender\": \"PREFER_NOT_TO_SAY\",\n            \"birth_date\": \"2025-05-15T00:00:00Z\",\n            \"locale\": \"en-US\",\n            \"role\": \"user\",\n            \"is_banned\": false,\n            \"last_login\": null,\n            \"created_at\": \"2025-06-09T10:35:13.409592Z\",\n            \"updated_at\": \"2025-06-09T14:44:09.470976Z\",\n            \"deleted_at\": null,\n            \"user_providers\": []\n        },\n        {\n            \"id\": 3,\n            \"email\": \"test@xxx.com\",\n            \"is_email_verified\": false,\n            \"phone\": null,\n            \"name\": \"😄\",\n            \"avatar_url\": null,\n            \"gender\": \"OTHER\",\n            \"birth_date\": \"1997-07-27T00:00:00Z\",\n            \"locale\": \"zh-CN\",\n            \"role\": \"user\",\n            \"is_banned\": false,\n            \"last_login\": null,\n            \"created_at\": \"2025-06-04T21:27:36.286784Z\",\n            \"updated_at\": \"2025-06-04T21:27:36.286784Z\",\n            \"deleted_at\": null,\n            \"user_providers\": []\n        }\n    ],\n    \"pagination\": {\n        \"total_count\": 6,\n        \"page_size\": 100,\n        \"current_page\": 1,\n        \"total_pages\": 1\n    }\n}"
+								}
+							]
+						},
+						{
+							"name": "/users/:id 获取用户详情",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/users/1",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"users",
+										"1"
+									],
+									"query": [
+										{
+											"key": "include_soft_deleted",
+											"value": "true",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "200 Google user",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"1"
+											],
+											"query": [
+												{
+													"key": "include_soft_deleted",
+													"value": "true",
+													"disabled": true
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:32:03 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "758"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 1,\n        \"email\": \"wuzheyun@gmail.com\",\n        \"is_email_verified\": false,\n        \"phone\": null,\n        \"name\": \"不知道叫什么昵称\",\n        \"avatar_url\": \"https://lh3.googleusercontent.com/a/ACg8ocKvduzPEkC133D7ORm-vktAaPc0jiP_T9Saun7x_pNDtuidoxfn=s96-c\",\n        \"gender\": \"MALE\",\n        \"birth_date\": \"2080-07-27T00:00:00Z\",\n        \"locale\": \"zh\",\n        \"role\": \"admin\",\n        \"is_banned\": false,\n        \"last_login\": \"2025-06-12T21:46:55.779811Z\",\n        \"created_at\": \"2025-05-31T10:26:07.499825Z\",\n        \"updated_at\": \"2025-06-12T21:46:55.781526Z\",\n        \"deleted_at\": null,\n        \"user_providers\": [\n            {\n                \"user_id\": 1,\n                \"provider\": \"google\",\n                \"provider_uid\": \"113742735122254802048\",\n                \"wechat_union_id\": null,\n                \"access_token\": null,\n                \"refresh_token\": null,\n                \"expires_at\": null,\n                \"created_at\": \"2025-05-31T10:26:07.504817Z\",\n                \"updated_at\": \"2025-05-31T10:26:07.504817Z\"\n            }\n        ]\n    }\n}"
+								},
+								{
+									"name": "200 wx mini program user",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/6",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"6"
+											],
+											"query": [
+												{
+													"key": "include_soft_deleted",
+													"value": "true",
+													"disabled": true
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:30:03 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "665"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 6,\n        \"email\": null,\n        \"is_email_verified\": false,\n        \"phone\": null,\n        \"name\": \"小程序用户😄\",\n        \"avatar_url\": \"\",\n        \"gender\": \"PREFER_NOT_TO_SAY\",\n        \"birth_date\": \"2015-07-27T00:00:00Z\",\n        \"locale\": \"zh\",\n        \"role\": \"user\",\n        \"is_banned\": false,\n        \"last_login\": \"2025-06-14T20:53:10.025951Z\",\n        \"created_at\": \"2025-06-14T20:49:55.778878Z\",\n        \"updated_at\": \"2025-06-14T20:53:10.02687Z\",\n        \"deleted_at\": null,\n        \"user_providers\": [\n            {\n                \"user_id\": 6,\n                \"provider\": \"wechat_mini_program\",\n                \"provider_uid\": \"TEST_OPEN_ID\",\n                \"wechat_union_id\": \"TEST_UNION_ID\",\n                \"access_token\": null,\n                \"refresh_token\": null,\n                \"expires_at\": null,\n                \"created_at\": \"2025-06-14T20:49:55.788277Z\",\n                \"updated_at\": \"2025-06-14T20:49:55.788277Z\"\n            }\n        ]\n    }\n}"
+								},
+								{
+									"name": "404 User not found",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"4"
+											],
+											"query": [
+												{
+													"key": "",
+													"value": "",
+													"disabled": true
+												}
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:45:29 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "45"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+								},
+								{
+									"name": "400 Invalid id parameter",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/0",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"0"
+											],
+											"query": [
+												{
+													"key": "include_soft_deleted",
+													"value": "true",
+													"disabled": true
+												}
+											]
+										}
+									},
+									"status": "Bad Request",
+									"code": 400,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 15:03:17 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "51"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"Invalid id parameter\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/users 创建用户",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Test User\",\n    \"avatar_url\": \"\",\n    \"password\": \"12345678\",\n    \"gender\": \"\",\n    \"phone\": \"\",\n    \"email\": \"henoro6894@pngzero.com\",\n    \"birth_date\": \"2008-12-27\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/users",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"users"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "201 Created",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"Test User\",\n    \"avatar_url\": \"\",\n    \"password\": \"12345678\",\n    \"gender\": \"\",\n    \"phone\": \"\",\n    \"email\": \"henoro6894@pngzero.com\",\n    \"birth_date\": \"2008-12-27\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users"
+											]
+										}
+									},
+									"status": "Created",
+									"code": 201,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:35:14 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "36"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 4\n    }\n}"
+								},
+								{
+									"name": "409 Conflict",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"Test User\",\n    \"avatar_url\": \"\",\n    \"password\": \"12345678\",\n    \"gender\": \"\",\n    \"phone\": \"\",\n    \"email\": \"henoro6894@pngzero.com\",\n    \"birth_date\": \"2008-12-27\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users"
+											]
+										}
+									},
+									"status": "Conflict",
+									"code": 409,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:51:04 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "51"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"Email already exists\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/users/:id 更新用户",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"测试更新用户5551\",\n    \"avatar_url\": \"\",\n    \"gender\": \"\",\n    \"birth_date\": \"2025-05-15\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/users/4",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"users",
+										"4"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "204 No Content",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"测试更新用户5551\",\n    \"avatar_url\": \"\",\n    \"gender\": \"\",\n    \"birth_date\": \"2025-05-15\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"4"
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:39:09 GMT"
+										}
+									],
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "404 Not Found",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"测试更新用户5551\",\n    \"avatar_url\": \"\",\n    \"gender\": \"\",\n    \"birth_date\": \"2025-05-15\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"4"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:46:11 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "45"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/users/:id 删除用户",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/users/4",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"users",
+										"4"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "204 No Content",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"4"
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:39:51 GMT"
+										}
+									],
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "404 Not Found",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"4"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:40:16 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "45"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/users/:id/restore 恢复软删除用户",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/users/4/restore",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"users",
+										"4",
+										"restore"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "204 No Content",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"4"
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:39:51 GMT"
+										}
+									],
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "404 Not Found",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"4"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:40:16 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "45"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/users/:id/ban 封禁用户",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"is_banned\":  false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/users/2/ban",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"users",
+										"2",
+										"ban"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "204 No Content",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"is_banned\":  false\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/2/ban",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"2",
+												"ban"
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:40:42 GMT"
+										}
+									],
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "404 Not Found",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"is_banned\":  false\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/users/42/ban",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"users",
+												"42",
+												"ban"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Mon, 09 Jun 2025 10:46:37 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "45"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"User not found\"\n}"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Product 产品",
+					"item": [
+						{
+							"name": "/products 获取产品列表",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/products?limit=5&page=1&sort=updated_at:desc",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"products"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "5"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "sort",
+											"value": "updated_at:desc"
+										},
+										{
+											"key": "search",
+											"value": "limone tee",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "{\"barcode\":\"4337256850032\"}",
+											"description": "条形码搜商品",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "200 OK",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products?limit=5&page=1&sort=updated_at:desc",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products"
+											],
+											"query": [
+												{
+													"key": "limit",
+													"value": "5"
+												},
+												{
+													"key": "page",
+													"value": "1"
+												},
+												{
+													"key": "sort",
+													"value": "updated_at:desc"
+												},
+												{
+													"key": "search",
+													"value": "limone tee",
+													"disabled": true
+												},
+												{
+													"key": "filter",
+													"value": "{\"barcode\":\"4337256850032\"}",
+													"description": "条形码搜商品",
+													"disabled": true
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:34:21 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "910"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": [\n        {\n            \"id\": 2,\n            \"name\": \"测试😊\",\n            \"barcode\": \"\",\n            \"barcode_type\": \"\",\n            \"description\": {\n                \"items\": [\n                    \"A\",\n                    \"B\",\n                    \"C\"\n                ],\n                \"origin\": \"Germany\",\n                \"price\": 123\n            },\n            \"description_status\": \"PENDING\",\n            \"description_loaded_at\": null,\n            \"created_at\": \"2025-06-14T21:34:05.334516Z\",\n            \"updated_at\": \"2025-06-14T21:34:05.334516Z\",\n            \"deleted_at\": null,\n            \"images\": [],\n            \"categories\": []\n        },\n        {\n            \"id\": 1,\n            \"name\": \"更新后的名称\",\n            \"barcode\": \"8888888822221\",\n            \"barcode_type\": \"EAN13\",\n            \"description\": {\n                \"items\": [\n                    \"World\",\n                    \"Hello\",\n                    \"!\"\n                ],\n                \"price\": 122.02\n            },\n            \"description_status\": \"LOADING\",\n            \"description_loaded_at\": null,\n            \"created_at\": \"2025-05-29T21:32:40.20582Z\",\n            \"updated_at\": \"2025-05-29T21:33:00.929837Z\",\n            \"deleted_at\": null,\n            \"images\": [\n                {\n                    \"id\": 1,\n                    \"product_id\": 1,\n                    \"image_url\": \"hi\",\n                    \"created_at\": \"2025-05-29T21:32:50.238021Z\",\n                    \"updated_at\": \"2025-05-29T21:32:50.238021Z\",\n                    \"deleted_at\": null\n                }\n            ],\n            \"categories\": []\n        }\n    ],\n    \"pagination\": {\n        \"total_count\": 2,\n        \"page_size\": 5,\n        \"current_page\": 1,\n        \"total_pages\": 1\n    }\n}"
+								}
+							]
+						},
+						{
+							"name": "/products/:id 获取产品详情",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/products/1",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"products",
+										"1"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "200 OK",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:36:00 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "658"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"更新后的名称\",\n        \"barcode\": \"8888888822221\",\n        \"barcode_type\": \"EAN13\",\n        \"description\": {\n            \"items\": [\n                \"World\",\n                \"Hello\",\n                \"!\"\n            ],\n            \"price\": 122.02\n        },\n        \"description_status\": \"LOADING\",\n        \"description_loaded_at\": null,\n        \"created_at\": \"2025-05-29T21:32:40.20582Z\",\n        \"updated_at\": \"2025-06-14T21:35:45.55173Z\",\n        \"deleted_at\": null,\n        \"images\": [\n            {\n                \"id\": 1,\n                \"product_id\": 1,\n                \"image_url\": \"hi\",\n                \"created_at\": \"2025-05-29T21:32:50.238021Z\",\n                \"updated_at\": \"2025-05-29T21:32:50.238021Z\",\n                \"deleted_at\": null\n            },\n            {\n                \"id\": 2,\n                \"product_id\": 1,\n                \"image_url\": \"hhhhhhh\",\n                \"created_at\": \"2025-06-14T21:35:45.561688Z\",\n                \"updated_at\": \"2025-06-14T21:35:45.561688Z\",\n                \"deleted_at\": null\n            }\n        ],\n        \"categories\": []\n    }\n}"
+								},
+								{
+									"name": "404 Not found",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:37:44 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "48"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"Product not found\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/products 创建产品",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"测试😊\",\n    \"barcode\": \"\",\n    \"description\": {\n        \"origin\": \"Germany\",\n        \"price\": 123.0,\n        \"items\": [\"A\", \"B\", \"C\"]\n    },\n    \"image_urls\": []\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/products",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"products"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "201 Created",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"测试😊\",\n    \"barcode\": \"\",\n    \"description\": {\n        \"origin\": \"Germany\",\n        \"price\": 123.0,\n        \"items\": [\"A\", \"B\", \"C\"]\n    },\n    \"image_urls\": []\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products"
+											]
+										}
+									},
+									"status": "Created",
+									"code": 201,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:34:05 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "36"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 2\n    }\n}"
+								}
+							]
+						},
+						{
+							"name": "/products/:id 更新产品",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"hi\", \"hhhhhhh\"]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/products/1",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"products",
+										"1"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "204 Updated",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"hi\", \"hhhhhhh\"]\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:35:45 GMT"
+										}
+									],
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "404 Product not found",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"hi\", \"hhhhhhh\"]\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:41:09 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "48"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"Product not found\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/products/:id 更新产品 Description",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": {\"price\": 122.02, \"items\": [\"World\", \"Hello\", \"!\"]}\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/products/1",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"products",
+										"1"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "204 Updated",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"description\": {\"price\": 122.02, \"items\": [\"World\", \"Hello\", \"!\"]}\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:36:22 GMT"
+										}
+									],
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "404 Product not found",
+									"originalRequest": {
+										"method": "PATCH",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"description\": {\"price\": 122.02, \"items\": [\"World\", \"Hello\", \"!\"]}\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:41:57 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "48"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"Product not found\"\n}"
+								}
+							]
+						},
+						{
+							"name": "/products/:id 删除产品",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{ACCESS_TOKEN}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{API_HOST_ADMIN}}/products/1",
+									"host": [
+										"{{API_HOST_ADMIN}}"
+									],
+									"path": [
+										"products",
+										"1"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "204 Deleted",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "No Content",
+									"code": 204,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:36:39 GMT"
+										}
+									],
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "404 Not found",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{ACCESS_TOKEN}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"host": [
+												"{{API_HOST_ADMIN}}"
+											],
+											"path": [
+												"products",
+												"1"
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json; charset=utf-8"
+										},
+										{
+											"key": "Date",
+											"value": "Sat, 14 Jun 2025 21:37:16 GMT"
+										},
+										{
+											"key": "Content-Length",
+											"value": "48"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"status\": \"error\",\n    \"message\": \"Product not found\"\n}"
+								}
+							]
+						}
+					]
+				}
+			],
+			"auth": {
+				"type": "jwt",
+				"jwt": [
+					{
+						"key": "algorithm",
+						"value": "HS256",
+						"type": "string"
+					},
+					{
+						"key": "isSecretBase64Encoded",
+						"value": false,
+						"type": "boolean"
+					},
+					{
+						"key": "payload",
+						"value": "{}",
+						"type": "string"
+					},
+					{
+						"key": "addTokenTo",
+						"value": "header",
+						"type": "string"
+					},
+					{
+						"key": "headerPrefix",
+						"value": "Bearer",
+						"type": "string"
+					},
+					{
+						"key": "queryParamKey",
+						"value": "token",
+						"type": "string"
+					},
+					{
+						"key": "header",
+						"value": "{}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	]
+}
