@@ -20,6 +20,7 @@ var (
 
 	// 用户相关错误
 	ErrUserNotFound            = NewAppError("user_not_found", "User not found", http.StatusNotFound)
+	ErrOpenIDNotProvided       = NewAppError("openid_not_provided", "OpenID not provided", http.StatusBadRequest)
 	ErrUserAlreadyExists       = NewAppError("user_already_exists", "User already exists", http.StatusConflict)
 	ErrPhoneAlreadyExists      = NewAppError("phone_already_exists", "Phone number already exists", http.StatusConflict)
 	ErrEmailAlreadyExists      = NewAppError("email_already_exists", "Email already exists", http.StatusConflict)

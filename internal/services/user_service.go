@@ -638,7 +638,7 @@ func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatM
 
 	// 验证openID是否提供
 	if openID == nil || *openID == "" {
-		return 0, errors.ErrUserNotFound // 或者定义一个新的错误类型
+		return 0, errors.ErrOpenIDNotProvided
 	}
 
 	// 验证：用户是否已在微信小程序端注册过
