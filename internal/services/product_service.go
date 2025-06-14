@@ -111,7 +111,7 @@ func (s *productService) CreateProduct(product *models.Product, images []models.
 // UpdateProduct 使用事务更新产品及其关联数据
 func (s *productService) UpdateProduct(id uint, updates map[string]interface{}, images []models.ProductImage, categoryIDs []uint) error {
 	// 检查产品是否存在
-	if _, err := s.GetProduct(id); err != nil {
+	if _, err := s.productRepo.GetProduct(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
@@ -146,9 +146,11 @@ func (s *productService) UpdateProduct(id uint, updates map[string]interface{}, 
 // DeleteProduct 删除产品
 func (s *productService) DeleteProduct(id uint) error {
 	// 检查产品是否存在
-	_, err := s.GetProduct(id)
-	if err != nil {
-		return err
+	if _, err := s.productRepo.GetProduct(id); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrProductNotFound
+		}
+		return fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// 调用repo层删除产品
