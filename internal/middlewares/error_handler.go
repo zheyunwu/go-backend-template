@@ -1,8 +1,7 @@
 package middlewares
 
 import (
-	"fmt"
-	"log/slog" // Keep for direct use if logger from context is not available initially
+	"fmt" // Keep for direct use if logger from context is not available initially
 	"net/http"
 	"os"
 	"runtime/debug"

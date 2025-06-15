@@ -35,7 +35,6 @@ func NewProductHandler(
 // Supports Query Parameters:
 // - is_liked: whether to fetch products liked by the user.
 // - is_favorited: whether to fetch products favorited by the user.
-// - is_reviewed: whether to fetch products reviewed by the user (placeholder for future use).
 func (h *ProductHandler) ListProducts(ctx *gin.Context) {
 	// Get parsed Query Parameters from context.
 	params, _ := ctx.Get("queryParams")
