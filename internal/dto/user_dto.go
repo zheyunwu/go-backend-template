@@ -51,7 +51,7 @@ func ToUserProfileDTO(user *models.User) *UserProfileDTO {
 type UpdateProfileRequest struct {
 	Name      string            `json:"name" validate:"omitempty,min=1,max=50"`
 	AvatarURL *string           `json:"avatar_url" validate:"omitempty,url"`
-	Gender    models.GenderType `json:"gender" validate:"omitempty,oneof=male female other"`
+	Gender    models.GenderType `json:"gender" validate:"omitempty,oneof=PREFER_NOT_TO_SAY MALE FEMALE OTHER"`
 	Email     *string           `json:"email" validate:"omitempty,email"`
 	Phone     *string           `json:"phone" validate:"omitempty,e164"` // E.164 phone number format
 	BirthDate *string           `json:"birth_date" validate:"omitempty,datetime=2006-01-02"`

@@ -36,7 +36,7 @@ type UpdateProductRequest struct {
 	Barcode           *string                   `json:"barcode" validate:"omitempty,min=8,max=13"`
 	BarcodeType       *string                   `json:"barcode_type" validate:"omitempty,oneof=EAN13 EAN8 UPC ISBN ASIN GTIN"`
 	Description       *models.JSONData          `json:"description" validate:"omitempty"`
-	DescriptionStatus *models.DescriptionStatus `json:"description_status" validate:"omitempty,oneof=pending approved rejected"`
+	DescriptionStatus *models.DescriptionStatus `json:"description_status" validate:"omitempty,oneof=PENDING LOADING LOADED OUTDATED"`
 	ProductType       *string                   `json:"product_type" validate:"omitempty,min=1"`
 	CategoryIDs       []uint                    `json:"category_ids" validate:"omitempty,dive,gt=0"`
 	ImageURLs         []string                  `json:"image_urls" validate:"omitempty,dive,url"`
