@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context" // Added for context
 	"fmt"
 	"log/slog"
 
@@ -10,46 +11,46 @@ import (
 	"github.com/go-backend-template/pkg/response"
 )
 
-// CategoryService 定义分类相关的业务逻辑接口
+// CategoryService defines the interface for category-related business logic.
 type CategoryService interface {
-	// 基本查询方法
-	ListCategories(params *query_params.QueryParams) ([]models.Category, *response.Pagination, error)
-	GetCategoryTree(depth int, enabledOnly bool) ([]models.Category, error)
-	GetCategory(id uint) (*models.Category, error)
+	// Basic query methods
+	ListCategories(ctx context.Context, params *query_params.QueryParams) ([]models.Category, *response.Pagination, error)
+	GetCategoryTree(ctx context.Context, depth int, enabledOnly bool) ([]models.Category, error)
+	GetCategory(ctx context.Context, id uint) (*models.Category, error)
 
-	// 管理方法 - 可以根据需要后续实现
-	// CreateCategory(category *models.Category) (uint, error)
-	// UpdateCategory(id uint, updates map[string]interface{}) error
-	// DeleteCategory(id uint) error
+	// Management methods - can be implemented as needed later
+	// CreateCategory(ctx context.Context, category *models.Category) (uint, error)
+	// UpdateCategory(ctx context.Context, id uint, updates map[string]interface{}) error
+	// DeleteCategory(ctx context.Context, id uint) error
 }
 
-// categoryService 分类服务实现
+// categoryService is the implementation of CategoryService.
 type categoryService struct {
 	categoryRepo repositories.CategoryRepository
 }
 
-// NewCategoryService 创建一个分类服务实例
+// NewCategoryService creates a new instance of CategoryService.
 func NewCategoryService(categoryRepo repositories.CategoryRepository) CategoryService {
 	return &categoryService{
 		categoryRepo: categoryRepo,
 	}
 }
 
-// ListCategories 获取分类列表
-func (s *categoryService) ListCategories(params *query_params.QueryParams) ([]models.Category, *response.Pagination, error) {
-	// 调用Repo层获取分类列表
-	categories, total, err := s.categoryRepo.ListCategories(params)
+// ListCategories retrieves a list of categories.
+func (s *categoryService) ListCategories(ctx context.Context, params *query_params.QueryParams) ([]models.Category, *response.Pagination, error) {
+	// Call the repository layer to get the list of categories.
+	categories, total, err := s.categoryRepo.ListCategories(ctx, params) // Pass context
 	if err != nil {
-		slog.Error("Failed to list categories", "error", err)
+		slog.ErrorContext(ctx, "Failed to list categories", "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list categories: %w", err)
 	}
 
-	// 没有数据时返回空数组
+	// Return an empty array if there is no data.
 	if len(categories) == 0 {
 		categories = []models.Category{}
 	}
 
-	// 构建分页信息
+	// Construct pagination information.
 	pagination := &response.Pagination{
 		TotalCount:  int(total),
 		PageSize:    params.Limit,
@@ -60,16 +61,16 @@ func (s *categoryService) ListCategories(params *query_params.QueryParams) ([]mo
 	return categories, pagination, nil
 }
 
-// GetCategoryTree 获取分类树结构
-func (s *categoryService) GetCategoryTree(depth int, enabledOnly bool) ([]models.Category, error) {
-	// 调用Repo层获取分类树，传入深度参数和是否显示所有分类
-	categories, err := s.categoryRepo.GetCategoryTree(depth, enabledOnly)
+// GetCategoryTree retrieves the category tree structure.
+func (s *categoryService) GetCategoryTree(ctx context.Context, depth int, enabledOnly bool) ([]models.Category, error) {
+	// Call the repository layer to get the category tree, passing depth and whether to show all categories.
+	categories, err := s.categoryRepo.GetCategoryTree(ctx, depth, enabledOnly) // Pass context
 	if err != nil {
-		slog.Error("Failed to get category tree", "error", err, "depth", depth, "enabledOnly", enabledOnly)
+		slog.ErrorContext(ctx, "Failed to get category tree", "error", err, "depth", depth, "enabledOnly", enabledOnly) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get category tree: %w", err)
 	}
 
-	// 没有数据时返回空数组
+	// Return an empty array if there is no data.
 	if len(categories) == 0 {
 		categories = []models.Category{}
 	}
@@ -77,12 +78,12 @@ func (s *categoryService) GetCategoryTree(depth int, enabledOnly bool) ([]models
 	return categories, nil
 }
 
-// GetCategory 获取单个分类详情
-func (s *categoryService) GetCategory(id uint) (*models.Category, error) {
-	// 调用repo层获取分类
-	category, err := s.categoryRepo.GetCategory(id)
+// GetCategory retrieves details for a single category.
+func (s *categoryService) GetCategory(ctx context.Context, id uint) (*models.Category, error) {
+	// Call the repository layer to get the category.
+	category, err := s.categoryRepo.GetCategory(ctx, id) // Pass context
 	if err != nil {
-		slog.Error("Failed to get category", "categoryId", id, "error", err)
+		slog.ErrorContext(ctx, "Failed to get category", "categoryId", id, "error", err) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get category: %w", err)
 	}
 

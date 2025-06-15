@@ -14,13 +14,13 @@ import (
 	"github.com/go-backend-template/pkg/response"
 )
 
-// ProductHandler 处理产品相关的用户API
+// ProductHandler handles user API requests related to products.
 type ProductHandler struct {
 	ProductService     services.ProductService
 	InteractionService services.UserInteractionService
 }
 
-// NewProductHandler 创建产品处理器
+// NewProductHandler creates a new ProductHandler.
 func NewProductHandler(
 	productService services.ProductService,
 	interactionService services.UserInteractionService,
@@ -31,13 +31,13 @@ func NewProductHandler(
 	}
 }
 
-// ListProducts 获取产品列表
-// 支持Query Parameters:
-// - is_liked: 是否获取用户点赞的产品
-// - is_favorited: 是否获取用户收藏的产品
-// - is_reviewed: 是否获取用户已评价的产品
+// ListProducts retrieves a list of products.
+// Supports Query Parameters:
+// - is_liked: whether to fetch products liked by the user.
+// - is_favorited: whether to fetch products favorited by the user.
+// - is_reviewed: whether to fetch products reviewed by the user (placeholder for future use).
 func (h *ProductHandler) ListProducts(ctx *gin.Context) {
-	// 从上下文中获取已解析的Query Parameters
+	// Get parsed Query Parameters from context.
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
@@ -46,11 +46,11 @@ func (h *ProductHandler) ListProducts(ctx *gin.Context) {
 		return
 	}
 
-	// 获取定制Query Parameters
+	// Get custom Query Parameters.
 	isLiked, _ := strconv.ParseBool(ctx.Query("is_liked"))
 	isFavorited, _ := strconv.ParseBool(ctx.Query("is_favorited"))
 
-	// 获取当前authenticatedUser（如果已登录）
+	// Get current authenticated user (if logged in).
 	var userID uint
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if ok {
@@ -61,16 +61,16 @@ func (h *ProductHandler) ListProducts(ctx *gin.Context) {
 	var pagination *response.Pagination
 	var err error
 
-	// 根据筛选参数决定查询方式
+	// Determine query method based on filter parameters.
 	if isLiked && userID > 0 {
-		// 获取用户点赞的产品
-		products, pagination, err = h.InteractionService.ListUserLikedProducts(userID, queryParams)
+		// Get products liked by the user.
+		products, pagination, err = h.InteractionService.ListUserLikedProducts(ctx.Request.Context(), userID, queryParams) // Pass context
 	} else if isFavorited && userID > 0 {
-		// 获取用户收藏的产品
-		products, pagination, err = h.InteractionService.ListUserFavoritedProducts(userID, queryParams)
+		// Get products favorited by the user.
+		products, pagination, err = h.InteractionService.ListUserFavoritedProducts(ctx.Request.Context(), userID, queryParams) // Pass context
 	} else {
-		// 获取所有产品
-		products, pagination, err = h.ProductService.ListProducts(queryParams)
+		// Get all products.
+		products, pagination, err = h.ProductService.ListProducts(ctx.Request.Context(), queryParams) // Pass context
 	}
 
 	if err != nil {
@@ -78,67 +78,76 @@ func (h *ProductHandler) ListProducts(ctx *gin.Context) {
 		return
 	}
 
-	// 转换为用户DTO
+	// Convert to user DTO.
 	userProducts := make([]dto.UserProductDTO, 0, len(products))
-	for i := range products {
-		dto := dto.ToUserProductDTO(&products[i])
-		if dto != nil {
-			// 如果用户已登录，检查收藏和点赞状态
-			if userID > 0 {
-				// 查询点赞状态
-				isLiked, errLike := h.InteractionService.IsLiked(userID, dto.ID)
-				if errLike == nil {
-					dto.IsLiked = isLiked
-				}
-
-				// 查询收藏状态
-				isFavorited, errFav := h.InteractionService.IsFavorited(userID, dto.ID)
-				if errFav == nil {
-					dto.IsFavorited = isFavorited
-				}
-			}
-			userProducts = append(userProducts, *dto)
+	var productIDs []uint
+	if userID > 0 && len(products) > 0 {
+		for _, p := range products {
+			productIDs = append(productIDs, p.ID)
 		}
 	}
 
-	// 返回200 OK
+	interactionStatusMap := make(map[uint]dto.UserInteractionStatus)
+	if userID > 0 && len(productIDs) > 0 {
+		var interactionErr error
+		interactionStatusMap, interactionErr = h.InteractionService.GetUserProductInteractionStatus(ctx.Request.Context(), userID, productIDs)
+		if interactionErr != nil {
+			// Log the error but proceed, as interaction status is not critical for listing products
+			slog.ErrorContext(ctx.Request.Context(), "Failed to get user product interaction status", "userID", userID, "error", interactionErr)
+		}
+	}
+
+	for i := range products {
+		productDTO := dto.ToUserProductDTO(&products[i])
+		if productDTO != nil {
+			if userID > 0 {
+				if status, ok := interactionStatusMap[productDTO.ID]; ok {
+					productDTO.IsLiked = status.IsLiked
+					productDTO.IsFavorited = status.IsFavorited
+				}
+			}
+			userProducts = append(userProducts, *productDTO)
+		}
+	}
+
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(userProducts, "", *pagination))
 }
 
-// GetProduct 获取单个产品详情
+// GetProduct retrieves details for a single product.
 func (h *ProductHandler) GetProduct(ctx *gin.Context) {
-	// 获取Path参数：product ID
+	// Get product ID from path parameters.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 调用 Service层 获取 Product
-	product, err := h.ProductService.GetProduct(uint(id))
+	// Call service layer to get the product.
+	product, err := h.ProductService.GetProduct(ctx.Request.Context(), uint(id)) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 转换为用户DTO
+	// Convert to user DTO.
 	userProduct := dto.ToUserProductDTO(product)
 
-	// 获取当前authenticatedUser（如果已登录）
+	// Get current authenticated user (if logged in).
 	authenticatedUser, exists := handler_utils.GetAuthenticatedUser(ctx)
 	if exists && userProduct != nil && authenticatedUser != nil && authenticatedUser.ID > 0 {
-		// 检查是否已点赞
-		isLiked, errLike := h.InteractionService.IsLiked(authenticatedUser.ID, userProduct.ID)
+		// Check if liked.
+		isLiked, errLike := h.InteractionService.IsLiked(ctx.Request.Context(), authenticatedUser.ID, userProduct.ID) // Pass context
 		if errLike == nil {
 			userProduct.IsLiked = isLiked
 		}
 
-		// 检查是否已收藏
-		isFavorited, errFav := h.InteractionService.IsFavorited(authenticatedUser.ID, userProduct.ID)
+		// Check if favorited.
+		isFavorited, errFav := h.InteractionService.IsFavorited(ctx.Request.Context(), authenticatedUser.ID, userProduct.ID) // Pass context
 		if errFav == nil {
 			userProduct.IsFavorited = isFavorited
 		}
 	}
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(userProduct, ""))
 }

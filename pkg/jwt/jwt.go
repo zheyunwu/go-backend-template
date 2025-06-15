@@ -19,7 +19,7 @@ const (
 type Claims struct {
 	UserID    uint      `json:"user_id"`
 	Role      string    `json:"role"`
-	TokenType TokenType `json:"token_type"` // 新增字段用于区分token类型
+	TokenType TokenType `json:"token_type"` // Added field to distinguish token type
 	jwt.RegisteredClaims
 }
 

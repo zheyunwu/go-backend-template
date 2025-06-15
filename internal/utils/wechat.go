@@ -14,50 +14,50 @@ import (
 	"github.com/google/uuid"
 )
 
-// ContentSecurityCheckRequest 表示微信内容安全检查请求
+// ContentSecurityCheckRequest represents the request for WeChat content security check.
 type ContentSecurityCheckRequest struct {
-	Content  string `json:"content"`            // 待检测的文本内容
-	Version  int    `json:"version"`            // API版本，固定为2
-	Scene    int    `json:"scene"`              // 场景值 1：资料；2：评论；3：论坛；4：社交
-	OpenID   string `json:"openid"`             // 用户的OpenID
-	Title    string `json:"title,omitempty"`    // 可选，文本标题
-	Nickname string `json:"nickname,omitempty"` // 可选，用户昵称
+	Content  string `json:"content"`            // Text content to be checked.
+	Version  int    `json:"version"`            // API version, fixed at 2.
+	Scene    int    `json:"scene"`              // Scene value: 1 for profile, 2 for comments, 3 for forum, 4 for social.
+	OpenID   string `json:"openid"`             // User's OpenID.
+	Title    string `json:"title,omitempty"`    // Optional, title of the text.
+	Nickname string `json:"nickname,omitempty"` // Optional, user's nickname.
 }
 
-// ContentSecurityCheckResult 表示内容安全检查结果
+// ContentSecurityCheckResult represents the result of a content security check.
 type ContentSecurityCheckResult struct {
-	Suggest string `json:"suggest"` // 建议，有risky(风险)、pass(通过)、review(人工审核)三种值
-	Label   int    `json:"label"`   // 标签值，对应不同类型的风险
+	Suggest string `json:"suggest"` // Suggestion: "risky", "pass", or "review".
+	Label   int    `json:"label"`   // Label value, corresponding to different types of risk.
 }
 
-// ContentSecurityCheckResponse 表示微信内容安全检查API的响应
+// ContentSecurityCheckResponse represents the response from WeChat content security check API.
 type ContentSecurityCheckResponse struct {
-	ErrCode int                        `json:"errcode"`  // 错误码
-	ErrMsg  string                     `json:"errmsg"`   // 错误信息
-	Result  ContentSecurityCheckResult `json:"result"`   // 检查结果
-	TraceID string                     `json:"trace_id"` // 唯一请求标识
+	ErrCode int                        `json:"errcode"`  // Error code.
+	ErrMsg  string                     `json:"errmsg"`   // Error message.
+	Result  ContentSecurityCheckResult `json:"result"`   // Check result.
+	TraceID string                     `json:"trace_id"` // Unique request identifier.
 }
 
-// SecuritySceneType 定义安全检查场景类型
+// SecuritySceneType defines the type for security check scenes.
 type SecuritySceneType int
 
 const (
-	// SecuritySceneProfile 资料场景
+	// SecuritySceneProfile for profile information.
 	SecuritySceneProfile SecuritySceneType = 1
-	// SecuritySceneComment 评论场景
+	// SecuritySceneComment for comments.
 	SecuritySceneComment SecuritySceneType = 2
-	// SecuritySceneForum 论坛场景
+	// SecuritySceneForum for forum posts.
 	SecuritySceneForum SecuritySceneType = 3
-	// SecuritySceneSocialLog 社交日志场景
+	// SecuritySceneSocialLog for social logs/posts.
 	SecuritySceneSocialLog SecuritySceneType = 4
 )
 
-// ContentSecurityChecker 微信内容安全检查工具
+// ContentSecurityChecker is a utility for WeChat content security checks.
 type ContentSecurityChecker struct {
 	client *http.Client
 }
 
-// NewContentSecurityChecker 创建一个新的内容安全检查工具
+// NewContentSecurityChecker creates a new ContentSecurityChecker.
 func NewContentSecurityChecker() *ContentSecurityChecker {
 	return &ContentSecurityChecker{
 		client: &http.Client{
@@ -66,30 +66,30 @@ func NewContentSecurityChecker() *ContentSecurityChecker {
 	}
 }
 
-// CheckText 检查文本内容是否包含敏感词
-// content: 要检查的文本内容
-// openID: 用户的OpenID
-// scene: 场景类型
-// title: 可选的标题
-// nickname: 可选的用户昵称
-// 返回: 是否通过检查，详细结果，错误信息
+// CheckText checks if the text content contains sensitive words.
+// content: The text content to check.
+// openID: The user's OpenID.
+// scene: The type of scene.
+// title: Optional title.
+// nickname: Optional user nickname.
+// Returns: whether the check passed, detailed result, error information.
 func (c *ContentSecurityChecker) CheckText(content string, openID string, scene SecuritySceneType, title string, nickname string) (bool, *ContentSecurityCheckResponse, error) {
 	if len(content) == 0 {
-		return true, nil, errors.New("内容不能为空")
+		return true, nil, errors.New("content cannot be empty") // "内容不能为空" -> "content cannot be empty"
 	}
 
-	if len(content) > 2500 {
-		return false, nil, errors.New("内容超过2500字符限制")
+	if len(content) > 2500 { // WeChat limit is 2500 characters for this API
+		return false, nil, errors.New("content exceeds 2500 character limit") // "内容超过2500字符限制" -> "content exceeds 2500 character limit"
 	}
 
 	if openID == "" {
-		return false, nil, errors.New("openid不能为空")
+		return false, nil, errors.New("openid cannot be empty") // "openid不能为空" -> "openid cannot be empty"
 	}
 
-	// 准备请求体
+	// Prepare request body.
 	reqBody := ContentSecurityCheckRequest{
 		Content:  content,
-		Version:  2, // 当前API版本为2
+		Version:  2, // Current API version is 2.
 		Scene:    int(scene),
 		OpenID:   openID,
 		Title:    title,
@@ -98,73 +98,73 @@ func (c *ContentSecurityChecker) CheckText(content string, openID string, scene 
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
-		return false, nil, fmt.Errorf("序列化请求失败: %w", err)
+		return false, nil, fmt.Errorf("failed to serialize request: %w", err) // "序列化请求失败:" -> "failed to serialize request:"
 	}
 
-	// 构建请求
-	// 在云托管环境下访问微信API不需要access_token
+	// Construct request.
+	// Accessing WeChat API in a cloud-hosted environment does not require an access_token.
 	req, err := http.NewRequest("POST", "https://api.weixin.qq.com/wxa/msg_sec_check", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return false, nil, fmt.Errorf("创建请求失败: %w", err)
+		return false, nil, fmt.Errorf("failed to create request: %w", err) // "创建请求失败:" -> "failed to create request:"
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	// 设置请求ID，便于追踪
+	// Set request ID for traceability.
 	requestID := uuid.New().String()
 	req.Header.Set("X-Request-ID", requestID)
 
-	// 发送请求
+	// Send request.
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return false, nil, fmt.Errorf("发送请求失败: %w", err)
+		return false, nil, fmt.Errorf("failed to send request: %w", err) // "发送请求失败:" -> "failed to send request:"
 	}
 	defer resp.Body.Close()
 
-	// 解析响应
+	// Parse response.
 	var result ContentSecurityCheckResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return false, nil, fmt.Errorf("解析响应失败: %w", err)
+		return false, nil, fmt.Errorf("failed to parse response: %w", err) // "解析响应失败:" -> "failed to parse response:"
 	}
 
-	// 检查API错误
+	// Check for API errors.
 	if result.ErrCode != 0 {
-		return false, &result, fmt.Errorf("微信API错误: %s (错误码: %d)", result.ErrMsg, result.ErrCode)
+		return false, &result, fmt.Errorf("WeChat API error: %s (errcode: %d)", result.ErrMsg, result.ErrCode) // "微信API错误: %s (错误码: %d)" -> "WeChat API error: %s (errcode: %d)"
 	}
 
-	// 内容是否通过安全检查
+	// Did the content pass the security check?
 	isPass := result.Result.Suggest == "pass"
 
 	return isPass, &result, nil
 }
 
-// SimpleCheckText 简化版的内容检查函数，只返回是否通过和错误信息
+// SimpleCheckText is a simplified content check function that only returns pass/fail and error information.
 func (c *ContentSecurityChecker) SimpleCheckText(content string, openID string, scene SecuritySceneType) (bool, error) {
 	isPass, _, err := c.CheckText(content, openID, scene, "", "")
 	return isPass, err
 }
 
-// CheckSensitiveContent 检查文本是否包含敏感内容
-// 仅在生产环境下进行检查
-// 这个函数可以被任何服务使用，便于进行内容安全检查
+// CheckSensitiveContent checks if text contains sensitive content.
+// This check is performed only in the production environment.
+// This function can be used by any service for content security checks.
 func CheckSensitiveContent(content string, openID string, scene SecuritySceneType) error {
-	// 仅在生产环境检查
+	// Only check in production environment.
 	if env := os.Getenv("APP_ENV"); env == "prod" {
-		// 如果内容为空，则直接返回
+		// If content is empty, return directly.
 		if content == "" {
 			return nil
 		}
 
-		// 创建内容安全检查器
+		// Create a content security checker.
 		checker := NewContentSecurityChecker()
 
-		// 调用微信内容安全检查API
+		// Call WeChat content security check API.
 		isPass, err := checker.SimpleCheckText(content, openID, scene)
 		if err != nil {
 			slog.Error("Failed to check content security", "error", err)
 			return apperrors.ErrContentSecurityAPI.WithDetails(err)
 		}
 
-		// 内容未通过安全检查
+		// Content did not pass security check.
 		if !isPass {
 			slog.Warn("Content contains sensitive material", "content", content)
 			return apperrors.ErrContentSecurityCheck

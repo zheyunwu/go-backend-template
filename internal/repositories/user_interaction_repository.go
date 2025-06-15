@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context" // Added for context
 	"strconv"
 
 	"github.com/go-backend-template/internal/models"
@@ -8,32 +9,37 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserInteractionRepository defines the interface for user interaction data access operations.
 type UserInteractionRepository interface {
-	// 点赞相关
-	AddLike(userID, productID uint) error
-	RemoveLike(userID, productID uint) error
-	IsLiked(userID, productID uint) (bool, error)
+	// Like related methods
+	AddLike(ctx context.Context, userID, productID uint) error
+	RemoveLike(ctx context.Context, userID, productID uint) error
+	IsLiked(ctx context.Context, userID, productID uint) (bool, error)
 
-	// 收藏相关
-	AddFavorite(userID, productID uint) error
-	RemoveFavorite(userID, productID uint) error
-	IsFavorited(userID, productID uint) (bool, error)
+	// Favorite related methods
+	AddFavorite(ctx context.Context, userID, productID uint) error
+	RemoveFavorite(ctx context.Context, userID, productID uint) error
+	IsFavorited(ctx context.Context, userID, productID uint) (bool, error)
 
-	// 通用列表方法
-	ListUserInteractedProducts(userID uint, params *query_params.QueryParams, interactionType string) ([]models.Product, int, error)
+	// General list method for interacted products
+	ListUserInteractedProducts(ctx context.Context, userID uint, params *query_params.QueryParams, interactionType string) ([]models.Product, int, error)
 
-	// 统计功能
-	GetProductLikeCount(productID uint) (int, error)
-	GetProductFavoriteCount(productID uint) (int, error)
+	// Statistics
+	GetProductLikeCount(ctx context.Context, productID uint) (int, error)
+	GetProductFavoriteCount(ctx context.Context, productID uint) (int, error)
+
+	// Bulk queries
+	GetLikedProductIDs(ctx context.Context, userID uint, productIDs []uint) (map[uint]bool, error)
+	GetFavoritedProductIDs(ctx context.Context, userID uint, productIDs []uint) (map[uint]bool, error)
 }
 
-// userInteractionRepository 用户交互数据访问实现
+// userInteractionRepository is the implementation for user interaction data access.
 type userInteractionRepository struct {
 	db           *gorm.DB
 	categoryRepo CategoryRepository
 }
 
-// NewUserInteractionRepository 创建用户交互数据访问实例
+// NewUserInteractionRepository creates a new instance of UserInteractionRepository.
 func NewUserInteractionRepository(db *gorm.DB, categoryRepo CategoryRepository) UserInteractionRepository {
 	return &userInteractionRepository{
 		db:           db,
@@ -41,70 +47,68 @@ func NewUserInteractionRepository(db *gorm.DB, categoryRepo CategoryRepository) 
 	}
 }
 
-// AddLike 添加点赞
-func (r *userInteractionRepository) AddLike(userID, productID uint) error {
+// AddLike adds a like for a product by a user.
+func (r *userInteractionRepository) AddLike(ctx context.Context, userID, productID uint) error {
 	like := models.UserProductLike{
 		UserID:    userID,
 		ProductID: productID,
 	}
-
-	// 使用FirstOrCreate，避免重复点赞
-	return r.db.Where(models.UserProductLike{UserID: userID, ProductID: productID}).
+	// Use FirstOrCreate to avoid duplicate likes.
+	return r.db.WithContext(ctx).Where(models.UserProductLike{UserID: userID, ProductID: productID}). // Add WithContext
 		FirstOrCreate(&like).Error
 }
 
-// RemoveLike 取消点赞
-func (r *userInteractionRepository) RemoveLike(userID, productID uint) error {
-	// 使用主键条件删除
-	return r.db.Where("user_id = ? AND product_id = ?", userID, productID).
+// RemoveLike removes a like for a product by a user.
+func (r *userInteractionRepository) RemoveLike(ctx context.Context, userID, productID uint) error {
+	// Delete using primary key conditions.
+	return r.db.WithContext(ctx).Where("user_id = ? AND product_id = ?", userID, productID). // Add WithContext
 		Delete(&models.UserProductLike{}).Error
 }
 
-// IsLiked 检查是否已点赞
-func (r *userInteractionRepository) IsLiked(userID, productID uint) (bool, error) {
+// IsLiked checks if a product is liked by a user.
+func (r *userInteractionRepository) IsLiked(ctx context.Context, userID, productID uint) (bool, error) {
 	var count int64
-	err := r.db.Model(&models.UserProductLike{}).
+	err := r.db.WithContext(ctx).Model(&models.UserProductLike{}). // Add WithContext
 		Where("user_id = ? AND product_id = ?", userID, productID).
 		Count(&count).Error
 	return count > 0, err
 }
 
-// AddFavorite 添加收藏
-func (r *userInteractionRepository) AddFavorite(userID, productID uint) error {
+// AddFavorite adds a favorite for a product by a user.
+func (r *userInteractionRepository) AddFavorite(ctx context.Context, userID, productID uint) error {
 	favorite := models.UserProductFavorite{
 		UserID:    userID,
 		ProductID: productID,
 	}
-
-	// 使用FirstOrCreate，避免重复收藏
-	return r.db.Where(models.UserProductFavorite{UserID: userID, ProductID: productID}).
+	// Use FirstOrCreate to avoid duplicate favorites.
+	return r.db.WithContext(ctx).Where(models.UserProductFavorite{UserID: userID, ProductID: productID}). // Add WithContext
 		FirstOrCreate(&favorite).Error
 }
 
-// RemoveFavorite 取消收藏
-func (r *userInteractionRepository) RemoveFavorite(userID, productID uint) error {
-	// 使用主键条件删除
-	return r.db.Where("user_id = ? AND product_id = ?", userID, productID).
+// RemoveFavorite removes a favorite for a product by a user.
+func (r *userInteractionRepository) RemoveFavorite(ctx context.Context, userID, productID uint) error {
+	// Delete using primary key conditions.
+	return r.db.WithContext(ctx).Where("user_id = ? AND product_id = ?", userID, productID). // Add WithContext
 		Delete(&models.UserProductFavorite{}).Error
 }
 
-// IsFavorited 检查是否已收藏
-func (r *userInteractionRepository) IsFavorited(userID, productID uint) (bool, error) {
+// IsFavorited checks if a product is favorited by a user.
+func (r *userInteractionRepository) IsFavorited(ctx context.Context, userID, productID uint) (bool, error) {
 	var count int64
-	err := r.db.Model(&models.UserProductFavorite{}).
+	err := r.db.WithContext(ctx).Model(&models.UserProductFavorite{}). // Add WithContext
 		Where("user_id = ? AND product_id = ?", userID, productID).
 		Count(&count).Error
 	return count > 0, err
 }
 
-// ListUserInteractedProducts 获取用户点赞或收藏的产品
-// interactionType: "like" 或 "favorite"
-func (r *userInteractionRepository) ListUserInteractedProducts(userID uint, params *query_params.QueryParams, interactionType string) ([]models.Product, int, error) {
+// ListUserInteractedProducts retrieves products liked or favorited by a user.
+// interactionType can be "like" or "favorite".
+func (r *userInteractionRepository) ListUserInteractedProducts(ctx context.Context, userID uint, params *query_params.QueryParams, interactionType string) ([]models.Product, int, error) {
 	var products []models.Product
 	var total int64
 	var tableName, orderField string
 
-	// 根据交互类型确定表名和排序字段
+	// Determine table name and sort field based on interaction type.
 	switch interactionType {
 	case "like":
 		tableName = "user_product_likes"
@@ -113,84 +117,84 @@ func (r *userInteractionRepository) ListUserInteractedProducts(userID uint, para
 		tableName = "user_product_favorites"
 		orderField = "user_product_favorites.created_at"
 	default:
-		return nil, 0, nil
+		return nil, 0, nil // Or return an error for invalid interactionType
 	}
 
-	// 创建查询
-	query := r.db.Table("products").
+	// Create query.
+	query := r.db.WithContext(ctx).Table("products"). // Add WithContext
 		Joins("JOIN "+tableName+" ON products.id = "+tableName+".product_id").
 		Where(tableName+".user_id = ? AND products.deleted_at IS NULL", userID)
 
-	// 处理搜索 search
+	// Handle search.
 	if params.Search != "" {
 		query = query.Where("products.name LIKE ? OR products.barcode LIKE ?",
 			"%"+params.Search+"%", "%"+params.Search+"%")
 	}
 
-	// 处理过滤 filter
+	// Handle filters.
 	if params.Filter != nil {
 		for key, value := range params.Filter {
-			// 特殊处理: categories过滤
+			// Special handling for 'categories' filter.
 			if key == "categories" {
 				if categoryIDs, ok := value.([]interface{}); ok && len(categoryIDs) > 0 {
-					// 创建存储数字ID的切片
+					// Create a slice to store numeric IDs.
 					var categoryIDsUint []uint
 
-					// 将interface{}转换为uint类型的ID
+					// Convert interface{} to uint IDs.
 					for _, id := range categoryIDs {
 						switch v := id.(type) {
 						case float64:
-							// JSON数字默认解析为float64
+							// JSON numbers are parsed as float64 by default.
 							categoryIDsUint = append(categoryIDsUint, uint(v))
 						case int:
 							categoryIDsUint = append(categoryIDsUint, uint(v))
 						case uint:
 							categoryIDsUint = append(categoryIDsUint, v)
 						case string:
-							// 如果是字符串形式的数字，尝试转换
+							// If it's a string representation of a number, try to convert.
 							if numID, err := strconv.ParseUint(v, 10, 64); err == nil {
 								categoryIDsUint = append(categoryIDsUint, uint(numID))
 							}
 						}
 					}
 
-					// 扩展分类ID列表，包含所有指定分类的子分类
-					expandedCategoryIDs, err := r.categoryRepo.ExpandCategoryIDsWithChildren(categoryIDsUint)
+					// Expand category ID list to include all children of the specified categories.
+					expandedCategoryIDs, err := r.categoryRepo.ExpandCategoryIDsWithChildren(ctx, categoryIDsUint) // Pass context
 					if err != nil {
 						return nil, 0, err
 					}
 
-					// 使用扩展后的分类ID列表过滤产品
+					// Filter products using the expanded category ID list.
 					if len(expandedCategoryIDs) > 0 {
-						// 使用EXISTS子查询，比JOIN和IN更高效
+						// Using EXISTS subquery, which is more efficient than JOIN and IN for this case.
 						query = query.Where("EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = products.id AND pc.category_id IN ?)", expandedCategoryIDs)
 					}
 				}
 			} else {
-				// 常规过滤条件处理
+				// Handle regular filter conditions.
 				query = query.Where("products."+key+" = ?", value)
 			}
 		}
 	}
 
-	// 处理排序 sort
+	// Handle sorting.
 	if params.Sort != "" {
 		query = query.Order("products." + params.Sort)
 	} else {
-		query = query.Order(orderField + " DESC") // 默认按交互时间倒序
+		query = query.Order(orderField + " DESC") // Default sort by interaction time descending.
 	}
 
-	// 查询数据总数
+	// Get total count of records.
 	err := query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// 应用分页
+	// Apply pagination.
 	offset := (params.Page - 1) * params.Limit
 	query = query.Offset(offset).Limit(params.Limit)
 
-	// 预加载关联数据
+	// Preload associated data.
 	query = query.Preload("Images").Preload("Categories")
 
 	err = query.Find(&products).Error
@@ -198,19 +202,59 @@ func (r *userInteractionRepository) ListUserInteractedProducts(userID uint, para
 	return products, int(total), err
 }
 
-// GetProductLikeCount 获取产品的点赞数量
-func (r *userInteractionRepository) GetProductLikeCount(productID uint) (int, error) {
+// GetProductLikeCount retrieves the like count for a product.
+func (r *userInteractionRepository) GetProductLikeCount(ctx context.Context, productID uint) (int, error) {
 	var count int64
-	err := r.db.Model(&models.UserProductLike{}).
+	err := r.db.WithContext(ctx).Model(&models.UserProductLike{}). // Add WithContext
 		Where("product_id = ?", productID).
 		Count(&count).Error
 	return int(count), err
 }
 
-// GetProductFavoriteCount 获取产品的收藏数量
-func (r *userInteractionRepository) GetProductFavoriteCount(productID uint) (int, error) {
+// GetLikedProductIDs retrieves a map of product IDs liked by a user from a given list of product IDs.
+func (r *userInteractionRepository) GetLikedProductIDs(ctx context.Context, userID uint, productIDs []uint) (map[uint]bool, error) {
+	if len(productIDs) == 0 {
+		return map[uint]bool{}, nil
+	}
+	var likedProducts []models.UserProductLike
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND product_id IN ?", userID, productIDs).
+		Find(&likedProducts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	likedMap := make(map[uint]bool)
+	for _, p := range likedProducts {
+		likedMap[p.ProductID] = true
+	}
+	return likedMap, nil
+}
+
+// GetFavoritedProductIDs retrieves a map of product IDs favorited by a user from a given list of product IDs.
+func (r *userInteractionRepository) GetFavoritedProductIDs(ctx context.Context, userID uint, productIDs []uint) (map[uint]bool, error) {
+	if len(productIDs) == 0 {
+		return map[uint]bool{}, nil
+	}
+	var favoritedProducts []models.UserProductFavorite
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND product_id IN ?", userID, productIDs).
+		Find(&favoritedProducts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	favoritedMap := make(map[uint]bool)
+	for _, p := range favoritedProducts {
+		favoritedMap[p.ProductID] = true
+	}
+	return favoritedMap, nil
+}
+
+// GetProductFavoriteCount retrieves the favorite count for a product.
+func (r *userInteractionRepository) GetProductFavoriteCount(ctx context.Context, productID uint) (int, error) {
 	var count int64
-	err := r.db.Model(&models.UserProductFavorite{}).
+	err := r.db.WithContext(ctx).Model(&models.UserProductFavorite{}). // Add WithContext
 		Where("product_id = ?", productID).
 		Count(&count).Error
 	return int(count), err

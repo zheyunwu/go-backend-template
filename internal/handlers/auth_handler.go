@@ -8,50 +8,54 @@ import (
 	"github.com/go-backend-template/internal/dto"
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/services"
+	"github.com/go-backend-template/internal/utils" // Added validator utility
 	"github.com/go-backend-template/pkg/response"
 )
+
+var customValidator = utils.NewCustomValidator() // Create a validator instance
 
 type AuthHandler struct {
 	UserService services.UserService
 }
 
+// NewAuthHandler creates a new AuthHandler.
 func NewAuthHandler(UserService services.UserService) *AuthHandler {
 	return &AuthHandler{
 		UserService: UserService,
 	}
 }
 
-// GetProfile 获取用户个人资料
+// GetProfile retrieves the user's profile.
 func (h *AuthHandler) GetProfile(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 调用 Service层 获取 User
-	user, err := h.UserService.GetUser(authenticatedUser.ID)
+	// Call service layer to get user.
+	user, err := h.UserService.GetUser(ctx.Request.Context(), authenticatedUser.ID) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 转换为DTO
+	// Convert to DTO.
 	userProfile := dto.ToUserProfileDTO(user)
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(userProfile, ""))
 }
 
-// UpdateProfile 更新用户个人资料
+// UpdateProfile updates the user's profile.
 func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 解析请求体
+	// Parse request body.
 	var payload dto.UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid user update request", "requesterId", authenticatedUser.ID, "error", err)
@@ -59,27 +63,34 @@ func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 更新 User
-	err := h.UserService.UpdateUser(authenticatedUser.ID, &payload)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for UpdateProfile", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to update user.
+	err := h.UserService.UpdateUser(ctx.Request.Context(), authenticatedUser.ID, &payload) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回204 No Content
+	// Return 204 No Content.
 	slog.Info("User Profile updated", "requesterId", authenticatedUser.ID)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// UpdatePassword 更新密码
+// UpdatePassword updates the user's password.
 func (h *AuthHandler) UpdatePassword(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 解析请求体
+	// Parse request body.
 	var payload dto.UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid password update request", "requesterId", authenticatedUser.ID, "error", err)
@@ -87,21 +98,28 @@ func (h *AuthHandler) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 更新密码
-	err := h.UserService.UpdatePassword(authenticatedUser.ID, payload.CurrentPassword, payload.NewPassword)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for UpdatePassword", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to update password.
+	err := h.UserService.UpdatePassword(ctx.Request.Context(), authenticatedUser.ID, payload.CurrentPassword, payload.NewPassword) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回204 No Content
+	// Return 204 No Content.
 	slog.Info("Password updated successfully", "requesterId", authenticatedUser.ID)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// RegisterWithPassword 邮箱密码注册
+// RegisterWithPassword handles registration with email/password.
 func (h *AuthHandler) RegisterWithPassword(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.RegisterWithPasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid user registration request", "error", err)
@@ -109,21 +127,28 @@ func (h *AuthHandler) RegisterWithPassword(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 创建 User
-	createdUserID, err := h.UserService.RegisterWithPassword(&payload)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for RegisterWithPassword", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to create user.
+	createdUserID, err := h.UserService.RegisterWithPassword(ctx.Request.Context(), &payload) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回201 Created
+	// Return 201 Created.
 	slog.Info("User created with password", "userId", createdUserID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
-// LoginWithPassword 邮箱密码登录
+// LoginWithPassword handles login with email/password.
 func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.LoginWithPasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid login request", "error", err)
@@ -131,14 +156,21 @@ func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 进行认证并获取token
-	accessToken, refreshToken, err := h.UserService.LoginWithPassword(payload.EmailOrPhone, payload.Password)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for LoginWithPassword", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to authenticate and get tokens.
+	accessToken, refreshToken, err := h.UserService.LoginWithPassword(ctx.Request.Context(), payload.EmailOrPhone, payload.Password) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回token
+	// Return tokens.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
@@ -147,9 +179,9 @@ func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 	}, ""))
 }
 
-// RefreshToken 刷新访问令牌
+// RefreshToken refreshes an access token.
 func (h *AuthHandler) RefreshToken(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.RefreshTokenRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid refresh token request", "error", err)
@@ -157,25 +189,32 @@ func (h *AuthHandler) RefreshToken(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 刷新token
-	newAccessToken, newRefreshToken, err := h.UserService.RefreshAccessToken(payload.RefreshToken)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for RefreshToken", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to refresh token.
+	newAccessToken, newRefreshToken, err := h.UserService.RefreshAccessToken(ctx.Request.Context(), payload.RefreshToken) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回新的token
+	// Return new tokens.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
 		"access_token":  newAccessToken,
 		"refresh_token": newRefreshToken,
 		"token_type":    "Bearer",
-		"expires_in":    3600 * 24 * 7, // 7天过期
+		"expires_in":    3600 * 24 * 7, // 7 days expiration
 	}, "Token refreshed successfully"))
 }
 
-// SendEmailVerification 发送邮箱验证码
+// SendEmailVerification sends an email verification code.
 func (h *AuthHandler) SendEmailVerification(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.SendEmailVerificationRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid email verification request", "error", err)
@@ -183,21 +222,28 @@ func (h *AuthHandler) SendEmailVerification(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 发送验证码
-	err := h.UserService.SendEmailVerification(payload.Email)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for SendEmailVerification", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to send verification code.
+	err := h.UserService.SendEmailVerification(ctx.Request.Context(), payload.Email) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	slog.Info("Email verification sent", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Verification code sent successfully"))
 }
 
-// VerifyEmail 验证邮箱
+// VerifyEmail verifies an email.
 func (h *AuthHandler) VerifyEmail(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.VerifyEmailRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid verify email request", "error", err)
@@ -205,21 +251,28 @@ func (h *AuthHandler) VerifyEmail(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 验证邮箱
-	err := h.UserService.VerifyEmail(payload.Email, payload.Code)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for VerifyEmail", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to verify email.
+	err := h.UserService.VerifyEmail(ctx.Request.Context(), payload.Email, payload.Code) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	slog.Info("Email verified successfully", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Email verified successfully"))
 }
 
-// SendPasswordReset 发送密码重置邮件
+// SendPasswordReset sends a password reset email.
 func (h *AuthHandler) SendPasswordReset(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.PasswordResetRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid password reset request", "error", err)
@@ -227,21 +280,28 @@ func (h *AuthHandler) SendPasswordReset(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 发送密码重置邮件
-	err := h.UserService.SendPasswordReset(payload.Email)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for SendPasswordReset", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to send password reset email.
+	err := h.UserService.SendPasswordReset(ctx.Request.Context(), payload.Email) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	slog.Info("Password reset email sent", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Password reset email sent successfully"))
 }
 
-// ResetPassword 重置密码
+// ResetPassword resets the user's password.
 func (h *AuthHandler) ResetPassword(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.PasswordResetConfirmRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid password reset confirm request", "error", err)
@@ -249,28 +309,35 @@ func (h *AuthHandler) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 重置密码
-	err := h.UserService.ResetPassword(payload.Email, payload.ResetToken, payload.NewPassword)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for ResetPassword", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to reset password.
+	err := h.UserService.ResetPassword(ctx.Request.Context(), payload.Email, payload.ResetToken, payload.NewPassword) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	slog.Info("Password reset successfully", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Password reset successfully"))
 }
 
-// RegisterFromWechatMiniProgram 微信小程序注册
+// RegisterFromWechatMiniProgram handles registration from WeChat Mini Program.
 func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
-	// 获取并验证 OpenID 和 UnionID
+	// Get and validate OpenID and UnionID.
 	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
 	if !ok {
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Missing WeChat credentials"))
 		return
 	}
 
-	// 解析请求体
+	// Parse request body.
 	var payload dto.RegisterFromWechatMiniProgramRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid user creation request", "error", err)
@@ -278,36 +345,43 @@ func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 创建 User
-	createdUserID, err := h.UserService.RegisterFromWechatMiniProgram(&payload, unionID, openID)
+	// Validate UpdateProfileRequest part of the payload as RegisterFromWechatMiniProgramRequest embeds it.
+	if validationErrs := customValidator.ValidateStruct(&payload.UpdateProfileRequest); validationErrs != nil {
+		slog.Warn("Validation failed for RegisterFromWechatMiniProgram (ProfileData)", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to create user.
+	createdUserID, err := h.UserService.RegisterFromWechatMiniProgram(ctx.Request.Context(), &payload, unionID, openID) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回201 Created
+	// Return 201 Created.
 	slog.Info("User created", "userId", createdUserID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
-// LoginFromWechatMiniProgram 微信小程序端登录
+// LoginFromWechatMiniProgram handles login from WeChat Mini Program.
 func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
-	// Extract openID and unionID from header
+	// Extract openID and unionID from header.
 	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
 	if !ok {
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Missing WeChat credentials"))
 		return
 	}
 
-	// Call Service layer to authenticate and get token
-	accessToken, refreshToken, err := h.UserService.LoginFromWechatMiniProgram(unionID, openID)
+	// Call Service layer to authenticate and get token.
+	accessToken, refreshToken, err := h.UserService.LoginFromWechatMiniProgram(ctx.Request.Context(), unionID, openID) // Pass context
 
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// Return token
+	// Return token.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
@@ -316,16 +390,23 @@ func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
 	}, ""))
 }
 
-// ExchangeWechatOAuth 微信OAuth授权码交换（自动判断登录/注册）
+// ExchangeWechatOAuth handles WeChat OAuth code exchange (auto determines login/registration).
 func (h *AuthHandler) ExchangeWechatOAuth(ctx *gin.Context) {
 	var payload dto.WechatOAuthRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid Google OAuth request", "error", err)
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("参数错误: "+err.Error()))
+		slog.Warn("Invalid Wechat OAuth request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid parameters: "+err.Error())) // "参数错误: " -> "Invalid parameters: "
 		return
 	}
 
-	accessToken, refreshToken, isNewUser, err := h.UserService.ExchangeWechatOAuth(&payload)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for ExchangeWechatOAuth", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	accessToken, refreshToken, isNewUser, err := h.UserService.ExchangeWechatOAuth(ctx.Request.Context(), &payload) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
@@ -339,21 +420,21 @@ func (h *AuthHandler) ExchangeWechatOAuth(ctx *gin.Context) {
 		"is_new_user":   isNewUser,
 	}
 	if isNewUser {
-		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "用户注册并登录成功"))
+		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "User registered and logged in successfully")) // "用户注册并登录成功" -> "User registered and logged in successfully"
 	} else {
-		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "用户登录成功"))
+		ctx.JSON(http.StatusOK, response.NewSuccessResponse(responseData, "User logged in successfully")) // "用户登录成功" -> "User logged in successfully"
 	}
 }
 
-// BindWechatAccount 绑定微信账号
+// BindWechatAccount binds a WeChat account.
 func (h *AuthHandler) BindWechatAccount(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 解析请求体
+	// Parse request body.
 	var payload dto.BindWechatAccountRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid bind WeChat account request", "error", err)
@@ -361,39 +442,46 @@ func (h *AuthHandler) BindWechatAccount(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 绑定微信账号
-	err := h.UserService.BindWechatAccount(authenticatedUser.ID, &payload, authenticatedUser)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for BindWechatAccount", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to bind WeChat account.
+	err := h.UserService.BindWechatAccount(ctx.Request.Context(), authenticatedUser.ID, &payload, authenticatedUser) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "WeChat account bound successfully"))
 }
 
-// UnbindWechatAccount 解绑微信账号
+// UnbindWechatAccount unbinds a WeChat account.
 func (h *AuthHandler) UnbindWechatAccount(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 调用 Service层 解绑微信账号
-	err := h.UserService.UnbindWechatAccount(authenticatedUser.ID, authenticatedUser)
+	// Call service layer to unbind WeChat account.
+	err := h.UserService.UnbindWechatAccount(ctx.Request.Context(), authenticatedUser.ID, authenticatedUser) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "WeChat account unbound successfully"))
 }
 
-// ExchangeGoogleOAuth Google OAuth授权码交换（自动判断登录/注册）
+// ExchangeGoogleOAuth handles Google OAuth code exchange (auto determines login/registration).
 func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.GoogleOAuthRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid Google OAuth request", "error", err)
@@ -401,23 +489,30 @@ func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 进行认证（自动判断登录/注册）
-	accessToken, refreshToken, isNewUser, err := h.UserService.ExchangeGoogleOAuth(&payload)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for ExchangeGoogleOAuth", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to authenticate (auto determines login/registration).
+	accessToken, refreshToken, isNewUser, err := h.UserService.ExchangeGoogleOAuth(ctx.Request.Context(), &payload) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回token和用户状态
+	// Return token and user status.
 	responseData := gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 		"token_type":    "Bearer",
-		"expires_in":    3600 * 24 * 7, // 7天过期
-		"is_new_user":   isNewUser,     // 标识是否为新注册用户
+		"expires_in":    3600 * 24 * 7, // 7 days expiration
+		"is_new_user":   isNewUser,     // Indicates if it's a newly registered user
 	}
 
-	// 根据是否为新用户返回不同的HTTP状态码
+	// Return different HTTP status codes based on whether it's a new user.
 	if isNewUser {
 		ctx.JSON(http.StatusCreated, response.NewSuccessResponse(responseData, "User registered and authenticated successfully"))
 	} else {
@@ -425,15 +520,15 @@ func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
 	}
 }
 
-// BindGoogleAccount 绑定Google账号
+// BindGoogleAccount binds a Google account.
 func (h *AuthHandler) BindGoogleAccount(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 解析请求体
+	// Parse request body.
 	var payload dto.BindGoogleAccountRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		slog.Warn("Invalid bind Google account request", "error", err)
@@ -441,32 +536,39 @@ func (h *AuthHandler) BindGoogleAccount(ctx *gin.Context) {
 		return
 	}
 
-	// 调用 Service层 绑定Google账号
-	err := h.UserService.BindGoogleAccount(authenticatedUser.ID, &payload, authenticatedUser)
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
+		slog.Warn("Validation failed for BindGoogleAccount", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Call service layer to bind Google account.
+	err := h.UserService.BindGoogleAccount(ctx.Request.Context(), authenticatedUser.ID, &payload, authenticatedUser) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Google account bound successfully"))
 }
 
-// UnbindGoogleAccount 解绑Google账号
+// UnbindGoogleAccount unbinds a Google account.
 func (h *AuthHandler) UnbindGoogleAccount(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 调用 Service层 解绑Google账号
-	err := h.UserService.UnbindGoogleAccount(authenticatedUser.ID, authenticatedUser)
+	// Call service layer to unbind Google account.
+	err := h.UserService.UnbindGoogleAccount(ctx.Request.Context(), authenticatedUser.ID, authenticatedUser) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回成功响应
+	// Return success response.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Google account unbound successfully"))
 }

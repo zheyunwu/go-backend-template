@@ -1,14 +1,14 @@
-# OAuth2 集成指南
+# OAuth2 Integration Guide
 
-此后端支持 Google 和微信提供商的 OAuth2 身份验证，使用适合不同客户端类型的安全授权流程。
+This backend supports OAuth2 authentication with Google and WeChat providers, using secure authorization flows suitable for different client types.
 
-## 1 Google OAuth2 (授权码流程 + PKCE)
+## 1. Google OAuth2 (Authorization Code Flow + PKCE)
 
-[Google官方文档 (Auth Code + PKCE)](https://developers.google.com/identity/protocols/oauth2/native-app)
+[Google Official Documentation (Auth Code + PKCE)](https://developers.google.com/identity/protocols/oauth2/native-app)
 
-### 配置
+### Configuration
 
-将您的 Google OAuth2 凭据添加到配置文件中。您可以为 iOS 和 Web 应用程序配置不同的客户端凭据：
+Add your Google OAuth2 credentials to the configuration file. You can configure different client credentials for iOS and Web applications:
 
 ```yaml
 google:
@@ -16,18 +16,18 @@ google:
     client_id: "your-ios-google-client-id"
     client_secret: "your-ios-google-client-secret"
     redirect_urls:
-      - "com.yourapp.scheme://oauth/callback"  # iOS 应用深度链接
+      - "com.yourapp.scheme://oauth/callback"  # iOS App Deep Link
   web:
     client_id: "your-web-google-client-id"
     client_secret: "your-web-google-client-secret"
     redirect_urls:
-      - "http://localhost:3000/auth/callback"  # 本地开发 Web 应用
-      - "https://yourapp.com/auth/callback"    # 生产环境 Web 应用
+      - "http://localhost:3000/auth/callback"  # Local Development Web App
+      - "https://yourapp.com/auth/callback"    # Production Web App
 ```
 
-### API 端点
+### API Endpoints
 
-1. Google登录 (Auth Code换Token)
+1.  **Google Login (Exchange Auth Code for Token)**
     ```
     POST /api/v1/auth/google/exchange
     Content-Type: application/json
@@ -40,13 +40,13 @@ google:
     }
     ```
 
-    **参数解释：**
-    - `code`: 来自 OAuth2 流程的 Google 授权码
-    - `code_verifier`: 用于安全性的 PKCE 代码验证器
-    - `redirect_uri`: 必须匹配配置的重定向 URL 之一
-    - `client_type`: `"ios"` 或 `"web"`
+    **Parameter Explanation:**
+    - `code`: Google authorization code from the OAuth2 flow.
+    - `code_verifier`: PKCE code verifier for security.
+    - `redirect_uri`: Must match one of the configured redirect URLs.
+    - `client_type`: `"ios"` or `"web"`.
 
-    **响应 (200 OK - 现有用户登录)：**
+    **Response (200 OK - Existing User Login):**
     ```json
     {
         "success": true,
@@ -56,11 +56,11 @@ google:
             "expires_in": 604800,
             "is_new_user": false
         },
-        "message": "用户认证成功"
+        "message": "User authenticated successfully" // "用户认证成功" -> "User authenticated successfully"
     }
     ```
 
-    **响应 (201 Created - 新用户注册)：**
+    **Response (201 Created - New User Registration):**
     ```json
     {
         "success": true,
@@ -70,11 +70,11 @@ google:
             "expires_in": 604800,
             "is_new_user": true
         },
-        "message": "用户注册并认证成功"
+        "message": "User registered and authenticated successfully" // "用户注册并认证成功" -> "User registered and authenticated successfully"
     }
     ```
 
-2. 绑定Google账号
+2.  **Bind Google Account**
     ```http
     POST /api/v1/auth/google/bind
     Content-Type: application/json
@@ -84,29 +84,29 @@ google:
         "code": "google_oauth_authorization_code",
         "code_verifier": "pkce_code_verifier",
         "redirect_uri": "https://yourapp.com/auth/callback",
-        "client_type": "web"  // 或 "ios"
+        "client_type": "web"  // or "ios"
     }
     ```
 
-3. 解绑Google账号
+3.  **Unbind Google Account**
     ```http
     POST /api/v1/auth/google/unbind
     Content-Type: application/json
     Authorization: Bearer <access_token>
     ```
 
-### Google Login 客户端实现指南 (PKCE)
+### Google Login Client Implementation Guide (PKCE)
 
-1. **生成 PKCE 参数：**
+1.  **Generate PKCE Parameters:**
     ```javascript
-    // 生成codeVerifier (43-128 字符)
+    // Generate codeVerifier (43-128 characters)
     const codeVerifier = generateRandomString(128);
 
-    // 生成codeChallenge
+    // Generate codeChallenge
     const codeChallenge = base64URLEncode(sha256(codeVerifier));
     ```
 
-2. **重定向到 Google 授权：**
+2.  **Redirect to Google Authorization:**
     ```javascript
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${CLIENT_ID}&` +
@@ -121,13 +121,13 @@ google:
     window.location.href = authUrl;
     ```
 
-3. **处理回调并交换代码：**
+3.  **Handle Callback and Exchange Code:**
     ```javascript
-    // 从回调 URL 中提取授权码
+    // Extract authorization code from callback URL
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
 
-    // 与后端交换 JWT
+    // Exchange for JWT with backend
     const response = await fetch('/api/v1/auth/google/exchange', {
       method: 'POST',
       headers: {
@@ -143,17 +143,17 @@ google:
 
     const result = await response.json();
     if (result.success) {
-      // 存储 JWT 令牌
+      // Store JWT token
       localStorage.setItem('access_token', result.data.access_token);
     }
     ```
 
-## 2 微信 OAuth2
+## 2. WeChat OAuth2
 
-[微信官方文档 - 网站应用](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)
-[微信官方文档 - 移动应用](https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Development_Guide.html)
+[WeChat Official Documentation - Website Apps](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)
+[WeChat Official Documentation - Mobile Apps](https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Development_Guide.html)
 
-### 配置
+### Configuration
 
 ```yaml
 wechat:
@@ -165,64 +165,62 @@ wechat:
     secret: "your-app-wechat-secret"
 ```
 
-### API 端点
+### API Endpoints
 
-1. 微信登录 (Auth Code换Token)
+1.  **WeChat Login (Exchange Auth Code for Token)**
     ```
     POST /api/v1/auth/wechat/exchange
     Content-Type: application/json
 
     {
         "code": "wechat_authorization_code",
-        "client_type": "web"
+        "client_type": "web" // or "app"
     }
     ```
-2. 绑定微信账号
+2.  **Bind WeChat Account**
     ```http
     POST /api/v1/auth/wechat/bind
     Content-Type: application/json
     Authorization: Bearer <access_token>
 
     {
-        "code": "google_oauth_authorization_code",
-        "code_verifier": "pkce_code_verifier",
-        "redirect_uri": "https://yourapp.com/auth/callback",
-        "client_type": "web"  // 或 "ios"
+        "code": "wechat_authorization_code", // Note: This is a WeChat auth code for binding
+        "client_type": "web"  // or "app"
     }
     ```
 
-3. 解绑微信账号
+3.  **Unbind WeChat Account**
     ```http
     POST /api/v1/auth/wechat/unbind
     Content-Type: application/json
     Authorization: Bearer <access_token>
     ```
 
-## 3 微信小程序
+## 3. WeChat Mini Program
 
-对于微信小程序集成，使用专用端点：
+For WeChat Mini Program integration, use dedicated endpoints:
 
-1. 通过微信小程序注册
+1.  **Register via WeChat Mini Program**
   ```
   POST /api/v1/auth/wxmini/register
   Content-Type: application/json
-  x-wx-unionid: <用户union_id>
-  x-wx-openid: <用户open_id>
+  x-wx-unionid: <user_union_id>
+  x-wx-openid: <user_open_id>
 
   {
     "phone": "",
     "email": "",
-    "name": "小程序用户😄",
+    "name": "Mini Program User 😄", // "小程序用户😄" -> "Mini Program User 😄"
     "avatar_url": "",
     "gender": "MALE",
     "birth_date": "2015-07-27"
   }
   ```
 
-2. 通过微信小程序登录
+2.  **Login via WeChat Mini Program**
   ```
   POST /api/v1/auth/wxmini/login
   Content-Type: application/json
-  x-wx-unionid: <用户union_id>
-  x-wx-openid: <用户open_id>
+  x-wx-unionid: <user_union_id>
+  x-wx-openid: <user_open_id>
   ```

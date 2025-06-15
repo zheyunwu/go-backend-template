@@ -2,11 +2,12 @@ package middlewares
 
 import (
 	"fmt"
-	"log/slog"
+	"log/slog" // Keep slog for level constants if needed, or remove if logger pkg has them
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-backend-template/internal/models"
+	"github.com/go-backend-template/pkg/logger" // Import your logger package
 )
 
 /*
@@ -30,8 +31,11 @@ func RequestLogger() gin.HandlerFunc {
 		// 客户端IP
 		clientIP := c.ClientIP()
 
+		// Retrieve the logger from context. This logger should already have request_id.
+		log := logger.FromContext(c.Request.Context())
+
 		// 记录请求开始
-		slog.Debug("Request started",
+		log.Debug("Request started",
 			"method", method,
 			"path", path,
 			"clientIP", clientIP,
@@ -71,13 +75,13 @@ func RequestLogger() gin.HandlerFunc {
 			logLevel = slog.LevelError
 		}
 
-		slog.Log(c.Request.Context(), logLevel, "Request completed",
-			"method", method,
-			"path", path,
-			"statusCode", statusCode,
-			"latency", latency.String(),
-			"clientIP", clientIP,
-			"userID", userIDValue,
+		log.LogAttrs(c.Request.Context(), logLevel, "Request completed",
+			slog.String("method", method),
+			slog.String("path", path),
+			slog.Int("statusCode", statusCode),
+			slog.String("latency", latency.String()),
+			slog.String("clientIP", clientIP),
+			slog.String("userID", userIDValue),
 		)
 	}
 }

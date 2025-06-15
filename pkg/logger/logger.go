@@ -5,9 +5,17 @@ import (
 	"log/slog"
 	"os"
 	"time"
+
+	"context" // Updated to standard library context
 )
 
-// 日志级别常量
+// contextKey is a type for context keys to avoid collisions.
+type contextKey string
+
+// loggerKey is the key for storing a logger in the context.
+const loggerKey contextKey = "logger"
+
+// Log level constants
 const (
 	LevelDebug = slog.LevelDebug
 	LevelInfo  = slog.LevelInfo
@@ -15,14 +23,14 @@ const (
 	LevelError = slog.LevelError
 )
 
-// Config 日志配置
+// Config holds logger configuration.
 type Config struct {
-	Level      slog.Level
-	JSONFormat bool
-	Output     io.Writer
+	Level      slog.Level // Log level (Debug, Info, Warn, Error)
+	JSONFormat bool       // Whether to output logs in JSON format
+	Output     io.Writer  // Output destination for logs (e.g., os.Stdout)
 }
 
-// DefaultConfig 返回默认日志配置
+// DefaultConfig returns the default logger configuration.
 func DefaultConfig() *Config {
 	return &Config{
 		Level:      LevelInfo,
@@ -31,7 +39,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Init 初始化全局 slog logger
+// Init initializes the global slog logger.
 func Init(cfg *Config) {
 	if cfg == nil {
 		cfg = DefaultConfig()
@@ -41,9 +49,9 @@ func Init(cfg *Config) {
 
 	opts := &slog.HandlerOptions{
 		Level:     cfg.Level,
-		AddSource: true,
+		AddSource: true, // Include source file and line number in logs
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			// 格式化时间字段
+			// Format the time field
 			if a.Key == "time" {
 				if t, ok := a.Value.Any().(time.Time); ok {
 					a.Value = slog.StringValue(t.Format(time.RFC3339))
@@ -61,4 +69,17 @@ func Init(cfg *Config) {
 
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
+}
+
+// FromContext retrieves the logger from the context, or returns the default logger if not found.
+func FromContext(ctx context.Context) *slog.Logger {
+	if logger, ok := ctx.Value(loggerKey).(*slog.Logger); ok {
+		return logger
+	}
+	return slog.Default()
+}
+
+// WithContext stores the logger in the context.
+func WithContext(ctx context.Context, logger *slog.Logger) context.Context {
+	return context.WithValue(ctx, loggerKey, logger)
 }

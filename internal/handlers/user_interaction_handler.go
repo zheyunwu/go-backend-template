@@ -9,12 +9,12 @@ import (
 	"github.com/go-backend-template/pkg/response"
 )
 
-// UserInteractionHandler 用户交互处理器
+// UserInteractionHandler handles user interaction related HTTP requests.
 type UserInteractionHandler struct {
 	InteractionService services.UserInteractionService
 }
 
-// NewUserInteractionHandler 创建用户交互处理器
+// NewUserInteractionHandler creates a new UserInteractionHandler.
 func NewUserInteractionHandler(interactionService services.UserInteractionService) *UserInteractionHandler {
 	return &UserInteractionHandler{
 		InteractionService: interactionService,
@@ -22,29 +22,29 @@ func NewUserInteractionHandler(interactionService services.UserInteractionServic
 }
 
 /*
-点赞
+Likes
 */
 
-// ToggleLike 切换点赞状态（点赞或取消点赞）
+// ToggleLike toggles the like status for a product (likes or unlikes).
 func (h *UserInteractionHandler) ToggleLike(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 获取产品ID
+	// Get product ID.
 	productID, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 解析请求体，判断是点赞还是取消点赞
+	// Parse request body to determine if it's a like or unlike action.
 	var req struct {
 		IsLiked bool `json:"is_liked"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("无效的请求参数"))
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request parameters")) // "无效的请求参数" -> "Invalid request parameters"
 		return
 	}
 
@@ -52,13 +52,13 @@ func (h *UserInteractionHandler) ToggleLike(ctx *gin.Context) {
 	var actionMsg string
 
 	if req.IsLiked {
-		// 执行点赞操作
-		result = h.InteractionService.AddLike(authenticatedUser.ID, uint(productID))
-		actionMsg = "点赞成功"
+		// Perform like action.
+		result = h.InteractionService.AddLike(ctx.Request.Context(), authenticatedUser.ID, uint(productID)) // Pass context
+		actionMsg = "Successfully liked" // "点赞成功" -> "Successfully liked"
 	} else {
-		// 执行取消点赞操作
-		result = h.InteractionService.RemoveLike(authenticatedUser.ID, uint(productID))
-		actionMsg = "取消点赞成功"
+		// Perform unlike action.
+		result = h.InteractionService.RemoveLike(ctx.Request.Context(), authenticatedUser.ID, uint(productID)) // Pass context
+		actionMsg = "Successfully unliked" // "取消点赞成功" -> "Successfully unliked"
 	}
 
 	if result != nil {
@@ -66,22 +66,22 @@ func (h *UserInteractionHandler) ToggleLike(ctx *gin.Context) {
 		return
 	}
 
-	// 返回成功
+	// Return success.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(
 		gin.H{"is_like": req.IsLiked},
 		actionMsg,
 	))
 }
 
-// ListUserLikes 获取用户点赞的产品列表
+// ListUserLikes retrieves a list of products liked by the user.
 // func (h *UserInteractionHandler) ListUserLikes(ctx *gin.Context) {
-// // 获取当前authenticatedUser
+// // Get current authenticated user.
 // authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 // if !ok {
 // 	  return
 // }
 
-// 	// 获取查询参数
+// 	// Get query parameters.
 // 	params, _ := ctx.Get("queryParams")
 // 	queryParams, ok := params.(*pkg.QueryParams)
 // 	if !ok {
@@ -90,44 +90,44 @@ func (h *UserInteractionHandler) ToggleLike(ctx *gin.Context) {
 // 		return
 // 	}
 
-// 	// 获取点赞列表
+// 	// Get list of liked products.
 // 	products, pagination, err := h.InteractionService.ListUserLikedProducts(authenticatedUser.ID, queryParams)
 // 	if err != nil {
 // 		handler_utils.HandleError(ctx, err)
 // 		return
 // 	}
 
-// 	// 转换为用户DTO
+// 	// Convert to user DTO.
 // 	userProducts := dto.ToUserProductDTOList(products)
 
-// 	// 返回结果
+// 	// Return result.
 // 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(userProducts, "", *pagination))
 // }
 
 /*
-收藏
+Favorites
 */
 
-// ToggleFavorite 切换收藏状态（收藏或取消收藏）
+// ToggleFavorite toggles the favorite status for a product (favorites or unfavorites).
 func (h *UserInteractionHandler) ToggleFavorite(ctx *gin.Context) {
-	// 获取当前authenticatedUser
+	// Get current authenticated user.
 	authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 	if !ok {
 		return
 	}
 
-	// 获取产品ID
+	// Get product ID.
 	productID, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 解析请求体，判断是收藏还是取消收藏
+	// Parse request body to determine if it's a favorite or unfavorite action.
 	var req struct {
 		IsFavorited bool `json:"is_favorited"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("无效的请求参数"))
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request parameters")) // "无效的请求参数" -> "Invalid request parameters"
 		return
 	}
 
@@ -135,13 +135,13 @@ func (h *UserInteractionHandler) ToggleFavorite(ctx *gin.Context) {
 	var actionMsg string
 
 	if req.IsFavorited {
-		// 执行收藏操作
-		result = h.InteractionService.AddFavorite(authenticatedUser.ID, uint(productID))
-		actionMsg = "收藏成功"
+		// Perform favorite action.
+		result = h.InteractionService.AddFavorite(ctx.Request.Context(), authenticatedUser.ID, uint(productID)) // Pass context
+		actionMsg = "Successfully favorited" // "收藏成功" -> "Successfully favorited"
 	} else {
-		// 执行取消收藏操作
-		result = h.InteractionService.RemoveFavorite(authenticatedUser.ID, uint(productID))
-		actionMsg = "已取消收藏"
+		// Perform unfavorite action.
+		result = h.InteractionService.RemoveFavorite(ctx.Request.Context(), authenticatedUser.ID, uint(productID)) // Pass context
+		actionMsg = "Successfully unfavorited" // "已取消收藏" -> "Successfully unfavorited"
 	}
 
 	if result != nil {
@@ -149,22 +149,22 @@ func (h *UserInteractionHandler) ToggleFavorite(ctx *gin.Context) {
 		return
 	}
 
-	// 返回成功
+	// Return success.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(
 		gin.H{"is_favorited": req.IsFavorited},
 		actionMsg,
 	))
 }
 
-// ListUserFavorites 获取用户收藏的产品列表
+// ListUserFavorites retrieves a list of products favorited by the user.
 // func (h *UserInteractionHandler) ListUserFavorites(ctx *gin.Context) {
-// // 获取当前authenticatedUser
+// // Get current authenticated user.
 // authenticatedUser, ok := handler_utils.GetAuthenticatedUser(ctx)
 // if !ok {
 // 	return
 // }
 
-// 	// 获取查询参数
+// 	// Get query parameters.
 // 	params, _ := ctx.Get("queryParams")
 // 	queryParams, ok := params.(*pkg.QueryParams)
 // 	if !ok {
@@ -173,47 +173,47 @@ func (h *UserInteractionHandler) ToggleFavorite(ctx *gin.Context) {
 // 		return
 // 	}
 
-// 	// 获取收藏列表
+// 	// Get list of favorited products.
 // 	products, pagination, err := h.InteractionService.ListUserFavoritedProducts(authenticatedUser.ID, queryParams)
 // 	if err != nil {
 // 		handler_utils.HandleError(ctx, err)
 // 		return
 // 	}
 
-// 	// 转换为用户DTO
+// 	// Convert to user DTO.
 // 	userProducts := dto.ToUserProductDTOList(products)
 
-// 	// 返回结果
+// 	// Return result.
 // 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(userProducts, "", *pagination))
 // }
 
 /*
-统计
+Statistics
 */
 
-// GetProductStats 获取产品统计数据（收藏数、点赞数）
+// GetProductStats retrieves product statistics (favorite count, like count).
 func (h *UserInteractionHandler) GetProductStats(ctx *gin.Context) {
-	// 获取产品ID
+	// Get product ID.
 	productID, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 获取收藏数
-	favoriteCount, err := h.InteractionService.GetProductFavoriteCount(uint(productID))
+	// Get favorite count.
+	favoriteCount, err := h.InteractionService.GetProductFavoriteCount(ctx.Request.Context(), uint(productID)) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 获取点赞数
-	likeCount, err := h.InteractionService.GetProductLikeCount(uint(productID))
+	// Get like count.
+	likeCount, err := h.InteractionService.GetProductLikeCount(ctx.Request.Context(), uint(productID)) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回统计数据
+	// Return statistics.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(
 		gin.H{
 			"favorite_count": favoriteCount,

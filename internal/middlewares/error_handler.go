@@ -2,73 +2,80 @@ package middlewares
 
 import (
 	"fmt"
-	"log/slog"
+	"log/slog" // Keep for direct use if logger from context is not available initially
 	"net/http"
 	"os"
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-backend-template/pkg/logger" // Import your logger package
 	"github.com/go-backend-template/pkg/response"
 )
 
 /*
-ErrorHandler 中间件的职责：
-全局错误处理：作为应用的最后一道防线
-捕获未处理的 panic：防止因未捕获的异常而导致整个应用崩溃
-关注点：非预期的严重错误和系统级异常
-执行范围：针对所有请求的全局保护机制
-处理方式：记录堆栈跟踪、恢复应用正常运行、提供通用错误响应
+ErrorHandler middleware responsibilities:
+Global Error Handling: Acts as the last line of defense for the application.
+Catch Unhandled Panics: Prevents the entire application from crashing due to unhandled exceptions.
+Focus: Unexpected critical errors and system-level exceptions.
+Scope: Global protection mechanism for all requests.
+Handling Method: Logs stack traces, recovers normal application operation, provides generic error responses.
 */
 func ErrorHandler() gin.HandlerFunc {
-	// 读取当前环境
+	// Read the current environment.
 	env := os.Getenv("APP_ENV")
 	if env == "" {
-		env = "dev"
+		env = "dev" // Default to "dev" environment.
 	}
 
 	return func(c *gin.Context) {
-		// 使用defer recover来捕获任何panic
+		// Use defer recover to catch any panics.
 		defer func() {
 			if err := recover(); err != nil {
-				// 记录错误和堆栈跟踪
+				// Retrieve logger from context
+				log := logger.FromContext(c.Request.Context())
+
+				// Log the error and stack trace.
 				stackTrace := string(debug.Stack())
-				slog.Error("Panic recovered",
+				log.Error("Panic recovered",
 					"error", err,
 					"url", c.Request.URL.Path,
 					"stackTrace", stackTrace,
 					"env", env,
 				)
 
-				// 构建错误响应
+				// Construct the error response.
 				errorMessage := "Internal Server Error"
 				if env == "dev" {
 					errorMessage = fmt.Sprintf("Panic: %v", err)
 				}
 
-				// 返回500响应
+				// Return a 500 response.
 				c.AbortWithStatusJSON(http.StatusInternalServerError,
 					response.NewErrorResponse(errorMessage))
 			}
 		}()
 
-		// 处理请求
+		// Process the request.
 		c.Next()
 
-		// 检查是否有未处理的错误
+		// Check for any unhandled errors.
 		if len(c.Errors) > 0 {
-			// 获取最后一个错误
+			// Retrieve logger from context
+			log := logger.FromContext(c.Request.Context())
+
+			// Get the last error.
 			err := c.Errors.Last()
-			slog.Error("Unhandled error",
+			log.Error("Unhandled error",
 				"error", err.Error(),
 				"url", c.Request.URL.Path,
 				"env", env,
 			)
 
-			// 如果响应还没有被写入
+			// If the response has not been written yet.
 			if !c.Writer.Written() {
 				errMsg := "Internal Server Error"
 				if env == "dev" {
-					errMsg = err.Error() // 在开发环境显示详细错误
+					errMsg = err.Error() // Display detailed error in development environment.
 				}
 				c.JSON(http.StatusInternalServerError,
 					response.NewErrorResponse(errMsg))

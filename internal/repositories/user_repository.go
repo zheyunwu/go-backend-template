@@ -1,25 +1,27 @@
 package repositories
 
 import (
+	"context" // Added for context
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/pkg/query_params"
 	"gorm.io/gorm"
 )
 
+// UserRepository defines the interface for user data access operations.
 type UserRepository interface {
-	// 通用CRUD查询
-	ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, int, error)
-	GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error)
-	CreateUser(user *models.User) error
-	UpdateUser(id uint, updates map[string]interface{}, includeSoftDeleted ...bool) error
-	DeleteUser(id uint) error
-	// 定制查询
-	GetUserByField(field string, value string, includeSoftDeleted ...bool) (*models.User, error)
-	CreateUserProvider(userProvider *models.UserProvider) error
-	GetUserByProvider(provider string, providerUID string) (*models.User, error)
-	GetUserByUnionID(unionID string) (*models.User, error)
-	DeleteUserProvider(userID uint, provider string) error
-	GetUserProvider(userID uint, provider string) (*models.UserProvider, error)
+	// General CRUD queries
+	ListUsers(ctx context.Context, params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, int, error)
+	GetUser(ctx context.Context, id uint, includeSoftDeleted ...bool) (*models.User, error)
+	CreateUser(ctx context.Context, user *models.User) error
+	UpdateUser(ctx context.Context, id uint, updates map[string]interface{}, includeSoftDeleted ...bool) error
+	DeleteUser(ctx context.Context, id uint) error
+	// Custom queries
+	GetUserByField(ctx context.Context, field string, value string, includeSoftDeleted ...bool) (*models.User, error)
+	CreateUserProvider(ctx context.Context, userProvider *models.UserProvider) error
+	GetUserByProvider(ctx context.Context, provider string, providerUID string) (*models.User, error)
+	GetUserByUnionID(ctx context.Context, unionID string) (*models.User, error)
+	DeleteUserProvider(ctx context.Context, userID uint, provider string) error
+	GetUserProvider(ctx context.Context, userID uint, provider string) (*models.UserProvider, error)
 }
 
 type userRepository struct {
@@ -31,21 +33,22 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 }
 
 /*
-5个通用CRUD查询
+5 general CRUD queries
 */
 
-func (r *userRepository) ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, int, error) {
+// ListUsers retrieves a list of users based on query parameters.
+func (r *userRepository) ListUsers(ctx context.Context, params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, int, error) {
 	var users []models.User
 	var totalCount int64
 
-	query := r.db.Model(&models.User{})
+	query := r.db.WithContext(ctx).Model(&models.User{}) // Add WithContext
 
-	// 如果明确传入了true，则包含软删除的记录
+	// If explicitly passed true, include soft-deleted records.
 	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
 		query = query.Unscoped()
 	}
 
-	// 处理搜索 search、过滤 filter、排序 sort
+	// Handle search, filter, sort.
 	if params.Search != "" {
 		query = query.Where("nickname LIKE ?", "%"+params.Search+"%")
 	}
@@ -60,29 +63,30 @@ func (r *userRepository) ListUsers(params *query_params.QueryParams, includeSoft
 		query = query.Order(params.Sort)
 	}
 
-	// 查询数据总数
+	// Get total count of records.
 	err := query.Count(&totalCount).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// 应用分页 （注意这里无需验证分页参数，因为已经在ParseQueryParams Middleware中验证过了）
+	// Apply pagination (note: no need to validate pagination params here as it's done in ParseQueryParams Middleware).
 	offset := (params.Page - 1) * params.Limit
 	query = query.Offset(offset).Limit(params.Limit)
 
-	// 加载关联数据
-	query = query.Preload("UserProviders") // 预加载用户关联的第三方登录提供商
+	// Preload associated data.
+	query = query.Preload("UserProviders") // Preload user's associated third-party login providers.
 
-	// 查询数据
+	// Execute query.
 	err = query.Find(&users).Error
 	return users, int(totalCount), err
 }
 
-func (r *userRepository) GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error) {
+// GetUser retrieves a single user by ID, optionally including soft-deleted records.
+func (r *userRepository) GetUser(ctx context.Context, id uint, includeSoftDeleted ...bool) (*models.User, error) {
 	var user models.User
-	query := r.db
+	query := r.db.WithContext(ctx) // Add WithContext
 
-	// 如果明确传入了true，则包含软删除的记录
+	// If explicitly passed true, include soft-deleted records.
 	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
 		query = query.Unscoped()
 	}
@@ -91,15 +95,17 @@ func (r *userRepository) GetUser(id uint, includeSoftDeleted ...bool) (*models.U
 	return &user, err
 }
 
-func (r *userRepository) CreateUser(user *models.User) error {
-	return r.db.Create(user).Error
+// CreateUser creates a new user.
+func (r *userRepository) CreateUser(ctx context.Context, user *models.User) error {
+	return r.db.WithContext(ctx).Create(user).Error // Add WithContext
 }
 
-func (r *userRepository) UpdateUser(id uint, updates map[string]interface{}, includeSoftDeleted ...bool) error {
-	// Partial update
-	query := r.db.Model(&models.User{})
+// UpdateUser updates an existing user.
+func (r *userRepository) UpdateUser(ctx context.Context, id uint, updates map[string]interface{}, includeSoftDeleted ...bool) error {
+	// Partial update.
+	query := r.db.WithContext(ctx).Model(&models.User{}) // Add WithContext
 
-	// 如果明确传入了true，则包含软删除的记录
+	// If explicitly passed true, include soft-deleted records (though typically updates are on existing, non-deleted records).
 	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
 		query = query.Unscoped()
 	}
@@ -107,20 +113,22 @@ func (r *userRepository) UpdateUser(id uint, updates map[string]interface{}, inc
 	return query.Where("id = ?", id).Updates(updates).Error
 }
 
-func (r *userRepository) DeleteUser(id uint) error {
-	// 只要Model中有DeletedAt gorm.DeletedAt字段，GORM就会自动软删除
-	return r.db.Delete(&models.User{}, id).Error
+// DeleteUser deletes a user (soft delete if gorm.DeletedAt field exists in the model).
+func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
+	// GORM automatically performs a soft delete if the model has a gorm.DeletedAt field.
+	return r.db.WithContext(ctx).Delete(&models.User{}, id).Error // Add WithContext
 }
 
 /*
-定制查询
+Custom queries
 */
 
-func (r *userRepository) GetUserByField(field string, value string, includeSoftDeleted ...bool) (*models.User, error) {
+// GetUserByField retrieves a user by a specific field and value.
+func (r *userRepository) GetUserByField(ctx context.Context, field string, value string, includeSoftDeleted ...bool) (*models.User, error) {
 	var user models.User
-	query := r.db
+	query := r.db.WithContext(ctx) // Add WithContext
 
-	// 如果明确传入了true，则包含软删除的记录
+	// If explicitly passed true, include soft-deleted records.
 	if len(includeSoftDeleted) > 0 && includeSoftDeleted[0] {
 		query = query.Unscoped()
 	}
@@ -129,32 +137,32 @@ func (r *userRepository) GetUserByField(field string, value string, includeSoftD
 	return &user, err
 }
 
-func (r *userRepository) CreateUserProvider(userProvider *models.UserProvider) error {
-	return r.db.Create(userProvider).Error
+func (r *userRepository) CreateUserProvider(ctx context.Context, userProvider *models.UserProvider) error {
+	return r.db.WithContext(ctx).Create(userProvider).Error // Add WithContext
 }
 
-func (r *userRepository) GetUserByProvider(provider string, providerUID string) (*models.User, error) {
+func (r *userRepository) GetUserByProvider(ctx context.Context, provider string, providerUID string) (*models.User, error) {
 	var user models.User
-	err := r.db.Joins("JOIN user_providers ON users.id = user_providers.user_id").
+	err := r.db.WithContext(ctx).Joins("JOIN user_providers ON users.id = user_providers.user_id"). // Add WithContext
 		Where("user_providers.provider = ? AND user_providers.provider_uid = ?", provider, providerUID).
 		First(&user).Error
 	return &user, err
 }
 
-func (r *userRepository) GetUserByUnionID(unionID string) (*models.User, error) {
+func (r *userRepository) GetUserByUnionID(ctx context.Context, unionID string) (*models.User, error) {
 	var user models.User
-	err := r.db.Joins("JOIN user_providers ON users.id = user_providers.user_id").
+	err := r.db.WithContext(ctx).Joins("JOIN user_providers ON users.id = user_providers.user_id"). // Add WithContext
 		Where("user_providers.wechat_union_id = ?", unionID).
 		First(&user).Error
 	return &user, err
 }
 
-func (r *userRepository) DeleteUserProvider(userID uint, provider string) error {
-	return r.db.Where("user_id = ? AND provider = ?", userID, provider).Delete(&models.UserProvider{}).Error
+func (r *userRepository) DeleteUserProvider(ctx context.Context, userID uint, provider string) error {
+	return r.db.WithContext(ctx).Where("user_id = ? AND provider = ?", userID, provider).Delete(&models.UserProvider{}).Error // Add WithContext
 }
 
-func (r *userRepository) GetUserProvider(userID uint, provider string) (*models.UserProvider, error) {
+func (r *userRepository) GetUserProvider(ctx context.Context, userID uint, provider string) (*models.UserProvider, error) {
 	var userProvider models.UserProvider
-	err := r.db.Where("user_id = ? AND provider = ?", userID, provider).First(&userProvider).Error
+	err := r.db.WithContext(ctx).Where("user_id = ? AND provider = ?", userID, provider).First(&userProvider).Error // Add WithContext
 	return &userProvider, err
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	// 初始化日志
+	// Initialize logger
 	logger.Init(&logger.Config{
 		Level:      slog.LevelDebug,
 		JSONFormat: true,

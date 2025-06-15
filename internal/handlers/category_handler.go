@@ -12,21 +12,21 @@ import (
 	"github.com/go-backend-template/pkg/response"
 )
 
-// CategoryHandler 处理与分类相关的HTTP请求
+// CategoryHandler handles HTTP requests related to categories.
 type CategoryHandler struct {
 	CategoryService services.CategoryService
 }
 
-// NewCategoryHandler 创建一个新的CategoryHandler
+// NewCategoryHandler creates a new CategoryHandler.
 func NewCategoryHandler(categoryService services.CategoryService) *CategoryHandler {
 	return &CategoryHandler{
 		CategoryService: categoryService,
 	}
 }
 
-// ListCategories 获取分类列表
+// ListCategories retrieves a list of categories.
 func (h *CategoryHandler) ListCategories(ctx *gin.Context) {
-	// 从上下文中获取已解析的查询参数
+	// Get parsed query parameters from context.
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
@@ -35,20 +35,20 @@ func (h *CategoryHandler) ListCategories(ctx *gin.Context) {
 		return
 	}
 
-	// 获取分类列表
-	categories, pagination, err := h.CategoryService.ListCategories(queryParams)
+	// Get category list.
+	categories, pagination, err := h.CategoryService.ListCategories(ctx.Request.Context(), queryParams) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(categories, "", *pagination))
 }
 
-// GetCategoryTree 获取分类树结构
+// GetCategoryTree retrieves the category tree structure.
 func (h *CategoryHandler) GetCategoryTree(ctx *gin.Context) {
-	// 从查询参数中获取深度设置
+	// Get depth setting from query parameters.
 	depthStr := ctx.DefaultQuery("depth", "0")
 	depth, err := strconv.Atoi(depthStr)
 	if err != nil {
@@ -57,19 +57,19 @@ func (h *CategoryHandler) GetCategoryTree(ctx *gin.Context) {
 		return
 	}
 
-	// 深度必须是非负整数
+	// Depth must be a non-negative integer.
 	if depth < 0 {
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Depth must be a non-negative integer"))
 		return
 	}
 
-	// 获取分类树
-	categoryTree, err := h.CategoryService.GetCategoryTree(depth, true)
+	// Get category tree.
+	categoryTree, err := h.CategoryService.GetCategoryTree(ctx.Request.Context(), depth, true) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(categoryTree, ""))
 }

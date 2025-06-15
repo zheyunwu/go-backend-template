@@ -11,24 +11,24 @@ import (
 
 type QueryParams struct {
 	Search string
-	Filter map[string]interface{} // 修改为interface{}以支持数组和嵌套结构
+	Filter map[string]interface{} // Changed to interface{} to support arrays and nested structures
 	Sort   string
 	Page   int
 	Limit  int
 }
 
-// 解析List接口的通用查询参数
-// 例如：/products?search=洗衣剂&filter={"categories":[1,2]}&sort=updated_at:desc&page=1&limit=10
+// ParseQueryParams parses common query parameters for list APIs.
+// Example: /products?search=detergent&filter={"categories":[1,2]}&sort=updated_at:desc&page=1&limit=10
 func ParseQueryParams(c *gin.Context) (*QueryParams, error) {
-	// 初始化查询参数
+	// Initialize query parameters.
 	q := &QueryParams{
 		Filter: make(map[string]interface{}),
 	}
 
-	// 1. 解析 search 参数
+	// 1. Parse 'search' parameter.
 	q.Search = c.Query("search")
 
-	// 2. 解析 filter 参数
+	// 2. Parse 'filter' parameter.
 	filter := c.Query("filter")
 	if filter != "" {
 		var filterMap map[string]interface{}
@@ -40,10 +40,10 @@ func ParseQueryParams(c *gin.Context) (*QueryParams, error) {
 		q.Filter = filterMap
 	}
 
-	// 3. 解析 sort 参数
+	// 3. Parse 'sort' parameter.
 	sort := c.Query("sort")
 	if sort != "" {
-		// sort有两种情况：sort=title:desc 或 sort=title:asc (可简写为sort=title)
+		// 'sort' can be in two forms: sort=title:desc or sort=title:asc (can be shortened to sort=title)
 		parts := strings.Split(sort, ":")
 		if len(parts) == 2 {
 			q.Sort = parts[0] + " " + strings.ToUpper(parts[1])
@@ -52,28 +52,28 @@ func ParseQueryParams(c *gin.Context) (*QueryParams, error) {
 		}
 	}
 
-	// 4. 解析 page 参数
+	// 4. Parse 'page' parameter.
 	pageStr := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
 		slog.Warn("Invalid page parameter", "page", pageStr, "error", err)
 		return nil, err
 	}
-	// 验证并设置页码（不允许小于1的页码）
+	// Validate and set page number (page number less than 1 is not allowed).
 	if page < 1 {
 		slog.Debug("Invalid page value, using default", "requestedPage", page)
 		page = 1
 	}
 	q.Page = page
 
-	// 5. 解析 limit 参数
+	// 5. Parse 'limit' parameter.
 	limitStr := c.DefaultQuery("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
 		slog.Warn("Invalid limit parameter", "limit", limitStr, "error", err)
 		return nil, err
 	}
-	// 验证并设置每页数量（限制范围在1-100之间）
+	// Validate and set items per page (limit range between 1-100).
 	if limit < 1 {
 		slog.Debug("Limit too small, using default", "requestedLimit", limit)
 		limit = 10

@@ -20,48 +20,48 @@ import (
 	"gorm.io/gorm"
 )
 
-// UserService 定义用户相关的业务逻辑接口
+// UserService defines the interface for user-related business logic.
 type UserService interface {
-	/* 面向Admin的业务逻辑 */
-	ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, *response.Pagination, error)
-	GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error)
-	CreateUser(req *dto.RegisterWithPasswordRequest) (uint, error)
-	UpdateUser(id uint, req *dto.UpdateProfileRequest) error
-	DeleteUser(id uint) error
-	RestoreUser(id uint) error          // 软删除的用户恢复
-	BanUser(id uint, banned bool) error // banned为true时封禁，false时解除封禁
+	/* Admin-facing business logic */
+	ListUsers(ctx context.Context, params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, *response.Pagination, error)
+	GetUser(ctx context.Context, id uint, includeSoftDeleted ...bool) (*models.User, error)
+	CreateUser(ctx context.Context, req *dto.RegisterWithPasswordRequest) (uint, error)
+	UpdateUser(ctx context.Context, id uint, req *dto.UpdateProfileRequest) error
+	DeleteUser(ctx context.Context, id uint) error
+	RestoreUser(ctx context.Context, id uint) error          // Restore soft-deleted user
+	BanUser(ctx context.Context, id uint, banned bool) error // Ban or unban user
 
-	/* Auth逻辑 */
-	UpdatePassword(userID uint, currentPassword, newPassword string) error
+	/* Auth logic */
+	UpdatePassword(ctx context.Context, userID uint, currentPassword, newPassword string) error
 
-	/* 传统注册登录相关 */
-	RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error)
-	LoginWithPassword(emailOrPhone, password string) (string, string, error) // 返回 (accessToken, refreshToken, error)
-	RefreshAccessToken(refreshToken string) (string, string, error)          // 返回 (newAccessToken, newRefreshToken, error)
+	/* Traditional registration/login related */
+	RegisterWithPassword(ctx context.Context, req *dto.RegisterWithPasswordRequest) (uint, error)
+	LoginWithPassword(ctx context.Context, emailOrPhone, password string) (string, string, error) // Returns (accessToken, refreshToken, error)
+	RefreshAccessToken(ctx context.Context, refreshToken string) (string, string, error)          // Returns (newAccessToken, newRefreshToken, error)
 
-	/* 邮箱验证相关 */
-	SendEmailVerification(email string) error
-	VerifyEmail(email, code string) error
+	/* Email verification related */
+	SendEmailVerification(ctx context.Context, email string) error
+	VerifyEmail(ctx context.Context, email, code string) error
 
-	/* 密码重置相关 */
-	SendPasswordReset(email string) error
-	ResetPassword(email, resetToken, newPassword string) error
+	/* Password reset related */
+	SendPasswordReset(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, email, resetToken, newPassword string) error
 
-	/* 微信小程序端 */
-	RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error)
-	LoginFromWechatMiniProgram(unionID *string, openID *string) (string, string, error) // 返回 (accessToken, refreshToken, error)
+	/* WeChat Mini Program related */
+	RegisterFromWechatMiniProgram(ctx context.Context, req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error)
+	LoginFromWechatMiniProgram(ctx context.Context, unionID *string, openID *string) (string, string, error) // Returns (accessToken, refreshToken, error)
 
-	/* 微信OAuth2.0（App/Web端） */
-	ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, string, bool, error) // 返回 (accessToken, refreshToken, isNewUser, error)
-	BindWechatAccount(userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error
-	UnbindWechatAccount(userID uint, authenticatedUser *models.User) error
-	/* Google OAuth2.0（App/Web端） */
-	ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, string, bool, error) // 返回 (accessToken, refreshToken, isNewUser, error)
-	BindGoogleAccount(userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error
-	UnbindGoogleAccount(userID uint, authenticatedUser *models.User) error
+	/* WeChat OAuth2.0 (App/Web) related */
+	ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOAuthRequest) (string, string, bool, error) // Returns (accessToken, refreshToken, isNewUser, error)
+	BindWechatAccount(ctx context.Context, userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error
+	UnbindWechatAccount(ctx context.Context, userID uint, authenticatedUser *models.User) error
+	/* Google OAuth2.0 (App/Web) related */
+	ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOAuthRequest) (string, string, bool, error) // Returns (accessToken, refreshToken, isNewUser, error)
+	BindGoogleAccount(ctx context.Context, userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error
+	UnbindGoogleAccount(ctx context.Context, userID uint, authenticatedUser *models.User) error
 }
 
-// userService 用户服务实现
+// userService is the implementation of UserService.
 type userService struct {
 	config              *config.Config
 	userRepo            repositories.UserRepository
@@ -70,7 +70,7 @@ type userService struct {
 	verificationService VerificationService
 }
 
-// NewUserService 创建一个用户服务实例
+// NewUserService creates a new instance of UserService.
 func NewUserService(config *config.Config, userRepo repositories.UserRepository, googleOAuthService GoogleOAuthService, emailService EmailService, verificationService VerificationService) UserService {
 	return &userService{
 		config:              config,
@@ -82,24 +82,24 @@ func NewUserService(config *config.Config, userRepo repositories.UserRepository,
 }
 
 /*
-面向Admin的业务逻辑
+Admin-facing business logic
 */
 
-// ListUsers 获取用户列表
-func (s *userService) ListUsers(params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, *response.Pagination, error) {
-	// 调用Repo层 获取用户列表
-	userList, total, err := s.userRepo.ListUsers(params, includeSoftDeleted...)
+// ListUsers retrieves a list of users.
+func (s *userService) ListUsers(ctx context.Context, params *query_params.QueryParams, includeSoftDeleted ...bool) ([]models.User, *response.Pagination, error) {
+	// Call the repository layer to get the list of users.
+	userList, total, err := s.userRepo.ListUsers(ctx, params, includeSoftDeleted...) // Pass context
 	if err != nil {
-		slog.Error("Failed to list users", "error", err)
+		slog.ErrorContext(ctx, "Failed to list users", "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list users: %w", err)
 	}
 
-	// 没有数据时返回空数组
+	// Return an empty array if there is no data.
 	if len(userList) == 0 {
 		userList = []models.User{}
 	}
 
-	// 构建分页信息
+	// Construct pagination information.
 	pagination := &response.Pagination{
 		TotalCount:  int(total),
 		PageSize:    params.Limit,
@@ -110,52 +110,52 @@ func (s *userService) ListUsers(params *query_params.QueryParams, includeSoftDel
 	return userList, pagination, nil
 }
 
-// GetUser 获取用户详情
-func (s *userService) GetUser(id uint, includeSoftDeleted ...bool) (*models.User, error) {
-	// 调用repo层获取用户
-	user, err := s.userRepo.GetUser(id, includeSoftDeleted...)
+// GetUser retrieves details for a single user.
+func (s *userService) GetUser(ctx context.Context, id uint, includeSoftDeleted ...bool) (*models.User, error) {
+	// Call the repository layer to get the user.
+	user, err := s.userRepo.GetUser(ctx, id, includeSoftDeleted...) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrUserNotFound
 		}
-		slog.Error("Failed to get user from repository", "userId", id, "error", err)
+		slog.ErrorContext(ctx, "Failed to get user from repository", "userId", id, "error", err) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	return user, nil
 }
 
-// CreateUser 创建用户（传统Email/Phone + 密码）
-func (s *userService) CreateUser(req *dto.RegisterWithPasswordRequest) (uint, error) {
-	// 验证至少提供email或phone之一
+// CreateUser creates a user (traditional Email/Phone + password).
+func (s *userService) CreateUser(ctx context.Context, req *dto.RegisterWithPasswordRequest) (uint, error) {
+	// Validate that at least email or phone is provided.
 	if (req.Email == nil || *req.Email == "") && (req.Phone == nil || *req.Phone == "") {
 		return 0, errors.ErrEmailOrPhoneNotProvided
 	}
 
-	// 验证是否有重复的邮箱或手机号
+	// Validate for duplicate email or phone number.
 	if req.Email != nil && *req.Email != "" {
-		if _, err := s.userRepo.GetUserByField("email", *req.Email, true); err == nil {
+		if _, err := s.userRepo.GetUserByField(ctx, "email", *req.Email, true); err == nil { // Pass context
 			return 0, errors.ErrEmailAlreadyExists
 		}
 	}
 	if req.Phone != nil && *req.Phone != "" {
-		if _, err := s.userRepo.GetUserByField("phone", *req.Phone, true); err == nil {
+		if _, err := s.userRepo.GetUserByField(ctx, "phone", *req.Phone, true); err == nil { // Pass context
 			return 0, errors.ErrPhoneAlreadyExists
 		}
 	}
 
-	// 对密码进行哈希处理
+	// Hash the password.
 	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
-		slog.Error("Failed to hash password", "error", err)
+		slog.ErrorContext(ctx, "Failed to hash password", "error", err) // Use slog.ErrorContext
 		return 0, fmt.Errorf("error processing password: %w", err)
 	}
-	// 使用DTO转换为User模型
+	// Convert DTO to User model.
 	user := req.ToModel(hashedPassword)
 
-	// 调用repo层创建用户
-	if err := s.userRepo.CreateUser(user); err != nil {
-		slog.Error("Failed to create user",
+	// Call the repository layer to create the user.
+	if err := s.userRepo.CreateUser(ctx, user); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to create user", // Use slog.ErrorContext
 			"name", user.Name,
 			"email", req.Email,
 			"phone", req.Phone,
@@ -163,21 +163,21 @@ func (s *userService) CreateUser(req *dto.RegisterWithPasswordRequest) (uint, er
 		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// 如果用户提供了邮箱，自动发送验证邮件
+	// If the user provided an email, automatically send a verification email.
 	if req.Email != nil && *req.Email != "" {
-		// 生成验证码
-		code, err := s.verificationService.GenerateEmailVerificationCode(*req.Email)
+		// Generate verification code.
+		code, err := s.verificationService.GenerateEmailVerificationCode(ctx, *req.Email) // Pass context
 		if err != nil {
-			slog.Warn("Failed to generate email verification code after user creation", "userId", user.ID, "email", *req.Email, "error", err)
-			// 这里不返回错误，因为用户已经创建成功，只是验证邮件发送失败
+			slog.WarnContext(ctx, "Failed to generate email verification code after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
+			// Do not return an error here, as the user has already been created successfully; only email verification failed.
 		} else {
-			// 发送验证邮件，使用用户的语言偏好
-			err = s.emailService.SendEmailVerification(*req.Email, user.Name, code, user.Locale)
+			// Send verification email, using the user's language preference.
+			err = s.emailService.SendEmailVerification(ctx, *req.Email, user.Name, code, user.Locale) // Pass context
 			if err != nil {
-				slog.Warn("Failed to send verification email after user creation", "userId", user.ID, "email", *req.Email, "error", err)
-				// 这里也不返回错误，因为用户已经创建成功
+				slog.WarnContext(ctx, "Failed to send verification email after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
+				// Do not return an error here, as the user has already been created successfully.
 			} else {
-				slog.Info("Verification email sent successfully after user creation", "userId", user.ID, "email", *req.Email, "language", user.Locale)
+				slog.InfoContext(ctx, "Verification email sent successfully after user creation", "userId", user.ID, "email", *req.Email, "language", user.Locale) // Use slog.InfoContext
 			}
 		}
 	}
@@ -185,10 +185,10 @@ func (s *userService) CreateUser(req *dto.RegisterWithPasswordRequest) (uint, er
 	return user.ID, nil
 }
 
-// hashPassword 使用bcrypt哈希密码
+// hashPassword hashes a password using bcrypt.
 func hashPassword(password string) (string, error) {
-	// 使用推荐的cost值(10-12)生成哈希密码
-	// bcrypt自动添加随机盐值并将其包含在哈希结果中
+	// Generate a hash with the recommended cost (10-12).
+	// bcrypt automatically adds a random salt and includes it in the hash result.
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return "", err
@@ -196,333 +196,333 @@ func hashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
-// UpdateUser 更新用户
-func (s *userService) UpdateUser(id uint, req *dto.UpdateProfileRequest) error {
-	// 检查用户是否存在
-	user, err := s.GetUser(id)
+// UpdateUser updates a user.
+func (s *userService) UpdateUser(ctx context.Context, id uint, req *dto.UpdateProfileRequest) error {
+	// Check if the user exists.
+	user, err := s.GetUser(ctx, id) // Pass context
 	if err != nil {
 		return err
 	}
 
-	// 将DTO转换为更新字段Map
+	// Convert DTO to a map of fields to update.
 	updates := req.ToUpdatesMap()
 
-	// 如果更新了Email，检查是否已存在、并设定为未验证状态
+	// If Email is updated, check if it already exists and set it to unverified.
 	if req.Email != nil && *req.Email != "" && (user.Email == nil || *user.Email != *req.Email) {
-		existingUser, err := s.userRepo.GetUserByField("email", *req.Email)
+		existingUser, err := s.userRepo.GetUserByField(ctx, "email", *req.Email) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.Error("Failed to check existing email", "email", *req.Email, "error", err)
+			slog.ErrorContext(ctx, "Failed to check existing email", "email", *req.Email, "error", err) // Use slog.ErrorContext
 			return fmt.Errorf("failed to check existing email: %w", err)
 		}
 		if existingUser != nil && existingUser.ID != 0 && existingUser.ID != id {
-			slog.Warn("Email already exists", "email", *req.Email)
+			slog.WarnContext(ctx, "Email already exists", "email", *req.Email) // Use slog.WarnContext
 			return errors.ErrEmailAlreadyExists
 		}
-		// 如果Email已更新，设置为未验证状态
+		// If Email is updated, set it to unverified.
 		updates["is_email_verified"] = false
 	}
 
-	// 调用repo层进行更新
-	if err := s.userRepo.UpdateUser(id, updates); err != nil {
-		slog.Error("Failed to update user", "userId", id, "error", err)
+	// Call the repository layer to perform the update.
+	if err := s.userRepo.UpdateUser(ctx, id, updates); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to update user", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
 }
 
-// DeleteUser 删除用户
-func (s *userService) DeleteUser(id uint) error {
-	// 检查用户是否存在
-	_, err := s.GetUser(id)
+// DeleteUser deletes a user.
+func (s *userService) DeleteUser(ctx context.Context, id uint) error {
+	// Check if the user exists.
+	_, err := s.GetUser(ctx, id) // Pass context
 	if err != nil {
 		return err
 	}
 
-	// 调用repo层删除用户
-	if err := s.userRepo.DeleteUser(id); err != nil {
-		slog.Error("Failed to delete user", "userId", id, "error", err)
+	// Call the repository layer to delete the user.
+	if err := s.userRepo.DeleteUser(ctx, id); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to delete user", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
 	return nil
 }
 
-// RestoreUser 恢复软删除的用户
-func (s *userService) RestoreUser(id uint) error {
-	// 检查用户是否存在
-	user, err := s.GetUser(id, true) // 包含软删除的记录
+// RestoreUser restores a soft-deleted user.
+func (s *userService) RestoreUser(ctx context.Context, id uint) error {
+	// Check if the user exists (including soft-deleted).
+	user, err := s.GetUser(ctx, id, true) // Include soft-deleted records, Pass context
 	if err != nil {
 		return err
 	}
 
-	// 如果用户没有被软删除，直接返回
+	// If the user is not soft-deleted, return directly.
 	if !user.DeletedAt.Valid {
 		return nil
 	}
 
-	// 构建更新字段映射
+	// Construct a map of fields to update.
 	updates := map[string]interface{}{"deleted_at": nil}
 
-	// 调用repo层恢复用户
-	if err := s.userRepo.UpdateUser(id, updates, true); err != nil {
-		slog.Error("Failed to restore user", "userId", id, "error", err)
+	// Call the repository layer to restore the user.
+	if err := s.userRepo.UpdateUser(ctx, id, updates, true); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to restore user", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to restore user: %w", err)
 	}
 
 	return nil
 }
 
-// BanUser 封禁或解除封禁用户
-func (s *userService) BanUser(id uint, isBanned bool) error {
-	// 检查用户是否存在
-	_, err := s.GetUser(id)
+// BanUser bans or unbans a user.
+func (s *userService) BanUser(ctx context.Context, id uint, isBanned bool) error {
+	// Check if the user exists.
+	_, err := s.GetUser(ctx, id) // Pass context
 	if err != nil {
 		return err
 	}
 
-	// 构建更新字段映射
+	// Construct a map of fields to update.
 	updates := map[string]interface{}{
 		"is_banned": isBanned,
 	}
 
-	// 调用repo层更新用户封禁状态
-	if err := s.userRepo.UpdateUser(id, updates); err != nil {
-		slog.Error("Failed to update ban status", "userId", id, "error", err)
+	// Call the repository layer to update the user's ban status.
+	if err := s.userRepo.UpdateUser(ctx, id, updates); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to update ban status", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update ban status: %w", err)
 	}
 	return nil
 }
 
 /*
-Auth逻辑
+Auth logic
 */
 
-// UpdatePassword 更新用户密码
-func (s *userService) UpdatePassword(userID uint, currentPassword, newPassword string) error {
-	// 检查用户是否存在
-	user, err := s.userRepo.GetUser(userID)
+// UpdatePassword updates a user's password.
+func (s *userService) UpdatePassword(ctx context.Context, userID uint, currentPassword, newPassword string) error {
+	// Check if the user exists.
+	user, err := s.userRepo.GetUser(ctx, userID) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.Error("Failed to find user", "userId", userID, "error", err)
+		slog.ErrorContext(ctx, "Failed to find user", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 验证当前密码
+	// Validate the current password.
 	if user.Password == nil || *user.Password == "" {
-		slog.Warn("User has no password set", "userId", user.ID)
+		slog.WarnContext(ctx, "User has no password set", "userId", user.ID) // Use slog.WarnContext
 		return errors.ErrInvalidPassword
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(currentPassword))
 	if err != nil {
-		slog.Warn("Current password verification failed", "userId", user.ID)
+		slog.WarnContext(ctx, "Current password verification failed", "userId", user.ID) // Use slog.WarnContext
 		return errors.ErrInvalidPassword
 	}
 
-	// 哈希新密码
+	// Hash the new password.
 	hashedPassword, err := hashPassword(newPassword)
 	if err != nil {
-		slog.Error("Failed to hash new password", "userId", user.ID, "error", err)
+		slog.ErrorContext(ctx, "Failed to hash new password", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// 更新用户密码
+	// Update the user's password.
 	updates := map[string]interface{}{
 		"password": hashedPassword,
 	}
 
-	// 调用repo层更新用户密码
-	if err := s.userRepo.UpdateUser(user.ID, updates); err != nil {
-		slog.Error("Failed to update user password", "userId", user.ID, "error", err)
+	// Call the repository layer to update the user's password.
+	if err := s.userRepo.UpdateUser(ctx, user.ID, updates); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to update user password", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 
-	slog.Info("Password updated successfully", "userId", user.ID)
+	slog.InfoContext(ctx, "Password updated successfully", "userId", user.ID) // Use slog.InfoContext
 	return nil
 }
 
 /*
-传统注册登录相关
+Traditional registration/login related
 */
 
-// RegisterWithPassword 使用密码注册用户
-func (s *userService) RegisterWithPassword(req *dto.RegisterWithPasswordRequest) (uint, error) {
-	// 转交给CreateUser处理
-	return s.CreateUser(req)
+// RegisterWithPassword registers a user with a password.
+func (s *userService) RegisterWithPassword(ctx context.Context, req *dto.RegisterWithPasswordRequest) (uint, error) {
+	// Delegate to CreateUser.
+	return s.CreateUser(ctx, req) // Pass context
 }
 
-// LoginWithPassword 验证用户密码并生成JWT token
-func (s *userService) LoginWithPassword(emailOrPhone, password string) (string, string, error) {
+// LoginWithPassword validates user password and generates JWT tokens.
+func (s *userService) LoginWithPassword(ctx context.Context, emailOrPhone, password string) (string, string, error) {
 	var user *models.User
 	var err error
 
-	// 先尝试用邮箱查找用户
-	user, err = s.userRepo.GetUserByField("email", emailOrPhone)
+	// Try finding the user by email first.
+	user, err = s.userRepo.GetUserByField(ctx, "email", emailOrPhone) // Pass context
 	if err != nil && err == gorm.ErrRecordNotFound {
-		// 如果邮箱找不到，尝试用手机号查找
-		user, err = s.userRepo.GetUserByField("phone", emailOrPhone)
+		// If not found by email, try finding by phone number.
+		user, err = s.userRepo.GetUserByField(ctx, "phone", emailOrPhone) // Pass context
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return "", "", errors.ErrUserNotFound
 			}
-			slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
+			slog.ErrorContext(ctx, "Failed to find user by phone", "emailOrPhone", emailOrPhone, "error", err) // Use slog.ErrorContext
 			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	} else if err != nil {
-		slog.Error("Failed to find user", "emailOrPhone", emailOrPhone, "error", err)
+		slog.ErrorContext(ctx, "Failed to find user by email", "emailOrPhone", emailOrPhone, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("database error: %w", err)
 	}
 
-	// 检查用户是否被封禁
+	// Check if the user is banned.
 	if user.IsBanned {
 		return "", "", errors.ErrUserBanned
 	}
 
-	// 检查有无密码
+	// Check if the user has a password set.
 	if user.Password == nil || *user.Password == "" {
-		slog.Warn("User has no password set", "userId", user.ID)
+		slog.WarnContext(ctx, "User has no password set", "userId", user.ID) // Use slog.WarnContext
 		return "", "", errors.ErrInvalidPassword
 	}
 
-	// 验证密码
+	// Validate the password.
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(password))
 	if err != nil {
-		slog.Warn("Password verification failed", "userId", user.ID)
+		slog.WarnContext(ctx, "Password verification failed", "userId", user.ID) // Use slog.WarnContext
 		return "", "", errors.ErrInvalidPassword
 	}
 
-	// 生成JWT access token
+	// Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate access token", "error", err, "userId", user.ID)
+		slog.ErrorContext(ctx, "Failed to generate access token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// 生成JWT refresh token
+	// Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate refresh token", "error", err, "userId", user.ID)
+		slog.ErrorContext(ctx, "Failed to generate refresh token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// 更新最后登录时间
+	// Update last login time.
 	now := time.Now()
-	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+	s.userRepo.UpdateUser(ctx, user.ID, map[string]interface{}{"last_login": now}) // Pass context
 
 	return accessToken, refreshToken, nil
 }
 
-// RefreshAccessToken 使用刷新令牌获取新的访问令牌
-func (s *userService) RefreshAccessToken(refreshToken string) (string, string, error) {
-	// 1. 验证刷新令牌
+// RefreshAccessToken uses a refresh token to get a new access token.
+func (s *userService) RefreshAccessToken(ctx context.Context, refreshToken string) (string, string, error) {
+	// 1. Validate the refresh token.
 	refreshTokenDetails, err := jwt.ValidateToken(refreshToken, s.config.JWT.Secret)
 	if err != nil || refreshTokenDetails.TokenType != jwt.RefreshToken {
-		slog.Debug("Refresh token validation failed", "error", err)
+		slog.DebugContext(ctx, "Refresh token validation failed", "error", err) // Use slog.DebugContext
 		return "", "", errors.ErrInvalidToken
 	}
 
-	// 2. 验证用户是否存在且未被封禁
-	user, err := s.userRepo.GetUser(refreshTokenDetails.UserID)
+	// 2. Validate if the user exists and is not banned.
+	user, err := s.userRepo.GetUser(ctx, refreshTokenDetails.UserID) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			slog.Warn("User not found for refresh token", "userId", refreshTokenDetails.UserID)
+			slog.WarnContext(ctx, "User not found for refresh token", "userId", refreshTokenDetails.UserID) // Use slog.WarnContext
 			return "", "", errors.ErrUserNotFound
 		}
-		slog.Error("Failed to get user during token refresh", "userId", refreshTokenDetails.UserID, "error", err)
+		slog.ErrorContext(ctx, "Failed to get user during token refresh", "userId", refreshTokenDetails.UserID, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("database error: %w", err)
 	}
 
-	// 3. 检查用户是否被封禁
+	// 3. Check if the user is banned.
 	if user.IsBanned {
-		slog.Warn("Refresh token rejected for banned user", "userId", user.ID)
+		slog.WarnContext(ctx, "Refresh token rejected for banned user", "userId", user.ID) // Use slog.WarnContext
 		return "", "", errors.ErrUserBanned
 	}
 
-	// 4. 生成新的访问令牌
+	// 4. Generate a new access token.
 	newAccessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate new access token", "userId", user.ID, "error", err)
+		slog.ErrorContext(ctx, "Failed to generate new access token", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// 5. 生成新的刷新令牌（可选，用于刷新令牌轮转）
+	// 5. Generate a new refresh token (optional, for refresh token rotation).
 	newRefreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate new refresh token", "userId", user.ID, "error", err)
+		slog.ErrorContext(ctx, "Failed to generate new refresh token", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// 6. 更新最后登录时间
+	// 6. Update last login time.
 	now := time.Now()
-	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+	s.userRepo.UpdateUser(ctx, user.ID, map[string]interface{}{"last_login": now}) // Pass context
 
-	slog.Info("Access token refreshed successfully", "userId", user.ID)
+	slog.InfoContext(ctx, "Access token refreshed successfully", "userId", user.ID) // Use slog.InfoContext
 	return newAccessToken, newRefreshToken, nil
 }
 
 /*
-邮箱验证相关
+Email verification related
 */
 
-// SendEmailVerification 发送邮箱验证码
-func (s *userService) SendEmailVerification(email string) error {
-	// 检查用户是否存在
-	user, err := s.userRepo.GetUserByField("email", email)
+// SendEmailVerification sends an email verification code.
+func (s *userService) SendEmailVerification(ctx context.Context, email string) error {
+	// Check if the user exists.
+	user, err := s.userRepo.GetUserByField(ctx, "email", email) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.Error("Failed to find user by email", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 检查邮箱是否已验证
+	// Check if the email is already verified.
 	if user.IsEmailVerified {
 		return errors.ErrEmailAlreadyVerified
 	}
 
-	// 生成验证码
-	code, err := s.verificationService.GenerateEmailVerificationCode(email)
+	// Generate verification code.
+	code, err := s.verificationService.GenerateEmailVerificationCode(ctx, email) // Pass context
 	if err != nil {
-		slog.Error("Failed to generate email verification code", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to generate email verification code", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to generate verification code: %w", err)
 	}
 
-	// 发送验证邮件
-	err = s.emailService.SendEmailVerification(email, user.Name, code, user.Locale)
+	// Send verification email.
+	err = s.emailService.SendEmailVerification(ctx, email, user.Name, code, user.Locale) // Pass context
 	if err != nil {
-		slog.Error("Failed to send verification email", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to send verification email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to send verification email: %w", err)
 	}
 
-	slog.Info("Email verification sent successfully", "email", email)
+	slog.InfoContext(ctx, "Email verification sent successfully", "email", email) // Use slog.InfoContext
 	return nil
 }
 
-// VerifyEmail 验证邮箱
-func (s *userService) VerifyEmail(email, code string) error {
-	// 检查用户是否存在
-	user, err := s.userRepo.GetUserByField("email", email)
+// VerifyEmail verifies an email.
+func (s *userService) VerifyEmail(ctx context.Context, email, code string) error {
+	// Check if the user exists.
+	user, err := s.userRepo.GetUserByField(ctx, "email", email) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.Error("Failed to find user by email", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 检查邮箱是否已验证
+	// Check if the email is already verified.
 	if user.IsEmailVerified {
 		return errors.ErrEmailAlreadyVerified
 	}
 
-	// 验证验证码
-	isValid, err := s.verificationService.VerifyEmailVerificationCode(email, code)
+	// Validate the verification code.
+	isValid, err := s.verificationService.VerifyEmailVerificationCode(ctx, email, code) // Pass context
 	if err != nil {
-		slog.Error("Failed to verify email verification code", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to verify email verification code", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to verify code: %w", err)
 	}
 
@@ -530,70 +530,70 @@ func (s *userService) VerifyEmail(email, code string) error {
 		return errors.ErrInvalidVerificationCode
 	}
 
-	// 更新用户邮箱验证状态
+	// Update the user's email verification status.
 	updates := map[string]interface{}{
 		"is_email_verified": true,
 	}
 
-	if err := s.userRepo.UpdateUser(user.ID, updates); err != nil {
-		slog.Error("Failed to update email verification status", "userId", user.ID, "error", err)
+	if err := s.userRepo.UpdateUser(ctx, user.ID, updates); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to update email verification status", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update verification status: %w", err)
 	}
 
-	slog.Info("Email verified successfully", "email", email, "userId", user.ID)
+	slog.InfoContext(ctx, "Email verified successfully", "email", email, "userId", user.ID) // Use slog.InfoContext
 	return nil
 }
 
 /*
-密码重置相关
+Password reset related
 */
 
-// SendPasswordReset 发送密码重置邮件
-func (s *userService) SendPasswordReset(email string) error {
-	// 检查用户是否存在
-	user, err := s.userRepo.GetUserByField("email", email)
+// SendPasswordReset sends a password reset email.
+func (s *userService) SendPasswordReset(ctx context.Context, email string) error {
+	// Check if the user exists.
+	user, err := s.userRepo.GetUserByField(ctx, "email", email) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.Error("Failed to find user by email", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 生成重置令牌
-	token, err := s.verificationService.GeneratePasswordResetToken(email)
+	// Generate reset token.
+	token, err := s.verificationService.GeneratePasswordResetToken(ctx, email) // Pass context
 	if err != nil {
-		slog.Error("Failed to generate password reset token", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to generate password reset token", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to generate reset token: %w", err)
 	}
 
-	// 发送重置邮件
-	err = s.emailService.SendPasswordReset(email, user.Name, token, user.Locale)
+	// Send reset email.
+	err = s.emailService.SendPasswordReset(ctx, email, user.Name, token, user.Locale) // Pass context
 	if err != nil {
-		slog.Error("Failed to send password reset email", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to send password reset email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to send reset email: %w", err)
 	}
 
-	slog.Info("Password reset email sent successfully", "email", email)
+	slog.InfoContext(ctx, "Password reset email sent successfully", "email", email) // Use slog.InfoContext
 	return nil
 }
 
-// ResetPassword 重置密码
-func (s *userService) ResetPassword(email, resetToken, newPassword string) error {
-	// 检查用户是否存在
-	user, err := s.userRepo.GetUserByField("email", email)
+// ResetPassword resets a user's password.
+func (s *userService) ResetPassword(ctx context.Context, email, resetToken, newPassword string) error {
+	// Check if the user exists.
+	user, err := s.userRepo.GetUserByField(ctx, "email", email) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.Error("Failed to find user by email", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 验证重置令牌
-	isValid, err := s.verificationService.VerifyPasswordResetToken(email, resetToken)
+	// Validate the reset token.
+	isValid, err := s.verificationService.VerifyPasswordResetToken(ctx, email, resetToken) // Pass context
 	if err != nil {
-		slog.Error("Failed to verify password reset token", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to verify password reset token", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to verify reset token: %w", err)
 	}
 
@@ -601,64 +601,64 @@ func (s *userService) ResetPassword(email, resetToken, newPassword string) error
 		return errors.ErrInvalidVerificationCode
 	}
 
-	// 哈希新密码
+	// Hash the new password.
 	hashedPassword, err := hashPassword(newPassword)
 	if err != nil {
-		slog.Error("Failed to hash new password", "email", email, "error", err)
+		slog.ErrorContext(ctx, "Failed to hash new password", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// 更新用户密码
+	// Update the user's password.
 	updates := map[string]interface{}{
 		"password": hashedPassword,
 	}
 
-	if err := s.userRepo.UpdateUser(user.ID, updates); err != nil {
-		slog.Error("Failed to update user password", "userId", user.ID, "error", err)
+	if err := s.userRepo.UpdateUser(ctx, user.ID, updates); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to update user password", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 
-	slog.Info("Password reset successfully", "email", email, "userId", user.ID)
+	slog.InfoContext(ctx, "Password reset successfully", "email", email, "userId", user.ID) // Use slog.InfoContext
 	return nil
 }
 
 /*
-微信小程序端
+WeChat Mini Program related
 */
 
-// RegisterUserFromWechatMiniProgram 从微信小程序注册用户
-func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error) {
-	// 在生产环境下检查敏感内容
+// RegisterUserFromWechatMiniProgram registers a user from WeChat Mini Program.
+func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dto.RegisterFromWechatMiniProgramRequest, unionID *string, openID *string) (uint, error) {
+	// Check sensitive content in production environment.
 	// if openID != nil && *openID != "" {
-	// 	// 检查用户昵称是否包含敏感内容
+	// 	// Check if user nickname contains sensitive content.
 	// 	if err := utils.CheckSensitiveContent(req.Name, *openID, utils.SecuritySceneProfile); err != nil {
 	// 		return 0, err
 	// 	}
 	// }
 
-	// 验证openID是否提供
+	// Validate if openID is provided.
 	if openID == nil || *openID == "" {
 		return 0, errors.ErrOpenIDNotProvided
 	}
 
-	// 验证：用户是否已在微信小程序端注册过
-	if _, err := s.userRepo.GetUserByProvider("wechat_mini_program", *openID); err == nil {
+	// Validate: if the user has already registered via WeChat Mini Program.
+	if _, err := s.userRepo.GetUserByProvider(ctx, "wechat_mini_program", *openID); err == nil { // Pass context
 		return 0, errors.ErrUserAlreadyExists
 	}
 
-	// 若有UnionID，看一下用户是否已在APP端注册过，如有，则直接取其关联的UserID
+	// If UnionID exists, check if the user has registered via APP; if so, use its associated UserID.
 	if unionID != nil && *unionID != "" {
-		existingUser, err := s.userRepo.GetUserByUnionID(*unionID)
+		existingUser, err := s.userRepo.GetUserByUnionID(ctx, *unionID) // Pass context
 		if err == nil && existingUser != nil && existingUser.ID > 0 {
-			// 用户已在APP端注册过，用这个用户的ID
+			// User has already registered via APP, use this user's ID.
 			userProvider := models.UserProvider{
 				UserID:        existingUser.ID,
 				Provider:      "wechat_mini_program",
 				ProviderUID:   *openID,
 				WechatUnionID: unionID,
 			}
-			if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
-				slog.Error("Failed to create user provider",
+			if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
+				slog.ErrorContext(ctx, "Failed to create user provider", // Use slog.ErrorContext
 					"userId", existingUser.ID,
 					"provider", "wechat_mini_program",
 					"providerUID", *openID,
@@ -666,37 +666,37 @@ func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatM
 					"error", err)
 				return 0, fmt.Errorf("failed to create user provider: %w", err)
 			}
-			slog.Info("UserProvider created successfully",
+			slog.InfoContext(ctx, "UserProvider created successfully", // Use slog.InfoContext
 				"userId", existingUser.ID,
 				"provider", "wechat_mini_program",
 				"providerUID", *openID,
 				"unionID", unionID)
 			return existingUser.ID, nil
 		} else if err != gorm.ErrRecordNotFound {
-			slog.Error("Failed to find user by unionID", "unionID", *unionID, "error", err)
+			slog.ErrorContext(ctx, "Failed to find user by unionID", "unionID", *unionID, "error", err) // Use slog.ErrorContext
 			return 0, fmt.Errorf("database error: %w", err)
 		}
 	}
 
-	// 验证是否有重复的邮箱或手机号
+	// Validate for duplicate email or phone number.
 	if req.Email != nil && *req.Email != "" {
-		if _, err := s.userRepo.GetUserByField("email", *req.Email, true); err == nil {
+		if _, err := s.userRepo.GetUserByField(ctx, "email", *req.Email, true); err == nil { // Pass context
 			return 0, errors.ErrEmailAlreadyExists
 		}
 	}
 	if req.Phone != nil && *req.Phone != "" {
-		if _, err := s.userRepo.GetUserByField("phone", *req.Phone, true); err == nil {
+		if _, err := s.userRepo.GetUserByField(ctx, "phone", *req.Phone, true); err == nil { // Pass context
 			return 0, errors.ErrPhoneAlreadyExists
 		}
 	}
 
-	// DTO转换为User模型
+	// Convert DTO to User model.
 	user := req.ToModel()
 
-	// 调用repo层创建用户
-	err := s.userRepo.CreateUser(user)
+	// Call the repository layer to create the user.
+	err := s.userRepo.CreateUser(ctx, user) // Pass context
 	if err != nil {
-		slog.Error("Failed to create user",
+		slog.ErrorContext(ctx, "Failed to create user", // Use slog.ErrorContext
 			"nickname", user.Name,
 			"email", req.Email,
 			"phone", req.Phone,
@@ -705,21 +705,21 @@ func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatM
 		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// 创建UserProvider记录
+	// Create UserProvider record.
 	userProvider := models.UserProvider{
 		UserID:      user.ID,
 		Provider:    "wechat_mini_program",
 		ProviderUID: *openID,
 	}
-	// 如果有unionID，设置它
+	// If unionID exists, set it.
 	if unionID != nil && *unionID != "" {
 		userProvider.WechatUnionID = unionID
 	}
 
-	// 调用repo层创建UserProvider
-	err = s.userRepo.CreateUserProvider(&userProvider)
+	// Call the repository layer to create UserProvider.
+	err = s.userRepo.CreateUserProvider(ctx, &userProvider) // Pass context
 	if err != nil {
-		slog.Error("Failed to create user provider",
+		slog.ErrorContext(ctx, "Failed to create user provider", // Use slog.ErrorContext
 			"userId", user.ID,
 			"provider", "wechat_mini_program",
 			"providerUID", *openID,
@@ -728,7 +728,7 @@ func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatM
 		return 0, fmt.Errorf("failed to create user provider: %w", err)
 	}
 
-	slog.Info("User and UserProvider created successfully",
+	slog.InfoContext(ctx, "User and UserProvider created successfully", // Use slog.InfoContext
 		"userId", user.ID,
 		"provider", "wechat_mini_program",
 		"providerUID", *openID,
@@ -737,9 +737,9 @@ func (s *userService) RegisterFromWechatMiniProgram(req *dto.RegisterFromWechatM
 	return user.ID, nil
 }
 
-// LoginFromWechatMiniProgram 微信小程序登录
-func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string) (string, string, error) {
-	// 如果unionID和openID都为nil，则直接返回错误
+// LoginFromWechatMiniProgram logs in a user via WeChat Mini Program.
+func (s *userService) LoginFromWechatMiniProgram(ctx context.Context, unionID *string, openID *string) (string, string, error) {
+	// If both unionID and openID are nil, return an error directly.
 	if unionID == nil && openID == nil {
 		return "", "", errors.ErrUserNotFound
 	}
@@ -747,54 +747,54 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 	var user *models.User
 	var err error
 
-	// 优先级策略：unionID > openID
-	// 先尝试用unionID查找用户（如果提供了的话）
+	// Priority strategy: unionID > openID
+	// Try finding the user by unionID first (if provided).
 	if unionID != nil && *unionID != "" {
-		user, err = s.userRepo.GetUserByUnionID(*unionID)
+		user, err = s.userRepo.GetUserByUnionID(ctx, *unionID) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.Error("Failed to find user by unionID", "unionID", *unionID, "error", err)
+			slog.ErrorContext(ctx, "Failed to find user by unionID", "unionID", *unionID, "error", err) // Use slog.ErrorContext
 			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	}
 
-	// 如果通过unionID没有找到用户，再尝试用openID查找
+	// If not found by unionID, try finding by openID.
 	if user == nil && openID != nil && *openID != "" {
-		user, err = s.userRepo.GetUserByProvider("wechat_mini_program", *openID)
+		user, err = s.userRepo.GetUserByProvider(ctx, "wechat_mini_program", *openID) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.Error("Failed to find user by provider", "provider", "wechat_mini_program", "providerUID", *openID, "error", err)
+			slog.ErrorContext(ctx, "Failed to find user by provider", "provider", "wechat_mini_program", "providerUID", *openID, "error", err) // Use slog.ErrorContext
 			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	}
 
-	// 如果还是没有找到用户，返回用户未找到错误
+	// If still not found, return user not found error.
 	if user == nil || user.ID == 0 {
 		return "", "", errors.ErrUserNotFound
 	}
 
-	// 检查用户是否被封禁
+	// Check if the user is banned.
 	if user.IsBanned {
 		return "", "", errors.ErrUserBanned
 	}
 
-	// 生成JWT access token
+	// Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate access token", "error", err, "userId", user.ID)
+		slog.ErrorContext(ctx, "Failed to generate access token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// 生成JWT refresh token
+	// Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate refresh token", "error", err, "userId", user.ID)
+		slog.ErrorContext(ctx, "Failed to generate refresh token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// 更新最后登录时间
+	// Update last login time.
 	now := time.Now()
-	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+	s.userRepo.UpdateUser(ctx, user.ID, map[string]interface{}{"last_login": now}) // Pass context
 
-	slog.Info("WeChat mini program login successful",
+	slog.InfoContext(ctx, "WeChat mini program login successful", // Use slog.InfoContext
 		"userId", user.ID,
 		"unionID", unionID,
 		"openID", openID)
@@ -803,12 +803,12 @@ func (s *userService) LoginFromWechatMiniProgram(unionID *string, openID *string
 }
 
 /*
-微信OAuth2.0 （App/Web端）
+WeChat OAuth2.0 (App/Web)
 */
 
-// WechatOAuthTokenResponse 微信OAuth2 code换token响应
-// [参考] APP端微信登录：https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Development_Guide.html
-// [参考] Web端微信登录：https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html
+// WechatOAuthTokenResponse is the response structure for WeChat OAuth2 code exchange.
+// [Reference] WeChat Login for Mobile Apps: https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Development_Guide.html
+// [Reference] WeChat Login for Web Apps: https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html
 type WechatOAuthTokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	ExpiresIn    int    `json:"expires_in"`
@@ -820,9 +820,9 @@ type WechatOAuthTokenResponse struct {
 	ErrMsg       string `json:"errmsg,omitempty"`
 }
 
-// ExchangeWechatOAuth 处理微信OAuth2.0（自动判断登录/注册）
-func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, string, bool, error) {
-	// 1. 用 code 换取 access_token 和 openid/unionid
+// ExchangeWechatOAuth handles WeChat OAuth2.0 (automatically determines login/registration).
+func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOAuthRequest) (string, string, bool, error) {
+	// 1. Exchange code for access_token and openid/unionid.
 	appid := ""
 	secret := ""
 	if req.ClientType == "web" {
@@ -837,54 +837,65 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 
 	url := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", appid, secret, req.Code)
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(url)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil) // Use http.NewRequestWithContext
 	if err != nil {
+		slog.ErrorContext(ctx, "Failed to create http request for wechat oauth", "error", err, "url", url)
+		return "", "", false, fmt.Errorf("failed to create http request for wechat oauth: %w", err)
+	}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to request wechat oauth", "error", err, "url", url)
 		return "", "", false, fmt.Errorf("failed to request wechat oauth: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var tokenResp WechatOAuthTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		slog.ErrorContext(ctx, "Failed to decode wechat oauth response", "error", err)
 		return "", "", false, fmt.Errorf("failed to decode wechat oauth response: %w", err)
 	}
 	if tokenResp.ErrCode != 0 {
+		slog.ErrorContext(ctx, "Wechat oauth error", "errcode", tokenResp.ErrCode, "errmsg", tokenResp.ErrMsg)
 		return "", "", false, fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
 	}
 
 	openid := tokenResp.OpenID
 	unionid := tokenResp.UnionID
 
-	// 2. 检查 openid/unionid 是否已绑定用户
+	// 2. Check if openid/unionid is already bound to a user.
 	var user *models.User
 	isNewUser := false
 
-	// 情况1: openid直接找到用户
+	// Case 1: User found directly by openid.
 	if openid != "" {
-		user, err = s.userRepo.GetUserByProvider("wechat", openid)
+		user, err = s.userRepo.GetUserByProvider(ctx, "wechat", openid) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
+			slog.ErrorContext(ctx, "Failed to find user by openid", "openid", openid, "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to find user by openid: %w", err)
 		}
 	}
 
-	// 情况2: unionid不为空时，尝试通过unionid查找用户
+	// Case 2: If not found by openid and unionid is not empty, try finding by unionid.
 	if (user == nil || user.ID == 0) && unionid != "" {
-		user, err = s.userRepo.GetUserByUnionID(unionid)
+		user, err = s.userRepo.GetUserByUnionID(ctx, unionid) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
+			slog.ErrorContext(ctx, "Failed to find user by unionid", "unionid", unionid, "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to find user by unionid: %w", err)
 		}
 
-		// 创建 UserProvider 记录
+		// Create UserProvider record if an existing user is found by unionid.
 		if user != nil && user.ID > 0 {
 			userProvider := models.UserProvider{
 				UserID:        user.ID,
 				Provider:      "wechat",
 				ProviderUID:   openid,
-				WechatUnionID: &unionid, // unionid可能为空，所以用指针
+				WechatUnionID: &unionid, // unionid might be empty, so use a pointer.
 			}
-			if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
+			if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
+				slog.ErrorContext(ctx, "Failed to create user provider for existing user by unionid", "error", err) // Use slog.ErrorContext
 				return "", "", false, fmt.Errorf("failed to create user provider: %w", err)
 			}
-			slog.Info("UserProvider created successfully for unionid",
+			slog.InfoContext(ctx, "UserProvider created successfully for unionid", // Use slog.InfoContext
 				"userId", user.ID,
 				"provider", "wechat",
 				"providerUID", openid,
@@ -892,14 +903,15 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 		}
 	}
 
-	// 情况3: unionid和openid都没有找到用户
+	// Case 3: User not found by either unionid or openid; create a new user.
 	if user == nil || user.ID == 0 {
-		// 创建新用户
+		// Create a new user.
 		user = &models.User{
-			Name:   fmt.Sprintf("微信用户_%s", openid[len(openid)-6:]),
-			Locale: "zh",
+			Name:   fmt.Sprintf("微信用户_%s", openid[len(openid)-6:]), // WeChat User_xxxxxx
+			Locale: "zh", // Default to Chinese
 		}
-		if err := s.userRepo.CreateUser(user); err != nil {
+		if err := s.userRepo.CreateUser(ctx, user); err != nil { // Pass context
+			slog.ErrorContext(ctx, "Failed to create new user from wechat oauth", "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to create user: %w", err)
 		}
 		userProvider := models.UserProvider{
@@ -910,51 +922,54 @@ func (s *userService) ExchangeWechatOAuth(req *dto.WechatOAuthRequest) (string, 
 		if unionid != "" {
 			userProvider.WechatUnionID = &unionid
 		}
-		if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
+		if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
+			slog.ErrorContext(ctx, "Failed to create user provider for new user from wechat oauth", "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to create user provider: %w", err)
 		}
 		isNewUser = true
 
-		slog.Info("New user created from WeChat OAuth",
+		slog.InfoContext(ctx, "New user created from WeChat OAuth", // Use slog.InfoContext
 			"userId", user.ID,
 			"provider", "wechat",
 			"providerUID", openid,
 			"unionID", unionid)
 	}
 
-	// 检查用户是否被封禁
+	// Check if the user is banned.
 	if user.IsBanned {
 		return "", "", false, errors.ErrUserBanned
 	}
 
-	// 3. 生成JWT access token
+	// 3. Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
+		slog.ErrorContext(ctx, "Failed to generate access token from wechat oauth", "error", err, "userID", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// 4. 生成JWT refresh token
+	// 4. Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
+		slog.ErrorContext(ctx, "Failed to generate refresh token from wechat oauth", "error", err, "userID", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// 更新最后登录时间
+	// Update last login time.
 	now := time.Now()
-	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+	s.userRepo.UpdateUser(ctx, user.ID, map[string]interface{}{"last_login": now}) // Pass context
 
 	return accessToken, refreshToken, isNewUser, nil
 }
 
-// BindWechatAccount 绑定微信账号
-func (s *userService) BindWechatAccount(userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error {
-	// 权限检查：确保用户只能绑定自己的账号
+// BindWechatAccount binds a WeChat account to an existing user.
+func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error {
+	// Permission check: ensure the user can only bind their own account.
 	if userID != authenticatedUser.ID {
-		slog.Warn("Permission denied for WeChat account binding", "userId", userID, "requesterId", authenticatedUser.ID)
+		slog.WarnContext(ctx, "Permission denied for WeChat account binding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
-	// 1. 用 code 换取 access_token 和 openid/unionid
+	// 1. Exchange code for access_token and openid/unionid.
 	appid := ""
 	secret := ""
 	if req.ClientType == "web" {
@@ -969,27 +984,35 @@ func (s *userService) BindWechatAccount(userID uint, req *dto.BindWechatAccountR
 
 	url := fmt.Sprintf("https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code", appid, secret, req.Code)
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(url)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil) // Use http.NewRequestWithContext
 	if err != nil {
+		slog.ErrorContext(ctx, "Failed to create http request for wechat oauth binding", "error", err, "url", url)
+		return fmt.Errorf("failed to create http request for wechat oauth binding: %w", err)
+	}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to request wechat oauth for binding", "error", err, "url", url)
 		return fmt.Errorf("failed to request wechat oauth: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var tokenResp WechatOAuthTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		slog.ErrorContext(ctx, "Failed to decode wechat oauth response for binding", "error", err)
 		return fmt.Errorf("failed to decode wechat oauth response: %w", err)
 	}
 	if tokenResp.ErrCode != 0 {
+		slog.ErrorContext(ctx, "Wechat oauth error for binding", "errcode", tokenResp.ErrCode, "errmsg", tokenResp.ErrMsg)
 		return fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
 	}
 
 	openid := tokenResp.OpenID
 	unionid := tokenResp.UnionID
 
-	// 2. 检查该微信账号是否已被其他用户绑定
-	existingProvider, err := s.userRepo.GetUserByProvider("wechat", openid)
+	// 2. Check if this WeChat account is already bound to another user.
+	existingProvider, err := s.userRepo.GetUserByProvider(ctx, "wechat", openid) // Pass context
 	if err != nil && err != gorm.ErrRecordNotFound {
-		slog.Error("Failed to check existing WeChat provider", "openId", openid, "error", err)
+		slog.ErrorContext(ctx, "Failed to check existing WeChat provider for binding", "openId", openid, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check existing provider: %w", err)
 	}
 
@@ -997,16 +1020,16 @@ func (s *userService) BindWechatAccount(userID uint, req *dto.BindWechatAccountR
 		return errors.ErrProviderAlreadyBound
 	}
 
-	// 3. 检查当前用户是否已绑定微信账号
-	_, err = s.userRepo.GetUserProvider(userID, "wechat")
+	// 3. Check if the current user has already bound a WeChat account.
+	_, err = s.userRepo.GetUserProvider(ctx, userID, "wechat") // Pass context
 	if err == nil {
 		return errors.ErrProviderAlreadyBound
 	} else if err != gorm.ErrRecordNotFound {
-		slog.Error("Failed to check user's WeChat provider", "userId", userID, "error", err)
+		slog.ErrorContext(ctx, "Failed to check user's WeChat provider for binding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
-	// 4. 创建绑定记录
+	// 4. Create the binding record.
 	userProvider := &models.UserProvider{
 		UserID:      userID,
 		Provider:    "wechat",
@@ -1016,8 +1039,8 @@ func (s *userService) BindWechatAccount(userID uint, req *dto.BindWechatAccountR
 		userProvider.WechatUnionID = &unionid
 	}
 
-	if err := s.userRepo.CreateUserProvider(userProvider); err != nil {
-		slog.Error("Failed to bind WeChat account",
+	if err := s.userRepo.CreateUserProvider(ctx, userProvider); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to bind WeChat account", // Use slog.ErrorContext
 			"userId", userID,
 			"provider", "wechat",
 			"providerUID", openid,
@@ -1026,7 +1049,7 @@ func (s *userService) BindWechatAccount(userID uint, req *dto.BindWechatAccountR
 		return fmt.Errorf("failed to bind WeChat account: %w", err)
 	}
 
-	slog.Info("WeChat account bound successfully",
+	slog.InfoContext(ctx, "WeChat account bound successfully", // Use slog.InfoContext
 		"userId", userID,
 		"provider", "wechat",
 		"providerUID", openid,
@@ -1035,16 +1058,16 @@ func (s *userService) BindWechatAccount(userID uint, req *dto.BindWechatAccountR
 	return nil
 }
 
-// UnbindWechatAccount 解绑微信账号
-func (s *userService) UnbindWechatAccount(userID uint, authenticatedUser *models.User) error {
-	// 权限检查：确保用户只能解绑自己的账号
+// UnbindWechatAccount unbinds a WeChat account from a user.
+func (s *userService) UnbindWechatAccount(ctx context.Context, userID uint, authenticatedUser *models.User) error {
+	// Permission check: ensure the user can only unbind their own account.
 	if userID != authenticatedUser.ID {
-		slog.Warn("Permission denied for WeChat account unbinding", "userId", userID, "requesterId", authenticatedUser.ID)
+		slog.WarnContext(ctx, "Permission denied for WeChat account unbinding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
-	// 检查用户是否已提供验证过的邮箱，否则解绑后再也无法登录
-	user, err := s.GetUser(userID)
+	// Check if the user has a verified email, otherwise unbinding could lock them out.
+	user, err := s.GetUser(ctx, userID) // Pass context
 	if err != nil {
 		return err
 	}
@@ -1053,101 +1076,101 @@ func (s *userService) UnbindWechatAccount(userID uint, authenticatedUser *models
 		return errors.ErrEmailNotVerified
 	}
 
-	// 检查是否已绑定微信账号
-	_, err = s.userRepo.GetUserProvider(userID, "wechat")
+	// Check if a WeChat account is bound.
+	_, err = s.userRepo.GetUserProvider(ctx, userID, "wechat") // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProviderNotBound
 		}
-		slog.Error("Failed to check user's WeChat provider", "userId", userID, "error", err)
+		slog.ErrorContext(ctx, "Failed to check user's WeChat provider for unbinding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
-	// 删除绑定记录
-	if err := s.userRepo.DeleteUserProvider(userID, "wechat"); err != nil {
-		slog.Error("Failed to unbind WeChat account", "userId", userID, "error", err)
+	// Delete the binding record.
+	if err := s.userRepo.DeleteUserProvider(ctx, userID, "wechat"); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to unbind WeChat account", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to unbind WeChat account: %w", err)
 	}
 
-	slog.Info("WeChat account unbound successfully", "userId", userID)
+	slog.InfoContext(ctx, "WeChat account unbound successfully", "userId", userID) // Use slog.InfoContext
 	return nil
 }
 
 /*
-Google OAuth2.0（App/Web端）
+Google OAuth2.0 (App/Web)
 */
 
-// ExchangeGoogleOAuth 处理Google OAuth2.0（自动判断登录/注册）
-func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, string, bool, error) {
-	// 1. 用auth code换取用户信息
+// ExchangeGoogleOAuth handles Google OAuth2.0 (automatically determines login/registration).
+func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOAuthRequest) (string, string, bool, error) {
+	// 1. Exchange auth code for user information.
 	googleUserInfo, err := s.googleOAuthService.ExchangeCodeForUserInfo(
-		context.Background(),
+		ctx, // Pass context
 		req.Code,
 		req.CodeVerifier,
 		req.RedirectURI,
 		req.ClientType,
 	)
 	if err != nil {
-		slog.Error("Failed to exchange Google OAuth code", "error", err)
+		slog.ErrorContext(ctx, "Failed to exchange Google OAuth code", "error", err) // Use slog.ErrorContext
 		return "", "", false, err
 	}
 
-	// 2. 检查用户是否已通过Google注册
+	// 2. Check if the user has already registered via Google.
 	var user *models.User
 	isNewUser := false
 
-	// 情况1: 用户已存在
-	user, err = s.userRepo.GetUserByProvider("google", googleUserInfo.ID)
+	// Case 1: User already exists.
+	user, err = s.userRepo.GetUserByProvider(ctx, "google", googleUserInfo.ID) // Pass context
 	if err != nil && err != gorm.ErrRecordNotFound {
-		slog.Error("Failed to find user by Google provider",
+		slog.ErrorContext(ctx, "Failed to find user by Google provider", // Use slog.ErrorContext
 			"providerUID", googleUserInfo.ID,
 			"error", err)
 		return "", "", false, fmt.Errorf("failed to find user: %w", err)
 	}
 
-	// 情况2: 用户不存在，需要注册新用户
+	// Case 2: User does not exist, register a new user.
 	if user == nil || user.ID == 0 {
-		// 检查邮箱是否已被其他用户使用
-		if _, err := s.userRepo.GetUserByField("email", googleUserInfo.Email, true); err == nil {
+		// Check if the email is already used by another user.
+		if _, err := s.userRepo.GetUserByField(ctx, "email", googleUserInfo.Email, true); err == nil { // Pass context
 			return "", "", false, errors.ErrEmailAlreadyExists
 		}
 
-		// 创建新用户Model
+		// Create new User model.
 		user = &models.User{
 			Name:            googleUserInfo.Name,
 			Email:           &googleUserInfo.Email,
-			Locale:          "en", // 默认语言
-			IsEmailVerified: true,
+			Locale:          "en", // Default language
+			IsEmailVerified: true, // Email from Google is considered verified.
 		}
 
-		// 如果Google提供了头像URL，使用它
+		// Use avatar URL from Google if provided.
 		if googleUserInfo.Picture != "" {
 			user.AvatarURL = &googleUserInfo.Picture
 		}
 
-		// 如果Google提供了语言偏好，使用它
+		// Use language preference from Google if provided.
 		if googleUserInfo.Locale != "" {
 			user.Locale = googleUserInfo.Locale
 		}
 
-		// 调用repo层创建用户
-		if err := s.userRepo.CreateUser(user); err != nil {
-			slog.Error("Failed to create user from Google registration",
+		// Call repository layer to create the user.
+		if err := s.userRepo.CreateUser(ctx, user); err != nil { // Pass context
+			slog.ErrorContext(ctx, "Failed to create user from Google registration", // Use slog.ErrorContext
 				"email", googleUserInfo.Email,
 				"googleId", googleUserInfo.ID,
 				"error", err)
 			return "", "", false, fmt.Errorf("failed to create user: %w", err)
 		}
 
-		// 创建UserProvider记录
+		// Create UserProvider record.
 		userProvider := models.UserProvider{
 			UserID:      user.ID,
 			Provider:    "google",
 			ProviderUID: googleUserInfo.ID,
 		}
 
-		if err := s.userRepo.CreateUserProvider(&userProvider); err != nil {
-			slog.Error("Failed to create user provider for Google registration",
+		if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
+			slog.ErrorContext(ctx, "Failed to create user provider for Google registration", // Use slog.ErrorContext
 				"userId", user.ID,
 				"provider", "google",
 				"providerUID", googleUserInfo.ID,
@@ -1156,64 +1179,64 @@ func (s *userService) ExchangeGoogleOAuth(req *dto.GoogleOAuthRequest) (string, 
 		}
 		isNewUser = true
 
-		slog.Info("User registered successfully with Google",
+		slog.InfoContext(ctx, "User registered successfully with Google", // Use slog.InfoContext
 			"userId", user.ID,
 			"email", googleUserInfo.Email,
 			"providerUID", googleUserInfo.ID)
 	}
 
-	// 检查用户是否被封禁
+	// Check if the user is banned.
 	if user.IsBanned {
-		slog.Warn("User is banned", "userId", user.ID, "email", googleUserInfo.Email)
+		slog.WarnContext(ctx, "User is banned", "userId", user.ID, "email", googleUserInfo.Email) // Use slog.WarnContext
 		return "", "", false, errors.ErrUserBanned
 	}
 
-	// 3. 生成JWT access token
+	// 3. Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate access token", "error", err, "userId", user.ID)
+		slog.ErrorContext(ctx, "Failed to generate access token from google oauth", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// 4. 生成JWT refresh token
+	// 4. Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.Error("Failed to generate refresh token", "error", err, "userId", user.ID)
+		slog.ErrorContext(ctx, "Failed to generate refresh token from google oauth", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// 更新最后登录时间
+	// Update last login time.
 	now := time.Now()
-	s.userRepo.UpdateUser(user.ID, map[string]interface{}{"last_login": now})
+	s.userRepo.UpdateUser(ctx, user.ID, map[string]interface{}{"last_login": now}) // Pass context
 
 	return accessToken, refreshToken, isNewUser, nil
 }
 
-// BindGoogleAccount 绑定Google账号
-func (s *userService) BindGoogleAccount(userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error {
-	// 权限检查：确保用户只能绑定自己的账号
+// BindGoogleAccount binds a Google account to an existing user.
+func (s *userService) BindGoogleAccount(ctx context.Context, userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error {
+	// Permission check: ensure the user can only bind their own account.
 	if userID != authenticatedUser.ID {
-		slog.Warn("Permission denied for Google account binding", "userId", userID, "requesterId", authenticatedUser.ID)
+		slog.WarnContext(ctx, "Permission denied for Google account binding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
-	// 1. 用auth code换取用户信息
+	// 1. Exchange auth code for user information.
 	googleUserInfo, err := s.googleOAuthService.ExchangeCodeForUserInfo(
-		context.Background(),
+		ctx, // Pass context
 		req.Code,
 		req.CodeVerifier,
 		req.RedirectURI,
 		req.ClientType,
 	)
 	if err != nil {
-		slog.Error("Failed to exchange Google OAuth code for binding", "error", err, "userId", userID)
+		slog.ErrorContext(ctx, "Failed to exchange Google OAuth code for binding", "error", err, "userId", userID) // Use slog.ErrorContext
 		return err
 	}
 
-	// 2. 检查该Google账号是否已被其他用户绑定
-	existingProvider, err := s.userRepo.GetUserByProvider("google", googleUserInfo.ID)
+	// 2. Check if this Google account is already bound to another user.
+	existingProvider, err := s.userRepo.GetUserByProvider(ctx, "google", googleUserInfo.ID) // Pass context
 	if err != nil && err != gorm.ErrRecordNotFound {
-		slog.Error("Failed to check existing Google provider", "googleId", googleUserInfo.ID, "error", err)
+		slog.ErrorContext(ctx, "Failed to check existing Google provider for binding", "googleId", googleUserInfo.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check existing provider: %w", err)
 	}
 
@@ -1221,24 +1244,24 @@ func (s *userService) BindGoogleAccount(userID uint, req *dto.BindGoogleAccountR
 		return errors.ErrProviderAlreadyBound
 	}
 
-	// 3. 检查当前用户是否已绑定Google账号
-	_, err = s.userRepo.GetUserProvider(userID, "google")
+	// 3. Check if the current user has already bound a Google account.
+	_, err = s.userRepo.GetUserProvider(ctx, userID, "google") // Pass context
 	if err == nil {
 		return errors.ErrProviderAlreadyBound
 	} else if err != gorm.ErrRecordNotFound {
-		slog.Error("Failed to check user's Google provider", "userId", userID, "error", err)
+		slog.ErrorContext(ctx, "Failed to check user's Google provider for binding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
-	// 4. 创建绑定记录
+	// 4. Create the binding record.
 	userProvider := &models.UserProvider{
 		UserID:      userID,
 		Provider:    "google",
 		ProviderUID: googleUserInfo.ID,
 	}
 
-	if err := s.userRepo.CreateUserProvider(userProvider); err != nil {
-		slog.Error("Failed to bind Google account",
+	if err := s.userRepo.CreateUserProvider(ctx, userProvider); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to bind Google account", // Use slog.ErrorContext
 			"userId", userID,
 			"provider", "google",
 			"providerUID", googleUserInfo.ID,
@@ -1246,7 +1269,7 @@ func (s *userService) BindGoogleAccount(userID uint, req *dto.BindGoogleAccountR
 		return fmt.Errorf("failed to bind Google account: %w", err)
 	}
 
-	slog.Info("Google account bound successfully",
+	slog.InfoContext(ctx, "Google account bound successfully", // Use slog.InfoContext
 		"userId", userID,
 		"provider", "google",
 		"providerUID", googleUserInfo.ID)
@@ -1254,30 +1277,30 @@ func (s *userService) BindGoogleAccount(userID uint, req *dto.BindGoogleAccountR
 	return nil
 }
 
-// UnbindGoogleAccount 解绑Google账号
-func (s *userService) UnbindGoogleAccount(userID uint, authenticatedUser *models.User) error {
-	// 权限检查：确保用户只能解绑自己的账号
+// UnbindGoogleAccount unbinds a Google account from a user.
+func (s *userService) UnbindGoogleAccount(ctx context.Context, userID uint, authenticatedUser *models.User) error {
+	// Permission check: ensure the user can only unbind their own account.
 	if userID != authenticatedUser.ID {
-		slog.Warn("Permission denied for Google account unbinding", "userId", userID, "requesterId", authenticatedUser.ID)
+		slog.WarnContext(ctx, "Permission denied for Google account unbinding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
-	// 检查是否已绑定Google账号
-	_, err := s.userRepo.GetUserProvider(userID, "google")
+	// Check if a Google account is bound.
+	_, err := s.userRepo.GetUserProvider(ctx, userID, "google") // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProviderNotBound
 		}
-		slog.Error("Failed to check user's Google provider", "userId", userID, "error", err)
+		slog.ErrorContext(ctx, "Failed to check user's Google provider for unbinding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
-	// 删除绑定记录
-	if err := s.userRepo.DeleteUserProvider(userID, "google"); err != nil {
-		slog.Error("Failed to unbind Google account", "userId", userID, "error", err)
+	// Delete the binding record.
+	if err := s.userRepo.DeleteUserProvider(ctx, userID, "google"); err != nil { // Pass context
+		slog.ErrorContext(ctx, "Failed to unbind Google account", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to unbind Google account: %w", err)
 	}
 
-	slog.Info("Google account unbound successfully", "userId", userID)
+	slog.InfoContext(ctx, "Google account unbound successfully", "userId", userID) // Use slog.InfoContext
 	return nil
 }
