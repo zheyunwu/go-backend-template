@@ -15,6 +15,8 @@ func main() {
 		Level:      slog.LevelDebug,
 		JSONFormat: true,
 		Output:     os.Stdout,
+		Service:    "go-backend-template",
+		Version:    "1.0.0",
 	})
 
 	time.Local = time.UTC

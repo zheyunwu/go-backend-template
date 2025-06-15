@@ -12,12 +12,7 @@ func InitRoutes(r *gin.Engine, container *di.Container) {
 	r.Use(cors.Default())
 
 	// Global middlewares
-	// RequestID should be one of the first middlewares.
-	r.Use(middlewares.RequestID())
-	// ContextLogger should run after RequestID to include request_id in logs.
-	r.Use(middlewares.ContextLogger())
-	// RequestLogger will now use the logger from context (which includes request_id).
-	r.Use(middlewares.RequestLogger())
+	r.Use(middlewares.LoggingMiddleware())
 	r.Use(middlewares.ErrorHandler())
 	r.Use(middlewares.QueryParamParser())
 
