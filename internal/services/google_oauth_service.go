@@ -6,11 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-backend-template/config"
 	"github.com/go-backend-template/internal/errors"
+	"github.com/go-backend-template/pkg/logger"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	oauth2v2 "google.golang.org/api/oauth2/v2"
@@ -90,7 +90,7 @@ func (s *googleOAuthService) ValidateCodeVerifier(codeVerifier, codeChallenge st
 func (s *googleOAuthService) ExchangeCodeForUserInfo(ctx context.Context, code, codeVerifier, redirectURI, clientType string) (*GoogleUserInfo, error) {
 	// Validate the redirect URI.
 	if !s.ValidateRedirectURI(redirectURI, clientType) {
-		slog.WarnContext(ctx, "Invalid redirect URI", "redirectURI", redirectURI, "clientType", clientType) // Use slog.WarnContext
+		logger.Warn(ctx, "Invalid redirect URI", "redirectURI", redirectURI, "clientType", clientType) // Use slog.WarnContext
 		return nil, errors.ErrInvalidRedirectURL
 	}
 
@@ -122,20 +122,20 @@ func (s *googleOAuthService) ExchangeCodeForUserInfo(ctx context.Context, code, 
 	// Exchange authorization code for access token using PKCE.
 	token, err := oauthConfig.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to exchange OAuth code for token", "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to exchange OAuth code for token", "error", err) // Use slog.ErrorContext
 		return nil, errors.ErrOAuthTokenExchange
 	}
 
 	// Fetch user information using the access token.
 	userInfo, err := s.fetchUserInfo(ctx, token.AccessToken)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to fetch user info", "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to fetch user info", "error", err) // Use slog.ErrorContext
 		return nil, errors.ErrOAuthUserInfoFetch
 	}
 
 	// Validate necessary user information fields.
 	if userInfo.Email == "" || userInfo.ID == "" {
-		slog.WarnContext(ctx, "Google user info incomplete", "userInfo", userInfo) // Use slog.WarnContext
+		logger.Warn(ctx, "Google user info incomplete", "userInfo", userInfo) // Use slog.WarnContext
 		return nil, errors.ErrGoogleUserInfoIncomplete
 	}
 

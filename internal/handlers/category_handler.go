@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/services"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 )
@@ -30,7 +30,7 @@ func (h *CategoryHandler) ListCategories(ctx *gin.Context) {
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
-		slog.Warn("Invalid query parameters type", "params", params)
+		logger.Warn(ctx, "Invalid query parameters type", "params", params)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid query parameters type"))
 		return
 	}
@@ -52,7 +52,7 @@ func (h *CategoryHandler) GetCategoryTree(ctx *gin.Context) {
 	depthStr := ctx.DefaultQuery("depth", "0")
 	depth, err := strconv.Atoi(depthStr)
 	if err != nil {
-		slog.Warn("Invalid depth parameter", "depth", depthStr)
+		logger.Warn(ctx, "Invalid depth parameter", "depth", depthStr)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid depth parameter, must be a non-negative integer"))
 		return
 	}

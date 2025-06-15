@@ -2,7 +2,7 @@ package middlewares
 
 import (
 	stderrors "errors"
-	"log/slog"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,6 +12,7 @@ import (
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/services"
 	"github.com/go-backend-template/pkg/jwt"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/response"
 )
 
@@ -31,13 +32,13 @@ func RequiredAuthenticate(config *config.Config, userService services.UserServic
 		authenticatedUser, err := userService.GetUser(ctx.Request.Context(), auth.UserID) // Pass context
 		if err != nil {
 			if stderrors.Is(err, errors.ErrUserNotFound) {
-				slog.WarnContext(ctx.Request.Context(), "Authenticated user not found", "userId", auth.UserID) // Pass context
+				logger.Warn(ctx.Request.Context(), "Authenticated user not found", "userId", auth.UserID) // Pass context
 				ctx.JSON(http.StatusUnauthorized, response.NewErrorResponse(errors.ErrUnauthorized.Message))
 				ctx.Abort()
 				return
 			}
 			// Log error and return internal server error.
-			slog.ErrorContext(ctx.Request.Context(), "Failed to get authenticated user", "userId", auth.UserID, "error", err) // Pass context
+			logger.Error(ctx.Request.Context(), "Failed to get authenticated user", "userId", auth.UserID, "error", err) // Pass context
 			ctx.JSON(http.StatusInternalServerError, response.NewErrorResponse(errors.ErrInternalServer.Message))
 			ctx.Abort()
 			return
@@ -58,10 +59,10 @@ func OptionalAuthenticate(config *config.Config, userService services.UserServic
 			authenticatedUser, err := userService.GetUser(ctx.Request.Context(), auth.UserID) // Pass context
 			if err != nil {
 				if stderrors.Is(err, errors.ErrUserNotFound) {
-					slog.WarnContext(ctx.Request.Context(), "Authenticated user not found for optional auth", "userId", auth.UserID) // Pass context
+					logger.Warn(ctx.Request.Context(), "Authenticated user not found for optional auth", "userId", auth.UserID) // Pass context
 					// Do not abort here, just don't set the user in context.
 				} else {
-					slog.ErrorContext(ctx.Request.Context(), "Failed to get authenticated user for optional auth", "userId", auth.UserID, "error", err) // Pass context
+					logger.Error(ctx.Request.Context(), "Failed to get authenticated user for optional auth", "userId", auth.UserID, "error", err) // Pass context
 					// Do not abort here, proceed without authenticated user.
 				}
 			} else {
@@ -89,12 +90,12 @@ func AdminAuthMiddleware(config *config.Config, userService services.UserService
 		authenticatedUser, err := userService.GetUser(ctx.Request.Context(), auth.UserID) // Pass context
 		if err != nil {
 			if stderrors.Is(err, errors.ErrUserNotFound) {
-				slog.WarnContext(ctx.Request.Context(), "Authenticated admin user not found", "userId", auth.UserID) // Pass context
+				logger.Warn(ctx.Request.Context(), "Authenticated admin user not found", "userId", auth.UserID) // Pass context
 				ctx.JSON(http.StatusUnauthorized, response.NewErrorResponse(errors.ErrUnauthorized.Message))
 				ctx.Abort()
 				return
 			}
-			slog.ErrorContext(ctx.Request.Context(), "Failed to get authenticated admin user", "userId", auth.UserID, "error", err) // Pass context
+			logger.Error(ctx.Request.Context(), "Failed to get authenticated admin user", "userId", auth.UserID, "error", err) // Pass context
 			ctx.JSON(http.StatusInternalServerError, response.NewErrorResponse(errors.ErrInternalServer.Message))
 			ctx.Abort()
 			return
@@ -102,7 +103,7 @@ func AdminAuthMiddleware(config *config.Config, userService services.UserService
 
 		// Check for admin role.
 		if authenticatedUser.Role != "admin" {
-			slog.WarnContext(ctx.Request.Context(), "Access denied - not an admin user", // Pass context
+			logger.Warn(ctx.Request.Context(), "Access denied - not an admin user", // Pass context
 				"userId", authenticatedUser.ID,
 				"role", authenticatedUser.Role,
 			)
@@ -127,7 +128,7 @@ func authenticateWithJWT(ctx *gin.Context, config *config.Config) (*models.UserA
 	tokenString := authHeader[7:] // Remove "Bearer " prefix.
 	tokenDetails, err := jwt.ValidateToken(tokenString, config.JWT.Secret)
 	if err != nil || tokenDetails.TokenType != jwt.AccessToken {
-		slog.DebugContext(ctx.Request.Context(), "JWT validation failed", "error", err) // Pass context
+		logger.Debug(ctx.Request.Context(), "JWT validation failed", "error", err) // Pass context
 		return nil, false
 	}
 
@@ -140,4 +141,8 @@ func authenticateWithJWT(ctx *gin.Context, config *config.Config) (*models.UserA
 // setAuthContext sets user authentication details in the request context.
 func setAuthContext(ctx *gin.Context, authenticatedUser *models.User) {
 	ctx.Set("authenticatedUser", authenticatedUser) // Store as pointer.
+
+	// 同时将user_id添加到logger context中
+	updatedCtx := logger.WithUserID(ctx.Request.Context(), fmt.Sprintf("%d", authenticatedUser.ID))
+	ctx.Request = ctx.Request.WithContext(updatedCtx)
 }

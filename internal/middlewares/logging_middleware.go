@@ -1,12 +1,10 @@
 package middlewares
 
 import (
-	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -54,13 +52,6 @@ func LoggingMiddleware() gin.HandlerFunc {
 		duration := time.Since(startTime)
 		statusCode := c.Writer.Status()
 
-		// Add user ID to logger if authenticated
-		if user, exists := c.Get("authenticatedUser"); exists {
-			if userModel, ok := user.(models.User); ok {
-				ctx = logger.WithUserID(ctx, fmt.Sprintf("%d", userModel.ID))
-			}
-		}
-
 		// Determine log level based on status code
 		logLevel := slog.LevelInfo
 		if statusCode >= 400 && statusCode < 500 {
@@ -69,7 +60,9 @@ func LoggingMiddleware() gin.HandlerFunc {
 			logLevel = slog.LevelError
 		}
 
-		// Log request completion
+		// Log request completion with status code and duration
+		// Retrieve the request-scoped logger from context
+		ctx = c.Request.Context()
 		requestLogger := logger.FromContext(ctx)
 		requestLogger.LogAttrs(ctx, logLevel, "Request completed",
 			slog.String("method", method),

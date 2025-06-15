@@ -3,10 +3,10 @@ package services
 import (
 	"context" // Added for context
 	"fmt"
-	"log/slog"
 
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/repositories"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 )
@@ -41,7 +41,7 @@ func (s *categoryService) ListCategories(ctx context.Context, params *query_para
 	// Call the repository layer to get the list of categories.
 	categories, total, err := s.categoryRepo.ListCategories(ctx, params) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to list categories", "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to list categories", "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list categories: %w", err)
 	}
 
@@ -66,7 +66,7 @@ func (s *categoryService) GetCategoryTree(ctx context.Context, depth int, enable
 	// Call the repository layer to get the category tree, passing depth and whether to show all categories.
 	categories, err := s.categoryRepo.GetCategoryTree(ctx, depth, enabledOnly) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get category tree", "error", err, "depth", depth, "enabledOnly", enabledOnly) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get category tree", "error", err, "depth", depth, "enabledOnly", enabledOnly) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get category tree: %w", err)
 	}
 
@@ -83,7 +83,7 @@ func (s *categoryService) GetCategory(ctx context.Context, id uint) (*models.Cat
 	// Call the repository layer to get the category.
 	category, err := s.categoryRepo.GetCategory(ctx, id) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get category", "categoryId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get category", "categoryId", id, "error", err) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get category: %w", err)
 	}
 

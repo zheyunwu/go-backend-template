@@ -66,7 +66,7 @@ func Init(cfg *Config) {
 		"service", cfg.Service,
 		"version", cfg.Version,
 	)
-	
+
 	slog.SetDefault(defaultLogger)
 }
 
@@ -85,7 +85,7 @@ func WithContext(ctx context.Context, logger *slog.Logger) context.Context {
 
 // WithRequestID creates a new logger with request ID and stores it in context
 func WithRequestID(ctx context.Context, requestID string) context.Context {
-	logger := defaultLogger.With("request_id", requestID)
+	logger := FromContext(ctx).With("request_id", requestID)
 	return WithContext(ctx, logger)
 }
 

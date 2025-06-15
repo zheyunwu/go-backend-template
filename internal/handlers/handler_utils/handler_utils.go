@@ -1,13 +1,13 @@
 package handler_utils
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-backend-template/internal/errors"
 	"github.com/go-backend-template/internal/models"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/response"
 	"github.com/google/uuid"
 )
@@ -17,13 +17,13 @@ func ParseUintParam(ctx *gin.Context, paramName string) (uint64, error) {
 	idStr := ctx.Param(paramName)
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		slog.Warn("Invalid parameter format", "param", paramName, "value", idStr, "error", err)
+		logger.Warn(ctx, "Invalid parameter format", "param", paramName, "value", idStr, "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid "+paramName+" parameter"))
 		return 0, err
 	}
 
 	if id == 0 {
-		slog.Warn("Parameter cannot be zero", "param", paramName, "value", idStr)
+		logger.Warn(ctx, "Parameter cannot be zero", "param", paramName, "value", idStr)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid "+paramName+" parameter"))
 		return 0, errors.NewAppError("InvalidParameter", "Parameter cannot be zero", http.StatusBadRequest)
 	}
@@ -36,7 +36,7 @@ func ParseUUIDParam(ctx *gin.Context, paramName string) (string, error) {
 	uuidStr := ctx.Param(paramName)
 	uid, err := uuid.Parse(uuidStr)
 	if err != nil {
-		slog.Warn("Invalid uuid parameter format", "param", paramName, "value", uuidStr, "error", err)
+		logger.Warn(ctx, "Invalid uuid parameter format", "param", paramName, "value", uuidStr, "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Ivalid"+paramName+" parameter"))
 		return "", err
 	}
@@ -56,7 +56,7 @@ func GetAuthenticatedUser(ctx *gin.Context) (*models.User, bool) {
 		return user, true
 	}
 
-	slog.Error("Invalid type for authenticatedUser")
+	logger.Error(ctx, "Invalid type for authenticatedUser")
 	ctx.JSON(http.StatusInternalServerError, response.NewErrorResponse("Internal Server Error"))
 	return nil, false
 }

@@ -54,28 +54,79 @@ r.Use(middlewares.ErrorHandler())
 ```
 
 ### 3. 在代码中使用
+
+#### Handlers和Services中的日志使用
+
+**✅ 推荐做法 - 使用context-aware logger：**
 ```go
 // Handler中
-func UserHandler(c *gin.Context) {
-    ctx := c.Request.Context()
+func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
+    // 使用统一的logger，会自动包含request_id和user_id
+    logger.Info(ctx, "Processing profile update request")
 
-    logger.Info(ctx, "Creating new user", "email", user.Email)
-
-    if err := userService.Create(ctx, user); err != nil {
-        logger.Error(ctx, "Failed to create user", "error", err)
+    if err := validateRequest(); err != nil {
+        logger.Warn(ctx, "Validation failed", "error", err)
         return
     }
 
-    logger.Debug(ctx, "User created successfully", "user_id", user.ID)
+    logger.Info(ctx, "Profile updated successfully", "userId", userID)
 }
 
 // Service中
-func (s *UserService) Create(ctx context.Context, user User) error {
-    logger.Debug(ctx, "Validating user data")
+func (s *UserService) UpdateUser(ctx context.Context, userID uint, data *UpdateData) error {
+    logger.Debug(ctx, "Starting user update", "userId", userID)
 
-    // 业务逻辑...
+    if err := s.repository.Update(ctx, userID, data); err != nil {
+        logger.Error(ctx, "Failed to update user", "userId", userID, "error", err)
+        return err
+    }
 
-    logger.Info(ctx, "User validation completed")
+    logger.Info(ctx, "User updated successfully", "userId", userID)
     return nil
 }
+
+// Repository中
+func (r *userRepository) Update(ctx context.Context, userID uint, data *UpdateData) error {
+    logger.Debug(ctx, "Executing user update query", "userId", userID)
+
+    result := r.db.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Updates(data)
+    if result.Error != nil {
+        logger.Error(ctx, "Database update failed", "userId", userID, "error", result.Error)
+        return result.Error
+    }
+
+    return nil
+}
+```
+
+**❌ 避免使用 - 直接使用slog：**
+```go
+// 这样会丢失request_id和user_id等上下文信息
+slog.Info("Profile updated", "userId", userID)
+slog.Warn("Validation failed", "error", err)
+```
+
+#### 不同场景的最佳实践
+
+1. **Handlers**: 使用 `logger.Info(ctx, ...)` 等方法
+2. **Services**: 使用 `logger.Info(ctx, ...)` 等方法
+3. **Repositories**: 使用 `logger.Debug(ctx, ...)` 进行调试日志
+4. **Middlewares**: 使用 `logger.Error(ctx, ...)` 等方法
+5. **启动/关闭代码**: 可以直接使用 `slog.Info()` (没有请求上下文)
+6. **工具包/解析器**: 可以使用 `slog.Warn()` (低级别工具函数)
+
+#### 日志级别使用指南
+
+```go
+// Debug: 详细的调试信息
+logger.Debug(ctx, "Processing step completed", "step", "validation")
+
+// Info: 正常的业务流程信息
+logger.Info(ctx, "User registered successfully", "userId", user.ID)
+
+// Warn: 警告信息，不影响正常流程
+logger.Warn(ctx, "Invalid parameter provided", "param", invalidParam)
+
+// Error: 错误信息，影响正常流程
+logger.Error(ctx, "Database operation failed", "error", err)
 ```

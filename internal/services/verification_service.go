@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"log/slog"
 	"math/big"
 	"time"
 
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -49,11 +49,11 @@ func (s *verificationService) GenerateEmailVerificationCode(ctx context.Context,
 
 	err = s.redis.Set(ctx, key, code, 10*time.Minute).Err()
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to store verification code in Redis", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to store verification code in Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return "", fmt.Errorf("failed to store verification code: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Email verification code generated", "email", email) // Use slog.InfoContext
+	logger.Info(ctx, "Email verification code generated", "email", email) // Use slog.InfoContext
 	return code, nil
 }
 
@@ -65,21 +65,21 @@ func (s *verificationService) VerifyEmailVerificationCode(ctx context.Context, e
 	storedCode, err := s.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			slog.WarnContext(ctx, "Email verification code not found or expired", "email", email) // Use slog.WarnContext
+			logger.Warn(ctx, "Email verification code not found or expired", "email", email) // Use slog.WarnContext
 			return false, nil
 		}
-		slog.ErrorContext(ctx, "Failed to get verification code from Redis", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get verification code from Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to verify code: %w", err)
 	}
 
 	// Delete the code after successful verification (one-time use).
 	if storedCode == code {
 		s.redis.Del(ctx, key)
-		slog.InfoContext(ctx, "Email verification code verified successfully", "email", email) // Use slog.InfoContext
+		logger.Info(ctx, "Email verification code verified successfully", "email", email) // Use slog.InfoContext
 		return true, nil
 	}
 
-	slog.WarnContext(ctx, "Invalid email verification code", "email", email) // Use slog.WarnContext
+	logger.Warn(ctx, "Invalid email verification code", "email", email) // Use slog.WarnContext
 	return false, nil
 }
 
@@ -97,11 +97,11 @@ func (s *verificationService) GeneratePasswordResetToken(ctx context.Context, em
 
 	err = s.redis.Set(ctx, key, token, 30*time.Minute).Err()
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to store password reset token in Redis", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to store password reset token in Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return "", fmt.Errorf("failed to store reset token: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Password reset token generated", "email", email) // Use slog.InfoContext
+	logger.Info(ctx, "Password reset token generated", "email", email) // Use slog.InfoContext
 	return token, nil
 }
 
@@ -113,21 +113,21 @@ func (s *verificationService) VerifyPasswordResetToken(ctx context.Context, emai
 	storedToken, err := s.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			slog.WarnContext(ctx, "Password reset token not found or expired", "email", email) // Use slog.WarnContext
+			logger.Warn(ctx, "Password reset token not found or expired", "email", email) // Use slog.WarnContext
 			return false, nil
 		}
-		slog.ErrorContext(ctx, "Failed to get reset token from Redis", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get reset token from Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to verify token: %w", err)
 	}
 
 	// Delete the token after successful verification (one-time use).
 	if storedToken == token {
 		s.redis.Del(ctx, key)
-		slog.InfoContext(ctx, "Password reset token verified successfully", "email", email) // Use slog.InfoContext
+		logger.Info(ctx, "Password reset token verified successfully", "email", email) // Use slog.InfoContext
 		return true, nil
 	}
 
-	slog.WarnContext(ctx, "Invalid password reset token", "email", email) // Use slog.WarnContext
+	logger.Warn(ctx, "Invalid password reset token", "email", email) // Use slog.WarnContext
 	return false, nil
 }
 

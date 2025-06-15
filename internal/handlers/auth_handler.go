@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +8,7 @@ import (
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/services"
 	"github.com/go-backend-template/internal/utils" // Added validator utility
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/response"
 )
 
@@ -58,14 +58,14 @@ func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user update request", "requesterId", authenticatedUser.ID, "error", err)
+		logger.Warn(ctx, "Invalid user update request", "requesterId", authenticatedUser.ID, "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for UpdateProfile", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for UpdateProfile", "requesterId", authenticatedUser.ID, "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -78,7 +78,7 @@ func (h *AuthHandler) UpdateProfile(ctx *gin.Context) {
 	}
 
 	// Return 204 No Content.
-	slog.Info("User Profile updated", "requesterId", authenticatedUser.ID)
+	logger.Info(ctx, "User Profile updated", "requesterId", authenticatedUser.ID)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
@@ -93,14 +93,14 @@ func (h *AuthHandler) UpdatePassword(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid password update request", "requesterId", authenticatedUser.ID, "error", err)
+		logger.Warn(ctx, "Invalid password update request", "requesterId", authenticatedUser.ID, "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for UpdatePassword", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for UpdatePassword", "requesterId", authenticatedUser.ID, "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -113,7 +113,7 @@ func (h *AuthHandler) UpdatePassword(ctx *gin.Context) {
 	}
 
 	// Return 204 No Content.
-	slog.Info("Password updated successfully", "requesterId", authenticatedUser.ID)
+	logger.Info(ctx, "Password updated successfully", "requesterId", authenticatedUser.ID)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
@@ -122,14 +122,14 @@ func (h *AuthHandler) RegisterWithPassword(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.RegisterWithPasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user registration request", "error", err)
+		logger.Warn(ctx, "Invalid user registration request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for RegisterWithPassword", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for RegisterWithPassword", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -142,7 +142,7 @@ func (h *AuthHandler) RegisterWithPassword(ctx *gin.Context) {
 	}
 
 	// Return 201 Created.
-	slog.Info("User created with password", "userId", createdUserID)
+	logger.Info(ctx, "User created with password", "userId", createdUserID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
@@ -151,14 +151,14 @@ func (h *AuthHandler) LoginWithPassword(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.LoginWithPasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid login request", "error", err)
+		logger.Warn(ctx, "Invalid login request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for LoginWithPassword", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for LoginWithPassword", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -184,14 +184,14 @@ func (h *AuthHandler) RefreshToken(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.RefreshTokenRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid refresh token request", "error", err)
+		logger.Warn(ctx, "Invalid refresh token request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for RefreshToken", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for RefreshToken", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -217,14 +217,14 @@ func (h *AuthHandler) SendEmailVerification(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.SendEmailVerificationRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid email verification request", "error", err)
+		logger.Warn(ctx, "Invalid email verification request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for SendEmailVerification", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for SendEmailVerification", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -237,7 +237,7 @@ func (h *AuthHandler) SendEmailVerification(ctx *gin.Context) {
 	}
 
 	// Return success response.
-	slog.Info("Email verification sent", "email", payload.Email)
+	logger.Info(ctx, "Email verification sent", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Verification code sent successfully"))
 }
 
@@ -246,14 +246,14 @@ func (h *AuthHandler) VerifyEmail(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.VerifyEmailRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid verify email request", "error", err)
+		logger.Warn(ctx, "Invalid verify email request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for VerifyEmail", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for VerifyEmail", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -266,7 +266,7 @@ func (h *AuthHandler) VerifyEmail(ctx *gin.Context) {
 	}
 
 	// Return success response.
-	slog.Info("Email verified successfully", "email", payload.Email)
+	logger.Info(ctx, "Email verified successfully", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Email verified successfully"))
 }
 
@@ -275,14 +275,14 @@ func (h *AuthHandler) SendPasswordReset(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.PasswordResetRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid password reset request", "error", err)
+		logger.Warn(ctx, "Invalid password reset request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for SendPasswordReset", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for SendPasswordReset", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -295,7 +295,7 @@ func (h *AuthHandler) SendPasswordReset(ctx *gin.Context) {
 	}
 
 	// Return success response.
-	slog.Info("Password reset email sent", "email", payload.Email)
+	logger.Info(ctx, "Password reset email sent", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Password reset email sent successfully"))
 }
 
@@ -304,14 +304,14 @@ func (h *AuthHandler) ResetPassword(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.PasswordResetConfirmRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid password reset confirm request", "error", err)
+		logger.Warn(ctx, "Invalid password reset confirm request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for ResetPassword", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for ResetPassword", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -324,7 +324,7 @@ func (h *AuthHandler) ResetPassword(ctx *gin.Context) {
 	}
 
 	// Return success response.
-	slog.Info("Password reset successfully", "email", payload.Email)
+	logger.Info(ctx, "Password reset successfully", "email", payload.Email)
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(nil, "Password reset successfully"))
 }
 
@@ -340,14 +340,14 @@ func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.RegisterFromWechatMiniProgramRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user creation request", "error", err)
+		logger.Warn(ctx, "Invalid user creation request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate UpdateProfileRequest part of the payload as RegisterFromWechatMiniProgramRequest embeds it.
 	if validationErrs := customValidator.ValidateStruct(&payload.UpdateProfileRequest); validationErrs != nil {
-		slog.Warn("Validation failed for RegisterFromWechatMiniProgram (ProfileData)", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for RegisterFromWechatMiniProgram (ProfileData)", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -360,7 +360,7 @@ func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
 	}
 
 	// Return 201 Created.
-	slog.Info("User created", "userId", createdUserID)
+	logger.Info(ctx, "User created", "userId", createdUserID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
@@ -394,14 +394,14 @@ func (h *AuthHandler) LoginFromWechatMiniProgram(ctx *gin.Context) {
 func (h *AuthHandler) ExchangeWechatOAuth(ctx *gin.Context) {
 	var payload dto.WechatOAuthRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid Wechat OAuth request", "error", err)
+		logger.Warn(ctx, "Invalid Wechat OAuth request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid parameters: "+err.Error())) // "参数错误: " -> "Invalid parameters: "
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for ExchangeWechatOAuth", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for ExchangeWechatOAuth", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -437,14 +437,14 @@ func (h *AuthHandler) BindWechatAccount(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.BindWechatAccountRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid bind WeChat account request", "error", err)
+		logger.Warn(ctx, "Invalid bind WeChat account request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for BindWechatAccount", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for BindWechatAccount", "requesterId", authenticatedUser.ID, "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -484,14 +484,14 @@ func (h *AuthHandler) ExchangeGoogleOAuth(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.GoogleOAuthRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid Google OAuth request", "error", err)
+		logger.Warn(ctx, "Invalid Google OAuth request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for ExchangeGoogleOAuth", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for ExchangeGoogleOAuth", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -531,14 +531,14 @@ func (h *AuthHandler) BindGoogleAccount(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.BindGoogleAccountRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid bind Google account request", "error", err)
+		logger.Warn(ctx, "Invalid bind Google account request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
-		slog.Warn("Validation failed for BindGoogleAccount", "requesterId", authenticatedUser.ID, "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for BindGoogleAccount", "requesterId", authenticatedUser.ID, "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}

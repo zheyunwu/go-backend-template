@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/repositories"
 	"github.com/go-backend-template/pkg/jwt"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 	"golang.org/x/crypto/bcrypt"
@@ -90,7 +90,7 @@ func (s *userService) ListUsers(ctx context.Context, params *query_params.QueryP
 	// Call the repository layer to get the list of users.
 	userList, total, err := s.userRepo.ListUsers(ctx, params, includeSoftDeleted...) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to list users", "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to list users", "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list users: %w", err)
 	}
 
@@ -118,7 +118,7 @@ func (s *userService) GetUser(ctx context.Context, id uint, includeSoftDeleted .
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrUserNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to get user from repository", "userId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get user from repository", "userId", id, "error", err) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
@@ -147,7 +147,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.RegisterWithPassw
 	// Hash the password.
 	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to hash password", "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to hash password", "error", err) // Use slog.ErrorContext
 		return 0, fmt.Errorf("error processing password: %w", err)
 	}
 	// Convert DTO to User model.
@@ -155,7 +155,7 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.RegisterWithPassw
 
 	// Call the repository layer to create the user.
 	if err := s.userRepo.CreateUser(ctx, user); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to create user", // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to create user", // Use slog.ErrorContext
 			"name", user.Name,
 			"email", req.Email,
 			"phone", req.Phone,
@@ -168,16 +168,16 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.RegisterWithPassw
 		// Generate verification code.
 		code, err := s.verificationService.GenerateEmailVerificationCode(ctx, *req.Email) // Pass context
 		if err != nil {
-			slog.WarnContext(ctx, "Failed to generate email verification code after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
+			logger.Warn(ctx, "Failed to generate email verification code after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
 			// Do not return an error here, as the user has already been created successfully; only email verification failed.
 		} else {
 			// Send verification email, using the user's language preference.
 			err = s.emailService.SendEmailVerification(ctx, *req.Email, user.Name, code, user.Locale) // Pass context
 			if err != nil {
-				slog.WarnContext(ctx, "Failed to send verification email after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
+				logger.Warn(ctx, "Failed to send verification email after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
 				// Do not return an error here, as the user has already been created successfully.
 			} else {
-				slog.InfoContext(ctx, "Verification email sent successfully after user creation", "userId", user.ID, "email", *req.Email, "language", user.Locale) // Use slog.InfoContext
+				logger.Info(ctx, "Verification email sent successfully after user creation", "userId", user.ID, "email", *req.Email, "language", user.Locale) // Use slog.InfoContext
 			}
 		}
 	}
@@ -211,11 +211,11 @@ func (s *userService) UpdateUser(ctx context.Context, id uint, req *dto.UpdatePr
 	if req.Email != nil && *req.Email != "" && (user.Email == nil || *user.Email != *req.Email) {
 		existingUser, err := s.userRepo.GetUserByField(ctx, "email", *req.Email) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.ErrorContext(ctx, "Failed to check existing email", "email", *req.Email, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to check existing email", "email", *req.Email, "error", err) // Use slog.ErrorContext
 			return fmt.Errorf("failed to check existing email: %w", err)
 		}
 		if existingUser != nil && existingUser.ID != 0 && existingUser.ID != id {
-			slog.WarnContext(ctx, "Email already exists", "email", *req.Email) // Use slog.WarnContext
+			logger.Warn(ctx, "Email already exists", "email", *req.Email) // Use slog.WarnContext
 			return errors.ErrEmailAlreadyExists
 		}
 		// If Email is updated, set it to unverified.
@@ -224,7 +224,7 @@ func (s *userService) UpdateUser(ctx context.Context, id uint, req *dto.UpdatePr
 
 	// Call the repository layer to perform the update.
 	if err := s.userRepo.UpdateUser(ctx, id, updates); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to update user", "userId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to update user", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
@@ -241,7 +241,7 @@ func (s *userService) DeleteUser(ctx context.Context, id uint) error {
 
 	// Call the repository layer to delete the user.
 	if err := s.userRepo.DeleteUser(ctx, id); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to delete user", "userId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to delete user", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
@@ -266,7 +266,7 @@ func (s *userService) RestoreUser(ctx context.Context, id uint) error {
 
 	// Call the repository layer to restore the user.
 	if err := s.userRepo.UpdateUser(ctx, id, updates, true); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to restore user", "userId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to restore user", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to restore user: %w", err)
 	}
 
@@ -288,7 +288,7 @@ func (s *userService) BanUser(ctx context.Context, id uint, isBanned bool) error
 
 	// Call the repository layer to update the user's ban status.
 	if err := s.userRepo.UpdateUser(ctx, id, updates); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to update ban status", "userId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to update ban status", "userId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update ban status: %w", err)
 	}
 	return nil
@@ -306,26 +306,26 @@ func (s *userService) UpdatePassword(ctx context.Context, userID uint, currentPa
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to find user", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to find user", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
 	// Validate the current password.
 	if user.Password == nil || *user.Password == "" {
-		slog.WarnContext(ctx, "User has no password set", "userId", user.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "User has no password set", "userId", user.ID) // Use slog.WarnContext
 		return errors.ErrInvalidPassword
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(currentPassword))
 	if err != nil {
-		slog.WarnContext(ctx, "Current password verification failed", "userId", user.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "Current password verification failed", "userId", user.ID) // Use slog.WarnContext
 		return errors.ErrInvalidPassword
 	}
 
 	// Hash the new password.
 	hashedPassword, err := hashPassword(newPassword)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to hash new password", "userId", user.ID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to hash new password", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
@@ -336,11 +336,11 @@ func (s *userService) UpdatePassword(ctx context.Context, userID uint, currentPa
 
 	// Call the repository layer to update the user's password.
 	if err := s.userRepo.UpdateUser(ctx, user.ID, updates); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to update user password", "userId", user.ID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to update user password", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Password updated successfully", "userId", user.ID) // Use slog.InfoContext
+	logger.Info(ctx, "Password updated successfully", "userId", user.ID) // Use slog.InfoContext
 	return nil
 }
 
@@ -368,11 +368,11 @@ func (s *userService) LoginWithPassword(ctx context.Context, emailOrPhone, passw
 			if err == gorm.ErrRecordNotFound {
 				return "", "", errors.ErrUserNotFound
 			}
-			slog.ErrorContext(ctx, "Failed to find user by phone", "emailOrPhone", emailOrPhone, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to find user by phone", "emailOrPhone", emailOrPhone, "error", err) // Use slog.ErrorContext
 			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	} else if err != nil {
-		slog.ErrorContext(ctx, "Failed to find user by email", "emailOrPhone", emailOrPhone, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to find user by email", "emailOrPhone", emailOrPhone, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("database error: %w", err)
 	}
 
@@ -383,28 +383,28 @@ func (s *userService) LoginWithPassword(ctx context.Context, emailOrPhone, passw
 
 	// Check if the user has a password set.
 	if user.Password == nil || *user.Password == "" {
-		slog.WarnContext(ctx, "User has no password set", "userId", user.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "User has no password set", "userId", user.ID) // Use slog.WarnContext
 		return "", "", errors.ErrInvalidPassword
 	}
 
 	// Validate the password.
 	err = bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(password))
 	if err != nil {
-		slog.WarnContext(ctx, "Password verification failed", "userId", user.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "Password verification failed", "userId", user.ID) // Use slog.WarnContext
 		return "", "", errors.ErrInvalidPassword
 	}
 
 	// Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate access token", "error", err, "userId", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate access token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	// Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate refresh token", "error", err, "userId", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate refresh token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
@@ -420,7 +420,7 @@ func (s *userService) RefreshAccessToken(ctx context.Context, refreshToken strin
 	// 1. Validate the refresh token.
 	refreshTokenDetails, err := jwt.ValidateToken(refreshToken, s.config.JWT.Secret)
 	if err != nil || refreshTokenDetails.TokenType != jwt.RefreshToken {
-		slog.DebugContext(ctx, "Refresh token validation failed", "error", err) // Use slog.DebugContext
+		logger.Debug(ctx, "Refresh token validation failed", "error", err) // Use slog.DebugContext
 		return "", "", errors.ErrInvalidToken
 	}
 
@@ -428,30 +428,30 @@ func (s *userService) RefreshAccessToken(ctx context.Context, refreshToken strin
 	user, err := s.userRepo.GetUser(ctx, refreshTokenDetails.UserID) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			slog.WarnContext(ctx, "User not found for refresh token", "userId", refreshTokenDetails.UserID) // Use slog.WarnContext
+			logger.Warn(ctx, "User not found for refresh token", "userId", refreshTokenDetails.UserID) // Use slog.WarnContext
 			return "", "", errors.ErrUserNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to get user during token refresh", "userId", refreshTokenDetails.UserID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get user during token refresh", "userId", refreshTokenDetails.UserID, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("database error: %w", err)
 	}
 
 	// 3. Check if the user is banned.
 	if user.IsBanned {
-		slog.WarnContext(ctx, "Refresh token rejected for banned user", "userId", user.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "Refresh token rejected for banned user", "userId", user.ID) // Use slog.WarnContext
 		return "", "", errors.ErrUserBanned
 	}
 
 	// 4. Generate a new access token.
 	newAccessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate new access token", "userId", user.ID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate new access token", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	// 5. Generate a new refresh token (optional, for refresh token rotation).
 	newRefreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate new refresh token", "userId", user.ID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate new refresh token", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
@@ -459,7 +459,7 @@ func (s *userService) RefreshAccessToken(ctx context.Context, refreshToken strin
 	now := time.Now()
 	s.userRepo.UpdateUser(ctx, user.ID, map[string]interface{}{"last_login": now}) // Pass context
 
-	slog.InfoContext(ctx, "Access token refreshed successfully", "userId", user.ID) // Use slog.InfoContext
+	logger.Info(ctx, "Access token refreshed successfully", "userId", user.ID) // Use slog.InfoContext
 	return newAccessToken, newRefreshToken, nil
 }
 
@@ -475,7 +475,7 @@ func (s *userService) SendEmailVerification(ctx context.Context, email string) e
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
@@ -487,18 +487,18 @@ func (s *userService) SendEmailVerification(ctx context.Context, email string) e
 	// Generate verification code.
 	code, err := s.verificationService.GenerateEmailVerificationCode(ctx, email) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate email verification code", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate email verification code", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to generate verification code: %w", err)
 	}
 
 	// Send verification email.
 	err = s.emailService.SendEmailVerification(ctx, email, user.Name, code, user.Locale) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to send verification email", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to send verification email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to send verification email: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Email verification sent successfully", "email", email) // Use slog.InfoContext
+	logger.Info(ctx, "Email verification sent successfully", "email", email) // Use slog.InfoContext
 	return nil
 }
 
@@ -510,7 +510,7 @@ func (s *userService) VerifyEmail(ctx context.Context, email, code string) error
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
@@ -522,7 +522,7 @@ func (s *userService) VerifyEmail(ctx context.Context, email, code string) error
 	// Validate the verification code.
 	isValid, err := s.verificationService.VerifyEmailVerificationCode(ctx, email, code) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to verify email verification code", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to verify email verification code", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to verify code: %w", err)
 	}
 
@@ -536,11 +536,11 @@ func (s *userService) VerifyEmail(ctx context.Context, email, code string) error
 	}
 
 	if err := s.userRepo.UpdateUser(ctx, user.ID, updates); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to update email verification status", "userId", user.ID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to update email verification status", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update verification status: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Email verified successfully", "email", email, "userId", user.ID) // Use slog.InfoContext
+	logger.Info(ctx, "Email verified successfully", "email", email, "userId", user.ID) // Use slog.InfoContext
 	return nil
 }
 
@@ -556,25 +556,25 @@ func (s *userService) SendPasswordReset(ctx context.Context, email string) error
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
 	// Generate reset token.
 	token, err := s.verificationService.GeneratePasswordResetToken(ctx, email) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate password reset token", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate password reset token", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to generate reset token: %w", err)
 	}
 
 	// Send reset email.
 	err = s.emailService.SendPasswordReset(ctx, email, user.Name, token, user.Locale) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to send password reset email", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to send password reset email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to send reset email: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Password reset email sent successfully", "email", email) // Use slog.InfoContext
+	logger.Info(ctx, "Password reset email sent successfully", "email", email) // Use slog.InfoContext
 	return nil
 }
 
@@ -586,14 +586,14 @@ func (s *userService) ResetPassword(ctx context.Context, email, resetToken, newP
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrUserNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to find user by email", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("database error: %w", err)
 	}
 
 	// Validate the reset token.
 	isValid, err := s.verificationService.VerifyPasswordResetToken(ctx, email, resetToken) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to verify password reset token", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to verify password reset token", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to verify reset token: %w", err)
 	}
 
@@ -604,7 +604,7 @@ func (s *userService) ResetPassword(ctx context.Context, email, resetToken, newP
 	// Hash the new password.
 	hashedPassword, err := hashPassword(newPassword)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to hash new password", "email", email, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to hash new password", "email", email, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
@@ -614,11 +614,11 @@ func (s *userService) ResetPassword(ctx context.Context, email, resetToken, newP
 	}
 
 	if err := s.userRepo.UpdateUser(ctx, user.ID, updates); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to update user password", "userId", user.ID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to update user password", "userId", user.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Password reset successfully", "email", email, "userId", user.ID) // Use slog.InfoContext
+	logger.Info(ctx, "Password reset successfully", "email", email, "userId", user.ID) // Use slog.InfoContext
 	return nil
 }
 
@@ -658,7 +658,7 @@ func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dt
 				WechatUnionID: unionID,
 			}
 			if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
-				slog.ErrorContext(ctx, "Failed to create user provider", // Use slog.ErrorContext
+				logger.Error(ctx, "Failed to create user provider", // Use slog.ErrorContext
 					"userId", existingUser.ID,
 					"provider", "wechat_mini_program",
 					"providerUID", *openID,
@@ -666,14 +666,14 @@ func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dt
 					"error", err)
 				return 0, fmt.Errorf("failed to create user provider: %w", err)
 			}
-			slog.InfoContext(ctx, "UserProvider created successfully", // Use slog.InfoContext
+			logger.Info(ctx, "UserProvider created successfully", // Use slog.InfoContext
 				"userId", existingUser.ID,
 				"provider", "wechat_mini_program",
 				"providerUID", *openID,
 				"unionID", unionID)
 			return existingUser.ID, nil
 		} else if err != gorm.ErrRecordNotFound {
-			slog.ErrorContext(ctx, "Failed to find user by unionID", "unionID", *unionID, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to find user by unionID", "unionID", *unionID, "error", err) // Use slog.ErrorContext
 			return 0, fmt.Errorf("database error: %w", err)
 		}
 	}
@@ -696,7 +696,7 @@ func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dt
 	// Call the repository layer to create the user.
 	err := s.userRepo.CreateUser(ctx, user) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create user", // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to create user", // Use slog.ErrorContext
 			"nickname", user.Name,
 			"email", req.Email,
 			"phone", req.Phone,
@@ -719,7 +719,7 @@ func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dt
 	// Call the repository layer to create UserProvider.
 	err = s.userRepo.CreateUserProvider(ctx, &userProvider) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create user provider", // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to create user provider", // Use slog.ErrorContext
 			"userId", user.ID,
 			"provider", "wechat_mini_program",
 			"providerUID", *openID,
@@ -728,7 +728,7 @@ func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dt
 		return 0, fmt.Errorf("failed to create user provider: %w", err)
 	}
 
-	slog.InfoContext(ctx, "User and UserProvider created successfully", // Use slog.InfoContext
+	logger.Info(ctx, "User and UserProvider created successfully", // Use slog.InfoContext
 		"userId", user.ID,
 		"provider", "wechat_mini_program",
 		"providerUID", *openID,
@@ -752,7 +752,7 @@ func (s *userService) LoginFromWechatMiniProgram(ctx context.Context, unionID *s
 	if unionID != nil && *unionID != "" {
 		user, err = s.userRepo.GetUserByUnionID(ctx, *unionID) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.ErrorContext(ctx, "Failed to find user by unionID", "unionID", *unionID, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to find user by unionID", "unionID", *unionID, "error", err) // Use slog.ErrorContext
 			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	}
@@ -761,7 +761,7 @@ func (s *userService) LoginFromWechatMiniProgram(ctx context.Context, unionID *s
 	if user == nil && openID != nil && *openID != "" {
 		user, err = s.userRepo.GetUserByProvider(ctx, "wechat_mini_program", *openID) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.ErrorContext(ctx, "Failed to find user by provider", "provider", "wechat_mini_program", "providerUID", *openID, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to find user by provider", "provider", "wechat_mini_program", "providerUID", *openID, "error", err) // Use slog.ErrorContext
 			return "", "", fmt.Errorf("database error: %w", err)
 		}
 	}
@@ -779,14 +779,14 @@ func (s *userService) LoginFromWechatMiniProgram(ctx context.Context, unionID *s
 	// Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate access token", "error", err, "userId", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate access token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	// Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate refresh token", "error", err, "userId", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate refresh token", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
@@ -794,7 +794,7 @@ func (s *userService) LoginFromWechatMiniProgram(ctx context.Context, unionID *s
 	now := time.Now()
 	s.userRepo.UpdateUser(ctx, user.ID, map[string]interface{}{"last_login": now}) // Pass context
 
-	slog.InfoContext(ctx, "WeChat mini program login successful", // Use slog.InfoContext
+	logger.Info(ctx, "WeChat mini program login successful", // Use slog.InfoContext
 		"userId", user.ID,
 		"unionID", unionID,
 		"openID", openID)
@@ -839,23 +839,23 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 	client := &http.Client{Timeout: 10 * time.Second}
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil) // Use http.NewRequestWithContext
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create http request for wechat oauth", "error", err, "url", url)
+		logger.Error(ctx, "Failed to create http request for wechat oauth", "error", err, "url", url)
 		return "", "", false, fmt.Errorf("failed to create http request for wechat oauth: %w", err)
 	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to request wechat oauth", "error", err, "url", url)
+		logger.Error(ctx, "Failed to request wechat oauth", "error", err, "url", url)
 		return "", "", false, fmt.Errorf("failed to request wechat oauth: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var tokenResp WechatOAuthTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		slog.ErrorContext(ctx, "Failed to decode wechat oauth response", "error", err)
+		logger.Error(ctx, "Failed to decode wechat oauth response", "error", err)
 		return "", "", false, fmt.Errorf("failed to decode wechat oauth response: %w", err)
 	}
 	if tokenResp.ErrCode != 0 {
-		slog.ErrorContext(ctx, "Wechat oauth error", "errcode", tokenResp.ErrCode, "errmsg", tokenResp.ErrMsg)
+		logger.Error(ctx, "Wechat oauth error", "errcode", tokenResp.ErrCode, "errmsg", tokenResp.ErrMsg)
 		return "", "", false, fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
 	}
 
@@ -870,7 +870,7 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 	if openid != "" {
 		user, err = s.userRepo.GetUserByProvider(ctx, "wechat", openid) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.ErrorContext(ctx, "Failed to find user by openid", "openid", openid, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to find user by openid", "openid", openid, "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to find user by openid: %w", err)
 		}
 	}
@@ -879,7 +879,7 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 	if (user == nil || user.ID == 0) && unionid != "" {
 		user, err = s.userRepo.GetUserByUnionID(ctx, unionid) // Pass context
 		if err != nil && err != gorm.ErrRecordNotFound {
-			slog.ErrorContext(ctx, "Failed to find user by unionid", "unionid", unionid, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to find user by unionid", "unionid", unionid, "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to find user by unionid: %w", err)
 		}
 
@@ -892,10 +892,10 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 				WechatUnionID: &unionid, // unionid might be empty, so use a pointer.
 			}
 			if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
-				slog.ErrorContext(ctx, "Failed to create user provider for existing user by unionid", "error", err) // Use slog.ErrorContext
+				logger.Error(ctx, "Failed to create user provider for existing user by unionid", "error", err) // Use slog.ErrorContext
 				return "", "", false, fmt.Errorf("failed to create user provider: %w", err)
 			}
-			slog.InfoContext(ctx, "UserProvider created successfully for unionid", // Use slog.InfoContext
+			logger.Info(ctx, "UserProvider created successfully for unionid", // Use slog.InfoContext
 				"userId", user.ID,
 				"provider", "wechat",
 				"providerUID", openid,
@@ -908,10 +908,10 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 		// Create a new user.
 		user = &models.User{
 			Name:   fmt.Sprintf("微信用户_%s", openid[len(openid)-6:]), // WeChat User_xxxxxx
-			Locale: "zh", // Default to Chinese
+			Locale: "zh",                                           // Default to Chinese
 		}
 		if err := s.userRepo.CreateUser(ctx, user); err != nil { // Pass context
-			slog.ErrorContext(ctx, "Failed to create new user from wechat oauth", "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to create new user from wechat oauth", "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to create user: %w", err)
 		}
 		userProvider := models.UserProvider{
@@ -923,12 +923,12 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 			userProvider.WechatUnionID = &unionid
 		}
 		if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
-			slog.ErrorContext(ctx, "Failed to create user provider for new user from wechat oauth", "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to create user provider for new user from wechat oauth", "error", err) // Use slog.ErrorContext
 			return "", "", false, fmt.Errorf("failed to create user provider: %w", err)
 		}
 		isNewUser = true
 
-		slog.InfoContext(ctx, "New user created from WeChat OAuth", // Use slog.InfoContext
+		logger.Info(ctx, "New user created from WeChat OAuth", // Use slog.InfoContext
 			"userId", user.ID,
 			"provider", "wechat",
 			"providerUID", openid,
@@ -943,14 +943,14 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 	// 3. Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate access token from wechat oauth", "error", err, "userID", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate access token from wechat oauth", "error", err, "userID", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	// 4. Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate refresh token from wechat oauth", "error", err, "userID", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate refresh token from wechat oauth", "error", err, "userID", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
@@ -965,7 +965,7 @@ func (s *userService) ExchangeWechatOAuth(ctx context.Context, req *dto.WechatOA
 func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *dto.BindWechatAccountRequest, authenticatedUser *models.User) error {
 	// Permission check: ensure the user can only bind their own account.
 	if userID != authenticatedUser.ID {
-		slog.WarnContext(ctx, "Permission denied for WeChat account binding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "Permission denied for WeChat account binding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
@@ -986,23 +986,23 @@ func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *d
 	client := &http.Client{Timeout: 10 * time.Second}
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil) // Use http.NewRequestWithContext
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to create http request for wechat oauth binding", "error", err, "url", url)
+		logger.Error(ctx, "Failed to create http request for wechat oauth binding", "error", err, "url", url)
 		return fmt.Errorf("failed to create http request for wechat oauth binding: %w", err)
 	}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to request wechat oauth for binding", "error", err, "url", url)
+		logger.Error(ctx, "Failed to request wechat oauth for binding", "error", err, "url", url)
 		return fmt.Errorf("failed to request wechat oauth: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var tokenResp WechatOAuthTokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-		slog.ErrorContext(ctx, "Failed to decode wechat oauth response for binding", "error", err)
+		logger.Error(ctx, "Failed to decode wechat oauth response for binding", "error", err)
 		return fmt.Errorf("failed to decode wechat oauth response: %w", err)
 	}
 	if tokenResp.ErrCode != 0 {
-		slog.ErrorContext(ctx, "Wechat oauth error for binding", "errcode", tokenResp.ErrCode, "errmsg", tokenResp.ErrMsg)
+		logger.Error(ctx, "Wechat oauth error for binding", "errcode", tokenResp.ErrCode, "errmsg", tokenResp.ErrMsg)
 		return fmt.Errorf("wechat oauth error: %s (%d)", tokenResp.ErrMsg, tokenResp.ErrCode)
 	}
 
@@ -1012,7 +1012,7 @@ func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *d
 	// 2. Check if this WeChat account is already bound to another user.
 	existingProvider, err := s.userRepo.GetUserByProvider(ctx, "wechat", openid) // Pass context
 	if err != nil && err != gorm.ErrRecordNotFound {
-		slog.ErrorContext(ctx, "Failed to check existing WeChat provider for binding", "openId", openid, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check existing WeChat provider for binding", "openId", openid, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check existing provider: %w", err)
 	}
 
@@ -1025,7 +1025,7 @@ func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *d
 	if err == nil {
 		return errors.ErrProviderAlreadyBound
 	} else if err != gorm.ErrRecordNotFound {
-		slog.ErrorContext(ctx, "Failed to check user's WeChat provider for binding", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check user's WeChat provider for binding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
@@ -1040,7 +1040,7 @@ func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *d
 	}
 
 	if err := s.userRepo.CreateUserProvider(ctx, userProvider); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to bind WeChat account", // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to bind WeChat account", // Use slog.ErrorContext
 			"userId", userID,
 			"provider", "wechat",
 			"providerUID", openid,
@@ -1049,7 +1049,7 @@ func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *d
 		return fmt.Errorf("failed to bind WeChat account: %w", err)
 	}
 
-	slog.InfoContext(ctx, "WeChat account bound successfully", // Use slog.InfoContext
+	logger.Info(ctx, "WeChat account bound successfully", // Use slog.InfoContext
 		"userId", userID,
 		"provider", "wechat",
 		"providerUID", openid,
@@ -1062,7 +1062,7 @@ func (s *userService) BindWechatAccount(ctx context.Context, userID uint, req *d
 func (s *userService) UnbindWechatAccount(ctx context.Context, userID uint, authenticatedUser *models.User) error {
 	// Permission check: ensure the user can only unbind their own account.
 	if userID != authenticatedUser.ID {
-		slog.WarnContext(ctx, "Permission denied for WeChat account unbinding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "Permission denied for WeChat account unbinding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
@@ -1082,17 +1082,17 @@ func (s *userService) UnbindWechatAccount(ctx context.Context, userID uint, auth
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProviderNotBound
 		}
-		slog.ErrorContext(ctx, "Failed to check user's WeChat provider for unbinding", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check user's WeChat provider for unbinding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
 	// Delete the binding record.
 	if err := s.userRepo.DeleteUserProvider(ctx, userID, "wechat"); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to unbind WeChat account", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to unbind WeChat account", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to unbind WeChat account: %w", err)
 	}
 
-	slog.InfoContext(ctx, "WeChat account unbound successfully", "userId", userID) // Use slog.InfoContext
+	logger.Info(ctx, "WeChat account unbound successfully", "userId", userID) // Use slog.InfoContext
 	return nil
 }
 
@@ -1111,7 +1111,7 @@ func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOA
 		req.ClientType,
 	)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to exchange Google OAuth code", "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to exchange Google OAuth code", "error", err) // Use slog.ErrorContext
 		return "", "", false, err
 	}
 
@@ -1122,7 +1122,7 @@ func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOA
 	// Case 1: User already exists.
 	user, err = s.userRepo.GetUserByProvider(ctx, "google", googleUserInfo.ID) // Pass context
 	if err != nil && err != gorm.ErrRecordNotFound {
-		slog.ErrorContext(ctx, "Failed to find user by Google provider", // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to find user by Google provider", // Use slog.ErrorContext
 			"providerUID", googleUserInfo.ID,
 			"error", err)
 		return "", "", false, fmt.Errorf("failed to find user: %w", err)
@@ -1155,7 +1155,7 @@ func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOA
 
 		// Call repository layer to create the user.
 		if err := s.userRepo.CreateUser(ctx, user); err != nil { // Pass context
-			slog.ErrorContext(ctx, "Failed to create user from Google registration", // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to create user from Google registration", // Use slog.ErrorContext
 				"email", googleUserInfo.Email,
 				"googleId", googleUserInfo.ID,
 				"error", err)
@@ -1170,7 +1170,7 @@ func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOA
 		}
 
 		if err := s.userRepo.CreateUserProvider(ctx, &userProvider); err != nil { // Pass context
-			slog.ErrorContext(ctx, "Failed to create user provider for Google registration", // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to create user provider for Google registration", // Use slog.ErrorContext
 				"userId", user.ID,
 				"provider", "google",
 				"providerUID", googleUserInfo.ID,
@@ -1179,7 +1179,7 @@ func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOA
 		}
 		isNewUser = true
 
-		slog.InfoContext(ctx, "User registered successfully with Google", // Use slog.InfoContext
+		logger.Info(ctx, "User registered successfully with Google", // Use slog.InfoContext
 			"userId", user.ID,
 			"email", googleUserInfo.Email,
 			"providerUID", googleUserInfo.ID)
@@ -1187,21 +1187,21 @@ func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOA
 
 	// Check if the user is banned.
 	if user.IsBanned {
-		slog.WarnContext(ctx, "User is banned", "userId", user.ID, "email", googleUserInfo.Email) // Use slog.WarnContext
+		logger.Warn(ctx, "User is banned", "userId", user.ID, "email", googleUserInfo.Email) // Use slog.WarnContext
 		return "", "", false, errors.ErrUserBanned
 	}
 
 	// 3. Generate JWT access token.
 	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate access token from google oauth", "error", err, "userId", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate access token from google oauth", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	// 4. Generate JWT refresh token.
 	refreshToken, err := jwt.GenerateRefreshToken(user.ID, user.Role, s.config.JWT.Secret, s.config.JWT.ExpireHours)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate refresh token from google oauth", "error", err, "userId", user.ID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to generate refresh token from google oauth", "error", err, "userId", user.ID) // Use slog.ErrorContext
 		return "", "", false, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
@@ -1216,7 +1216,7 @@ func (s *userService) ExchangeGoogleOAuth(ctx context.Context, req *dto.GoogleOA
 func (s *userService) BindGoogleAccount(ctx context.Context, userID uint, req *dto.BindGoogleAccountRequest, authenticatedUser *models.User) error {
 	// Permission check: ensure the user can only bind their own account.
 	if userID != authenticatedUser.ID {
-		slog.WarnContext(ctx, "Permission denied for Google account binding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "Permission denied for Google account binding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
@@ -1229,14 +1229,14 @@ func (s *userService) BindGoogleAccount(ctx context.Context, userID uint, req *d
 		req.ClientType,
 	)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to exchange Google OAuth code for binding", "error", err, "userId", userID) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to exchange Google OAuth code for binding", "error", err, "userId", userID) // Use slog.ErrorContext
 		return err
 	}
 
 	// 2. Check if this Google account is already bound to another user.
 	existingProvider, err := s.userRepo.GetUserByProvider(ctx, "google", googleUserInfo.ID) // Pass context
 	if err != nil && err != gorm.ErrRecordNotFound {
-		slog.ErrorContext(ctx, "Failed to check existing Google provider for binding", "googleId", googleUserInfo.ID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check existing Google provider for binding", "googleId", googleUserInfo.ID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check existing provider: %w", err)
 	}
 
@@ -1249,7 +1249,7 @@ func (s *userService) BindGoogleAccount(ctx context.Context, userID uint, req *d
 	if err == nil {
 		return errors.ErrProviderAlreadyBound
 	} else if err != gorm.ErrRecordNotFound {
-		slog.ErrorContext(ctx, "Failed to check user's Google provider for binding", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check user's Google provider for binding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
@@ -1261,7 +1261,7 @@ func (s *userService) BindGoogleAccount(ctx context.Context, userID uint, req *d
 	}
 
 	if err := s.userRepo.CreateUserProvider(ctx, userProvider); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to bind Google account", // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to bind Google account", // Use slog.ErrorContext
 			"userId", userID,
 			"provider", "google",
 			"providerUID", googleUserInfo.ID,
@@ -1269,7 +1269,7 @@ func (s *userService) BindGoogleAccount(ctx context.Context, userID uint, req *d
 		return fmt.Errorf("failed to bind Google account: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Google account bound successfully", // Use slog.InfoContext
+	logger.Info(ctx, "Google account bound successfully", // Use slog.InfoContext
 		"userId", userID,
 		"provider", "google",
 		"providerUID", googleUserInfo.ID)
@@ -1281,7 +1281,7 @@ func (s *userService) BindGoogleAccount(ctx context.Context, userID uint, req *d
 func (s *userService) UnbindGoogleAccount(ctx context.Context, userID uint, authenticatedUser *models.User) error {
 	// Permission check: ensure the user can only unbind their own account.
 	if userID != authenticatedUser.ID {
-		slog.WarnContext(ctx, "Permission denied for Google account unbinding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
+		logger.Warn(ctx, "Permission denied for Google account unbinding", "userId", userID, "requesterId", authenticatedUser.ID) // Use slog.WarnContext
 		return errors.ErrPermissionDenied
 	}
 
@@ -1291,16 +1291,16 @@ func (s *userService) UnbindGoogleAccount(ctx context.Context, userID uint, auth
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProviderNotBound
 		}
-		slog.ErrorContext(ctx, "Failed to check user's Google provider for unbinding", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check user's Google provider for unbinding", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check user provider: %w", err)
 	}
 
 	// Delete the binding record.
 	if err := s.userRepo.DeleteUserProvider(ctx, userID, "google"); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to unbind Google account", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to unbind Google account", "userId", userID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to unbind Google account: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Google account unbound successfully", "userId", userID) // Use slog.InfoContext
+	logger.Info(ctx, "Google account unbound successfully", "userId", userID) // Use slog.InfoContext
 	return nil
 }

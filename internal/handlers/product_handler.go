@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/services"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 )
@@ -40,7 +40,7 @@ func (h *ProductHandler) ListProducts(ctx *gin.Context) {
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
-		slog.Warn("Invalid query parameters type", "params", params)
+		logger.Warn(ctx, "Invalid query parameters type", "params", params)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid query parameters type"))
 		return
 	}
@@ -92,7 +92,7 @@ func (h *ProductHandler) ListProducts(ctx *gin.Context) {
 		interactionStatusMap, interactionErr = h.InteractionService.GetUserProductInteractionStatus(ctx.Request.Context(), userID, productIDs)
 		if interactionErr != nil {
 			// Log the error but proceed, as interaction status is not critical for listing products
-			slog.ErrorContext(ctx.Request.Context(), "Failed to get user product interaction status", "userID", userID, "error", interactionErr)
+			logger.Error(ctx.Request.Context(), "Failed to get user product interaction status", "userID", userID, "error", interactionErr)
 		}
 	}
 

@@ -244,6 +244,10 @@ Example: `GET /products?page=1&limit=10&search=laptop&filter={"barcode":"4337256
 }
 ```
 
+## 📝 Logging System
+
+[Logging System](docs/LOGGING_SYSTEM.md)
+
 ## 🔑 OAuth2 Login
 
 Supports Google and WeChat OAuth2 login using the secure Authorization Code Flow with PKCE.

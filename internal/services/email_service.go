@@ -5,11 +5,11 @@ import (
 	"context" // Added for context
 	"fmt"
 	"html/template"
-	"log/slog"
 	"net/smtp"
 	"time"
 
 	"github.com/go-backend-template/config"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
@@ -500,16 +500,16 @@ func (s *emailService) sendWithSendGrid(ctx context.Context, to, subject, textCo
 	response, err := client.Send(message)
 
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to send email via SendGrid", "error", err, "to", to) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to send email via SendGrid", "error", err, "to", to)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
 	if response.StatusCode >= 400 {
-		slog.ErrorContext(ctx, "SendGrid returned error", "status", response.StatusCode, "body", response.Body, "to", to) // Use slog.ErrorContext
+		logger.Error(ctx, "SendGrid returned error", "status", response.StatusCode, "body", response.Body, "to", to)
 		return fmt.Errorf("sendgrid error: status %d", response.StatusCode)
 	}
 
-	slog.InfoContext(ctx, "Email sent successfully via SendGrid", "to", to, "status", response.StatusCode) // Use slog.InfoContext
+	logger.Info(ctx, "Email sent successfully via SendGrid", "to", to, "status", response.StatusCode)
 	return nil
 }
 
@@ -542,11 +542,11 @@ func (s *emailService) sendWithSMTP(ctx context.Context, to, subject, textConten
 	err := smtp.SendMail(addr, auth, s.config.Email.FromEmail, []string{to}, body.Bytes())
 
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to send email via SMTP", "error", err, "to", to) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to send email via SMTP", "error", err, "to", to)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Email sent successfully via SMTP", "to", to) // Use slog.InfoContext
+	logger.Info(ctx, "Email sent successfully via SMTP", "to", to)
 	return nil
 }
 

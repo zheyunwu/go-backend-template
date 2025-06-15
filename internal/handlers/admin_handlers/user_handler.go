@@ -1,13 +1,13 @@
 package admin_handlers
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-backend-template/internal/dto"
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/services"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 )
@@ -32,7 +32,7 @@ func (h *UserHandler) ListUsers(ctx *gin.Context) {
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
-		slog.Warn("Invalid query parameters type", "params", params)
+		logger.Warn(ctx, "Invalid query parameters type", "params", params)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid query parameters type"))
 		return
 	}
@@ -78,7 +78,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.RegisterWithPasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user creation request", "error", err)
+		logger.Warn(ctx, "Invalid user creation request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
@@ -91,7 +91,7 @@ func (h *UserHandler) CreateUser(ctx *gin.Context) {
 	}
 
 	// Return 201 Created.
-	slog.Info("User created", "userId", createdUserID)
+	logger.Info(ctx, "User created", "userId", createdUserID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
@@ -106,7 +106,7 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	// Parse request body.
 	var payload dto.UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user update request", "userId", id, "error", err)
+		logger.Warn(ctx, "Invalid user update request", "userId", id, "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
@@ -119,7 +119,7 @@ func (h *UserHandler) UpdateUser(ctx *gin.Context) {
 	}
 
 	// Return 204 No Content.
-	slog.Info("User updated", "userId", id)
+	logger.Info(ctx, "User updated", "userId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
@@ -139,7 +139,7 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	}
 
 	// Return 204 No Content.
-	slog.Info("User deleted", "userId", id)
+	logger.Info(ctx, "User deleted", "userId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
@@ -158,7 +158,7 @@ func (h *UserHandler) RestoreUser(ctx *gin.Context) {
 		return
 	}
 
-	slog.Info("User restored", "userId", id)
+	logger.Info(ctx, "User restored", "userId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
@@ -188,6 +188,6 @@ func (h *UserHandler) BanUser(ctx *gin.Context) {
 		return
 	}
 
-	slog.Info("User ban status updated", "userId", id, "banned", payload.IsBanned)
+	logger.Info(ctx, "User ban status updated", "userId", id, "banned", payload.IsBanned)
 	ctx.JSON(http.StatusNoContent, nil)
 }

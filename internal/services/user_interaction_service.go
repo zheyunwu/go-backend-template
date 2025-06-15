@@ -3,12 +3,12 @@ package services
 import (
 	"context" // Added for context
 	"fmt"
-	"log/slog"
 
 	"github.com/go-backend-template/internal/dto" // Added for UserInteractionStatus
 	"github.com/go-backend-template/internal/errors"
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/repositories"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 	"gorm.io/gorm"
@@ -60,13 +60,13 @@ func (s *userInteractionService) AddLike(ctx context.Context, userID, productID 
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before adding like", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before adding like", "productID", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Add the like.
 	if err := s.interactionRepo.AddLike(ctx, userID, productID); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to add like", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to add like", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to add like: %w", err)
 	}
 
@@ -80,13 +80,13 @@ func (s *userInteractionService) RemoveLike(ctx context.Context, userID, product
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before removing like", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before removing like", "productID", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Remove the like.
 	if err := s.interactionRepo.RemoveLike(ctx, userID, productID); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to remove like", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to remove like", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to remove like: %w", err)
 	}
 
@@ -102,17 +102,17 @@ func (s *userInteractionService) IsLiked(ctx context.Context, userID, productID 
 			// However, to maintain consistency with other methods, we can return ErrProductNotFound.
 			// Or, decide if this check is strictly necessary for "IsLiked".
 			// For now, returning error to be consistent.
-			slog.WarnContext(ctx, "Product not found when checking if liked", "productID", productID, "userID", userID)
+			logger.Warn(ctx, "Product not found when checking if liked", "productID", productID, "userID", userID)
 			return false, errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before checking like status", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before checking like status", "productID", productID, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Check if liked.
 	isLiked, err := s.interactionRepo.IsLiked(ctx, userID, productID) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to check like status", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check like status", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to check like status: %w", err)
 	}
 
@@ -124,7 +124,7 @@ func (s *userInteractionService) ListUserLikedProducts(ctx context.Context, user
 	// Get the list of liked products.
 	products, total, err := s.interactionRepo.ListUserInteractedProducts(ctx, userID, params, "like") // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to list user likes", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to list user likes", "userId", userID, "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list user likes: %w", err)
 	}
 
@@ -151,13 +151,13 @@ func (s *userInteractionService) AddFavorite(ctx context.Context, userID, produc
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before adding favorite", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before adding favorite", "productID", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Add the favorite.
 	if err := s.interactionRepo.AddFavorite(ctx, userID, productID); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to add favorite", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to add favorite", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to add favorite: %w", err)
 	}
 
@@ -171,13 +171,13 @@ func (s *userInteractionService) RemoveFavorite(ctx context.Context, userID, pro
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before removing favorite", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before removing favorite", "productID", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Remove the favorite.
 	if err := s.interactionRepo.RemoveFavorite(ctx, userID, productID); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to remove favorite", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to remove favorite", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to remove favorite: %w", err)
 	}
 
@@ -189,17 +189,17 @@ func (s *userInteractionService) IsFavorited(ctx context.Context, userID, produc
 	// Check if the product exists.
 	if _, err := s.productRepo.GetProduct(ctx, productID); err != nil { // Pass context
 		if err == gorm.ErrRecordNotFound {
-			slog.WarnContext(ctx, "Product not found when checking if favorited", "productID", productID, "userID", userID)
+			logger.Warn(ctx, "Product not found when checking if favorited", "productID", productID, "userID", userID)
 			return false, errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before checking favorite status", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before checking favorite status", "productID", productID, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Check if favorited.
 	isFavorited, err := s.interactionRepo.IsFavorited(ctx, userID, productID) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to check favorite status", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check favorite status", "userId", userID, "productId", productID, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to check favorite status: %w", err)
 	}
 
@@ -211,7 +211,7 @@ func (s *userInteractionService) ListUserFavoritedProducts(ctx context.Context, 
 	// Get the list of favorited products.
 	products, total, err := s.interactionRepo.ListUserInteractedProducts(ctx, userID, params, "favorite") // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to list user favorites", "userId", userID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to list user favorites", "userId", userID, "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list user favorites: %w", err)
 	}
 
@@ -236,17 +236,17 @@ func (s *userInteractionService) GetProductLikeCount(ctx context.Context, produc
 	// Check if the product exists.
 	if _, err := s.productRepo.GetProduct(ctx, productID); err != nil { // Pass context
 		if err == gorm.ErrRecordNotFound {
-			slog.WarnContext(ctx, "Product not found when getting like count", "productID", productID)
+			logger.Warn(ctx, "Product not found when getting like count", "productID", productID)
 			return 0, errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before getting like count", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before getting like count", "productID", productID, "error", err) // Use slog.ErrorContext
 		return 0, fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Get the like count.
 	count, err := s.interactionRepo.GetProductLikeCount(ctx, productID) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get product like count", "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get product like count", "productId", productID, "error", err) // Use slog.ErrorContext
 		return 0, fmt.Errorf("failed to get product like count: %w", err)
 	}
 
@@ -262,14 +262,14 @@ func (s *userInteractionService) GetUserProductInteractionStatus(ctx context.Con
 	// Get like statuses in bulk.
 	likedMap, err := s.interactionRepo.GetLikedProductIDs(ctx, userID, productIDs)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get liked product IDs", "userID", userID, "error", err)
+		logger.Error(ctx, "Failed to get liked product IDs", "userID", userID, "error", err)
 		return nil, fmt.Errorf("failed to get liked product IDs: %w", err)
 	}
 
 	// Get favorite statuses in bulk.
 	favoritedMap, err := s.interactionRepo.GetFavoritedProductIDs(ctx, userID, productIDs)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get favorited product IDs", "userID", userID, "error", err)
+		logger.Error(ctx, "Failed to get favorited product IDs", "userID", userID, "error", err)
 		return nil, fmt.Errorf("failed to get favorited product IDs: %w", err)
 	}
 
@@ -291,17 +291,17 @@ func (s *userInteractionService) GetProductFavoriteCount(ctx context.Context, pr
 	// Check if the product exists.
 	if _, err := s.productRepo.GetProduct(ctx, productID); err != nil { // Pass context
 		if err == gorm.ErrRecordNotFound {
-			slog.WarnContext(ctx, "Product not found when getting favorite count", "productID", productID)
+			logger.Warn(ctx, "Product not found when getting favorite count", "productID", productID)
 			return 0, errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product before getting favorite count", "productID", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product before getting favorite count", "productID", productID, "error", err) // Use slog.ErrorContext
 		return 0, fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Get the favorite count.
 	count, err := s.interactionRepo.GetProductFavoriteCount(ctx, productID) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get product favorite count", "productId", productID, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get product favorite count", "productId", productID, "error", err) // Use slog.ErrorContext
 		return 0, fmt.Errorf("failed to get product favorite count: %w", err)
 	}
 

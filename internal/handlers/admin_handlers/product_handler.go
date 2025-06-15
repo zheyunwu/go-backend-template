@@ -1,7 +1,6 @@
 package admin_handlers
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +9,7 @@ import (
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/services"
 	"github.com/go-backend-template/internal/utils" // Added validator utility
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 )
@@ -33,7 +33,7 @@ func (h *ProductHandler) ListProducts(ctx *gin.Context) {
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
-		slog.Warn("Invalid query parameters type", "params", params)
+		logger.Warn(ctx, "Invalid query parameters type", "params", params)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid query parameters type"))
 		return
 	}
@@ -73,14 +73,14 @@ func (h *ProductHandler) CreateProduct(ctx *gin.Context) {
 	// Parse request body to DTO.
 	var createReq dto.CreateProductRequest
 	if err := ctx.ShouldBindJSON(&createReq); err != nil {
-		slog.Warn("Invalid product creation request", "error", err)
+		logger.Warn(ctx, "Invalid product creation request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request parameters: "+err.Error())) // "请求参数错误: " -> "Invalid request parameters: "
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&createReq); validationErrs != nil {
-		slog.Warn("Validation failed for CreateProduct", "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for CreateProduct", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -113,7 +113,7 @@ func (h *ProductHandler) CreateProduct(ctx *gin.Context) {
 	}
 
 	// Return 201 Created.
-	slog.Info("Product created successfully", "productId", createdProductID)
+	logger.Info(ctx, "Product created successfully", "productId", createdProductID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdProductID}, ""))
 }
 
@@ -128,14 +128,14 @@ func (h *ProductHandler) UpdateProduct(ctx *gin.Context) {
 	// Parse request body to DTO.
 	var updateReq dto.UpdateProductRequest
 	if err := ctx.ShouldBindJSON(&updateReq); err != nil {
-		slog.Warn("Invalid product update request", "productId", id, "error", err)
+		logger.Warn(ctx, "Invalid product update request", "productId", id, "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request parameters: "+err.Error())) // "请求参数错误: " -> "Invalid request parameters: "
 		return
 	}
 
 	// Validate payload.
 	if validationErrs := customValidator.ValidateStruct(&updateReq); validationErrs != nil {
-		slog.Warn("Validation failed for UpdateProduct", "productId", id, "errors", validationErrs)
+		logger.Warn(ctx, "Validation failed for UpdateProduct", "productId", id, "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return
 	}
@@ -162,7 +162,7 @@ func (h *ProductHandler) UpdateProduct(ctx *gin.Context) {
 
 	// If there's nothing to update, return success directly.
 	if len(updates) == 0 && updateReq.ImageURLs == nil && updateReq.CategoryIDs == nil {
-		slog.Info("No fields to update", "productId", id)
+		logger.Info(ctx, "No fields to update", "productId", id)
 		ctx.JSON(http.StatusNoContent, nil)
 		return
 	}
@@ -183,7 +183,7 @@ func (h *ProductHandler) UpdateProduct(ctx *gin.Context) {
 	}
 
 	// Return 204 No Content.
-	slog.Info("Product updated successfully", "productId", id)
+	logger.Info(ctx, "Product updated successfully", "productId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
@@ -203,6 +203,6 @@ func (h *ProductHandler) DeleteProduct(ctx *gin.Context) {
 	}
 
 	// Return 204 No Content.
-	slog.Info("Product deleted", "productId", id)
+	logger.Info(ctx, "Product deleted", "productId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }

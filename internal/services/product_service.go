@@ -3,11 +3,11 @@ package services
 import (
 	"context" // Added for context
 	"fmt"
-	"log/slog"
 
 	"github.com/go-backend-template/internal/errors"
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/repositories"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 	"gorm.io/gorm"
@@ -44,7 +44,7 @@ func (s *productService) ListProducts(ctx context.Context, params *query_params.
 	// Call the repository layer to get the list of products.
 	productList, total, err := s.productRepo.ListProducts(ctx, params) // Pass context
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to list products", "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to list products", "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list products: %w", err)
 	}
 
@@ -72,7 +72,7 @@ func (s *productService) GetProduct(ctx context.Context, id uint) (*models.Produ
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to get product from repository", "productId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to get product from repository", "productId", id, "error", err) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
 
@@ -93,14 +93,14 @@ func (s *productService) CreateProduct(ctx context.Context, product *models.Prod
 			if err == gorm.ErrRecordNotFound {
 				return 0, errors.ErrCategoryNotFound
 			}
-			slog.ErrorContext(ctx, "Failed to check category for product creation", "categoryID", categoryID, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to check category for product creation", "categoryID", categoryID, "error", err) // Use slog.ErrorContext
 			return 0, fmt.Errorf("failed to check category %d: %w", categoryID, err)
 		}
 	}
 
 	// Create the product and its associated data within a transaction.
 	if err := s.productRepo.CreateProductWithRelations(ctx, product, images, categoryIDs); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to create product with relations", // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to create product with relations", // Use slog.ErrorContext
 			"name", product.Name,
 			"barcode", product.Barcode,
 			"error", err)
@@ -117,7 +117,7 @@ func (s *productService) UpdateProduct(ctx context.Context, id uint, updates map
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product for update", "productID", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product for update", "productID", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
@@ -133,14 +133,14 @@ func (s *productService) UpdateProduct(ctx context.Context, id uint, updates map
 			if err == gorm.ErrRecordNotFound {
 				return errors.ErrCategoryNotFound
 			}
-			slog.ErrorContext(ctx, "Failed to check category for product update", "categoryID", categoryID, "error", err) // Use slog.ErrorContext
+			logger.Error(ctx, "Failed to check category for product update", "categoryID", categoryID, "error", err) // Use slog.ErrorContext
 			return fmt.Errorf("failed to check category %d: %w", categoryID, err)
 		}
 	}
 
 	// Update the product and its associated data within a transaction.
 	if err := s.productRepo.UpdateProductWithRelations(ctx, id, updates, images, categoryIDs); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to update product with relations", "productId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to update product with relations", "productId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update product: %w", err)
 	}
 
@@ -154,13 +154,13 @@ func (s *productService) DeleteProduct(ctx context.Context, id uint) error {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
-		slog.ErrorContext(ctx, "Failed to check product for delete", "productID", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to check product for delete", "productID", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
 	// Call the repository layer to delete the product.
 	if err := s.productRepo.DeleteProduct(ctx, id); err != nil { // Pass context
-		slog.ErrorContext(ctx, "Failed to delete product", "productId", id, "error", err) // Use slog.ErrorContext
+		logger.Error(ctx, "Failed to delete product", "productId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to delete product: %w", err)
 	}
 
