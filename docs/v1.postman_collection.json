@@ -83,18 +83,20 @@
 										"key": "x-wx-unionid",
 										"value": "{{UNION_ID}}",
 										"description": "微信平台union_id",
-										"type": "text"
+										"type": "text",
+										"disabled": true
 									},
 									{
 										"key": "x-wx-openid",
 										"value": "{{OPEN_ID}}",
 										"description": "微信小程序open_id",
-										"type": "text"
+										"type": "text",
+										"disabled": true
 									}
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+									"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -115,7 +117,7 @@
 							},
 							"response": [
 								{
-									"name": "201 Created",
+									"name": "201 Registered",
 									"originalRequest": {
 										"method": "POST",
 										"header": [
@@ -134,7 +136,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\"\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -162,16 +164,20 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "1c618348-6257-4fa4-b18d-de831a02fc95"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 20:49:55 GMT"
+											"value": "Tue, 17 Jun 2025 21:22:32 GMT"
 										},
 										{
 											"key": "Content-Length",
-											"value": "36"
+											"value": "37"
 										}
 									],
 									"cookie": [],
-									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 6\n    }\n}"
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 11\n    }\n}"
 								},
 								{
 									"name": "409 User already exists",
@@ -193,7 +199,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\"\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -221,8 +227,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "33f27fca-5417-461e-a7ff-284387fe3635"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 20:50:25 GMT"
+											"value": "Tue, 17 Jun 2025 21:22:55 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -241,7 +251,8 @@
 												"key": "x-wx-unionid",
 												"value": "{{UNION_ID}}",
 												"description": "微信平台union_id",
-												"type": "text"
+												"type": "text",
+												"disabled": true
 											},
 											{
 												"key": "x-wx-openid",
@@ -253,7 +264,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\",\n    \"phone\": \"\",\n    \"email\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+											"raw": "{\n    \"name\": \"小程序用户😄\",\n    \"avatar_url\": \"\",\n    \"gender\": \"PREFER_NOT_TO_SAY\"\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -281,8 +292,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "2a4d3dcc-735a-4819-b930-2090a33eeedd"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:00:54 GMT"
+											"value": "Tue, 17 Jun 2025 21:25:08 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -376,19 +391,23 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "57d8f77a-e579-4205-ae73-78318b14fe58"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 20:51:56 GMT"
+											"value": "Tue, 17 Jun 2025 21:26:01 GMT"
 										},
 										{
 											"key": "Content-Length",
-											"value": "568"
+											"value": "571"
 										}
 									],
 									"cookie": [],
-									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJpc3MiOiJnby1iYWNrZW5kLXRlbXBsYXRlIiwiZXhwIjoxNzUwMTkzNTE2LCJpYXQiOjE3NDk5MzQzMTZ9.FoF_wbJ14Bfhs6XtBMm39LYllrH-SSeJSPUUitmxNm4\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo2LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MjUyNjMxNiwiaWF0IjoxNzQ5OTM0MzE2fQ.3qGzaiVELqGD7zBINumm-q1-iJe1SguKQMjIgvNfzVI\",\n        \"token_type\": \"Bearer\"\n    }\n}"
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMSwicm9sZSI6InVzZXIiLCJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MDQ1NDc2MSwiaWF0IjoxNzUwMTk1NTYxfQ.0zV4kHY7xgLXSI5bVEnGgzzGvWtdz9gf4FTMGWLTn0w\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMSwicm9sZSI6InVzZXIiLCJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImlzcyI6ImdvLWJhY2tlbmQtdGVtcGxhdGUiLCJleHAiOjE3NTI3ODc1NjEsImlhdCI6MTc1MDE5NTU2MX0.lf08cobbIOfQKJr9y40xQKrgrrczMWWhxuVA2oxahos\",\n        \"token_type\": \"Bearer\"\n    }\n}"
 								},
 								{
-									"name": "404 Not Found",
+									"name": "404 User not found",
 									"originalRequest": {
 										"method": "POST",
 										"header": [
@@ -426,8 +445,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "d6a583af-6e34-4d5d-997b-d0e51017e244"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 20:53:15 GMT"
+											"value": "Tue, 17 Jun 2025 21:26:43 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -613,7 +636,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"换个名222\",\n    \"avatar_url\": \"\",\n    \"gender\": \"FEMALE\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2028-12-32\",\n    \"locale\": \"zh\"\n}",
+							"raw": "{\n    \"name\": \"\",\n    \"avatar_url\": \"\",\n    \"gender\": \"OTHER\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2028-12-31\",\n    \"locale\": \"zh\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -833,7 +856,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"avatar_url\": \"\",\n    \"gender\": \"MALE\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2015-07-31\",\n    \"locale\": \"zh\"\n}",
+							"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"gender\": \"MALE\",\n    \"birth_date\": \"2015-07-31\",\n    \"locale\": \"zh\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -859,7 +882,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"avatar_url\": \"\",\n    \"gender\": \"MALE\",\n    \"email\": \"kejosat522@nab4.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2015-07-31\",\n    \"locale\": \"zh\"\n}",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"gender\": \"MALE\",\n    \"birth_date\": \"2015-07-31\",\n    \"locale\": \"zh\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -886,16 +909,20 @@
 									"value": "application/json; charset=utf-8"
 								},
 								{
+									"key": "X-Request-Id",
+									"value": "22c7c448-9e56-4e08-b5ed-b9aab3c7a3e5"
+								},
+								{
 									"key": "Date",
-									"value": "Sat, 14 Jun 2025 21:10:14 GMT"
+									"value": "Tue, 17 Jun 2025 21:28:51 GMT"
 								},
 								{
 									"key": "Content-Length",
-									"value": "36"
+									"value": "37"
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 7\n    }\n}"
+							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 12\n    }\n}"
 						},
 						{
 							"name": "409 Email already exists",
@@ -904,7 +931,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"avatar_url\": \"\",\n    \"gender\": \"MALE\",\n    \"email\": \"test@xxx.com\",\n    \"phone\": \"\",\n    \"birth_date\": \"2015-07-27\",\n    \"locale\": \"zh\"\n}",
+									"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"password\": \"12345678\",\n    \"name\": \"奥特曼\",\n    \"gender\": \"MALE\",\n    \"birth_date\": \"2015-07-31\",\n    \"locale\": \"zh\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -931,8 +958,12 @@
 									"value": "application/json; charset=utf-8"
 								},
 								{
+									"key": "X-Request-Id",
+									"value": "c6c03aba-0054-428a-9c33-b4cf85974602"
+								},
+								{
 									"key": "Date",
-									"value": "Sat, 14 Jun 2025 21:09:11 GMT"
+									"value": "Tue, 17 Jun 2025 21:29:06 GMT"
 								},
 								{
 									"key": "Content-Length",
@@ -1017,16 +1048,20 @@
 									"value": "application/json; charset=utf-8"
 								},
 								{
+									"key": "X-Request-Id",
+									"value": "86b3b215-4420-4802-b3ec-29db8a8f5940"
+								},
+								{
 									"key": "Date",
-									"value": "Sat, 14 Jun 2025 21:12:00 GMT"
+									"value": "Tue, 17 Jun 2025 21:30:09 GMT"
 								},
 								{
 									"key": "Content-Length",
-									"value": "568"
+									"value": "571"
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJpc3MiOiJnby1iYWNrZW5kLXRlbXBsYXRlIiwiZXhwIjoxNzUwMTk0NzIwLCJpYXQiOjE3NDk5MzU1MjB9.kAOTYCMDT_qftpUrRjQp5CFDuUYoonOdC1IUP2llYIE\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MjUyNzUyMCwiaWF0IjoxNzQ5OTM1NTIwfQ.7BswNbIgRogTLrCMt1kS6bHcMBvHdWvnW9shUQucQOo\",\n        \"token_type\": \"Bearer\"\n    }\n}"
+							"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMiwicm9sZSI6InVzZXIiLCJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MDQ1NTAwOSwiaWF0IjoxNzUwMTk1ODA5fQ.zk5uv2rvEesRFIV1nLqy3JUK-ojWwSumpBhVPJCf4zY\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMiwicm9sZSI6InVzZXIiLCJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImlzcyI6ImdvLWJhY2tlbmQtdGVtcGxhdGUiLCJleHAiOjE3NTI3ODc4MDksImlhdCI6MTc1MDE5NTgwOX0.AYB5n_8tNAB9w94TvT3Ss0y1G7Rk6XY19exu69KEgts\",\n        \"token_type\": \"Bearer\"\n    }\n}"
 						},
 						{
 							"name": "400 Invalid password",
@@ -1035,7 +1070,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"email_or_phone\": \"kejosat522@nab4.com\",\n    \"password\": \"99991111\"\n}",
+									"raw": "{\n    \"email_or_phone\": \"kejosat522@nab4.com\",\n    \"password\": \"12345678\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1062,8 +1097,12 @@
 									"value": "application/json; charset=utf-8"
 								},
 								{
+									"key": "X-Request-Id",
+									"value": "3a8d5cde-bffa-4559-82ca-71453667ac57"
+								},
+								{
 									"key": "Date",
-									"value": "Sat, 14 Jun 2025 21:11:33 GMT"
+									"value": "Tue, 17 Jun 2025 21:29:46 GMT"
 								},
 								{
 									"key": "Content-Length",
@@ -1095,7 +1134,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"refresh_token\": \"{{REFRESH_TOKEN}}\"\n}",
+							"raw": "{\n    \"refresh_token\": \"{{REFRESH_TOKEN}}-fake\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1148,16 +1187,20 @@
 									"value": "application/json; charset=utf-8"
 								},
 								{
+									"key": "X-Request-Id",
+									"value": "e94d537d-4b2f-4f03-94f5-be2508a172f0"
+								},
+								{
 									"key": "Date",
-									"value": "Sat, 14 Jun 2025 21:12:21 GMT"
+									"value": "Tue, 17 Jun 2025 21:30:47 GMT"
 								},
 								{
 									"key": "Content-Length",
-									"value": "609"
+									"value": "612"
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Token refreshed successfully\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJpc3MiOiJnby1iYWNrZW5kLXRlbXBsYXRlIiwiZXhwIjoxNzUwMTk0NzQxLCJpYXQiOjE3NDk5MzU1NDF9.NBL3FAerk5qw6U2naUZBCbzP07ALWyUsfQuIAkDMdRw\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJyb2xlIjoidXNlciIsInRva2VuX3R5cGUiOiJyZWZyZXNoIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MjUyNzU0MSwiaWF0IjoxNzQ5OTM1NTQxfQ.L4X4bl4sKZkiEmCXKCv1DzHc5ZfQaHih2-Mf0mKKIBI\",\n        \"token_type\": \"Bearer\"\n    }\n}"
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Token refreshed successfully\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMiwicm9sZSI6InVzZXIiLCJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiaXNzIjoiZ28tYmFja2VuZC10ZW1wbGF0ZSIsImV4cCI6MTc1MDQ1NTA0NywiaWF0IjoxNzUwMTk1ODQ3fQ.wMXPnZRf-ATbdiGSDV1B4-mUIKzvc_e98J8v2tmUOLI\",\n        \"expires_in\": 604800,\n        \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMiwicm9sZSI6InVzZXIiLCJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImlzcyI6ImdvLWJhY2tlbmQtdGVtcGxhdGUiLCJleHAiOjE3NTI3ODc4NDcsImlhdCI6MTc1MDE5NTg0N30.5T6pUc3fJIJaBPK0iPvrARrOXKpXfZfEcrg5eVb7kd0\",\n        \"token_type\": \"Bearer\"\n    }\n}"
 						},
 						{
 							"name": "401 Invalid token",
@@ -1193,8 +1236,12 @@
 									"value": "application/json; charset=utf-8"
 								},
 								{
+									"key": "X-Request-Id",
+									"value": "01b25b55-cb4a-48a7-baa0-58867cfc9906"
+								},
+								{
 									"key": "Date",
-									"value": "Sat, 14 Jun 2025 21:12:45 GMT"
+									"value": "Tue, 17 Jun 2025 21:31:05 GMT"
 								},
 								{
 									"key": "Content-Length",
@@ -1440,7 +1487,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"code\": \"614843\"\n}",
+							"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"code\": \"221224\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1730,7 +1777,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"new_password\": \"11112222\",\n    \"reset_token\": \"20OBBLP1\"\n}",
+							"raw": "{\n    \"email\": \"kejosat522@nab4.com\",\n    \"new_password\": \"11112222\",\n    \"reset_token\": \"M1RGYKCS\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2205,7 +2252,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"is_favorited\": false\n}",
+							"raw": "{\n    \"is_favorited\": true\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3123,8 +3170,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "6e258314-fc30-4f2f-857d-e4a6ad1850f7"
+										},
+										{
 											"key": "Date",
-											"value": "Mon, 09 Jun 2025 10:39:51 GMT"
+											"value": "Sun, 15 Jun 2025 20:57:53 GMT"
 										}
 									],
 									"cookie": [],
@@ -3161,8 +3212,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "418914b3-fa5a-434e-8eb5-129ec939ee9f"
+										},
+										{
 											"key": "Date",
-											"value": "Mon, 09 Jun 2025 10:40:16 GMT"
+											"value": "Sun, 15 Jun 2025 20:58:21 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -3201,7 +3256,7 @@
 								{
 									"name": "204 No Content",
 									"originalRequest": {
-										"method": "DELETE",
+										"method": "PATCH",
 										"header": [
 											{
 												"key": "Authorization",
@@ -3210,13 +3265,14 @@
 											}
 										],
 										"url": {
-											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"raw": "{{API_HOST_ADMIN}}/users/4/restore",
 											"host": [
 												"{{API_HOST_ADMIN}}"
 											],
 											"path": [
 												"users",
-												"4"
+												"4",
+												"restore"
 											]
 										}
 									},
@@ -3229,8 +3285,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "9009116b-30af-4333-bbd2-8cf3a65953a2"
+										},
+										{
 											"key": "Date",
-											"value": "Mon, 09 Jun 2025 10:39:51 GMT"
+											"value": "Sun, 15 Jun 2025 20:59:11 GMT"
 										}
 									],
 									"cookie": [],
@@ -3239,7 +3299,7 @@
 								{
 									"name": "404 Not Found",
 									"originalRequest": {
-										"method": "DELETE",
+										"method": "PATCH",
 										"header": [
 											{
 												"key": "Authorization",
@@ -3248,13 +3308,14 @@
 											}
 										],
 										"url": {
-											"raw": "{{API_HOST_ADMIN}}/users/4",
+											"raw": "{{API_HOST_ADMIN}}/users/40/restore",
 											"host": [
 												"{{API_HOST_ADMIN}}"
 											],
 											"path": [
 												"users",
-												"4"
+												"40",
+												"restore"
 											]
 										}
 									},
@@ -3267,8 +3328,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "39bd77e3-7731-484d-963a-006bbca7eebb"
+										},
+										{
 											"key": "Date",
-											"value": "Mon, 09 Jun 2025 10:40:16 GMT"
+											"value": "Sun, 15 Jun 2025 20:59:42 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -3293,7 +3358,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"is_banned\":  false\n}",
+									"raw": "{\n    \"is_banned\":  true\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -3326,7 +3391,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"is_banned\":  false\n}",
+											"raw": "{\n    \"is_banned\":  true\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -3354,8 +3419,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "d70614e7-5183-41ab-8352-b180190ebc70"
+										},
+										{
 											"key": "Date",
-											"value": "Mon, 09 Jun 2025 10:40:42 GMT"
+											"value": "Sun, 15 Jun 2025 21:00:17 GMT"
 										}
 									],
 									"cookie": [],
@@ -3374,7 +3443,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"is_banned\":  false\n}",
+											"raw": "{\n    \"is_banned\":  true\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -3382,13 +3451,13 @@
 											}
 										},
 										"url": {
-											"raw": "{{API_HOST_ADMIN}}/users/42/ban",
+											"raw": "{{API_HOST_ADMIN}}/users/20/ban",
 											"host": [
 												"{{API_HOST_ADMIN}}"
 											],
 											"path": [
 												"users",
-												"42",
+												"20",
 												"ban"
 											]
 										}
@@ -3402,8 +3471,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "8db7c5f4-a289-4518-b59c-6eff3d902d3b"
+										},
+										{
 											"key": "Date",
-											"value": "Mon, 09 Jun 2025 10:46:37 GMT"
+											"value": "Sun, 15 Jun 2025 21:00:52 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -3522,16 +3595,20 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "8c81efe9-19bb-4af7-9813-530211f97e3d"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:34:21 GMT"
+											"value": "Sun, 15 Jun 2025 21:04:03 GMT"
 										},
 										{
 											"key": "Content-Length",
-											"value": "910"
+											"value": "1381"
 										}
 									],
 									"cookie": [],
-									"body": "{\n    \"status\": \"success\",\n    \"data\": [\n        {\n            \"id\": 2,\n            \"name\": \"测试😊\",\n            \"barcode\": \"\",\n            \"barcode_type\": \"\",\n            \"description\": {\n                \"items\": [\n                    \"A\",\n                    \"B\",\n                    \"C\"\n                ],\n                \"origin\": \"Germany\",\n                \"price\": 123\n            },\n            \"description_status\": \"PENDING\",\n            \"description_loaded_at\": null,\n            \"created_at\": \"2025-06-14T21:34:05.334516Z\",\n            \"updated_at\": \"2025-06-14T21:34:05.334516Z\",\n            \"deleted_at\": null,\n            \"images\": [],\n            \"categories\": []\n        },\n        {\n            \"id\": 1,\n            \"name\": \"更新后的名称\",\n            \"barcode\": \"8888888822221\",\n            \"barcode_type\": \"EAN13\",\n            \"description\": {\n                \"items\": [\n                    \"World\",\n                    \"Hello\",\n                    \"!\"\n                ],\n                \"price\": 122.02\n            },\n            \"description_status\": \"LOADING\",\n            \"description_loaded_at\": null,\n            \"created_at\": \"2025-05-29T21:32:40.20582Z\",\n            \"updated_at\": \"2025-05-29T21:33:00.929837Z\",\n            \"deleted_at\": null,\n            \"images\": [\n                {\n                    \"id\": 1,\n                    \"product_id\": 1,\n                    \"image_url\": \"hi\",\n                    \"created_at\": \"2025-05-29T21:32:50.238021Z\",\n                    \"updated_at\": \"2025-05-29T21:32:50.238021Z\",\n                    \"deleted_at\": null\n                }\n            ],\n            \"categories\": []\n        }\n    ],\n    \"pagination\": {\n        \"total_count\": 2,\n        \"page_size\": 5,\n        \"current_page\": 1,\n        \"total_pages\": 1\n    }\n}"
+									"body": "{\n    \"status\": \"success\",\n    \"data\": [\n        {\n            \"id\": 3,\n            \"name\": \"测试😊\",\n            \"barcode\": \"\",\n            \"barcode_type\": \"\",\n            \"description\": {\n                \"items\": [\n                    \"A\",\n                    \"B\",\n                    \"C\"\n                ],\n                \"origin\": \"Germany\",\n                \"price\": 123\n            },\n            \"description_status\": \"PENDING\",\n            \"description_loaded_at\": null,\n            \"created_at\": \"2025-06-15T21:03:59.007882Z\",\n            \"updated_at\": \"2025-06-15T21:03:59.007882Z\",\n            \"deleted_at\": null,\n            \"images\": [],\n            \"categories\": []\n        },\n        {\n            \"id\": 1,\n            \"name\": \"更新后的名称\",\n            \"barcode\": \"8888888822221\",\n            \"barcode_type\": \"EAN13\",\n            \"description\": {\n                \"items\": [\n                    \"World\",\n                    \"Hello\",\n                    \"!\"\n                ],\n                \"price\": 122.02\n            },\n            \"description_status\": \"LOADING\",\n            \"description_loaded_at\": null,\n            \"created_at\": \"2025-05-29T21:32:40.20582Z\",\n            \"updated_at\": \"2025-06-14T21:36:22.970593Z\",\n            \"deleted_at\": null,\n            \"images\": [\n                {\n                    \"id\": 1,\n                    \"product_id\": 1,\n                    \"image_url\": \"hi\",\n                    \"created_at\": \"2025-05-29T21:32:50.238021Z\",\n                    \"updated_at\": \"2025-05-29T21:32:50.238021Z\",\n                    \"deleted_at\": null\n                },\n                {\n                    \"id\": 2,\n                    \"product_id\": 1,\n                    \"image_url\": \"hhhhhhh\",\n                    \"created_at\": \"2025-06-14T21:35:45.561688Z\",\n                    \"updated_at\": \"2025-06-14T21:35:45.561688Z\",\n                    \"deleted_at\": null\n                }\n            ],\n            \"categories\": []\n        },\n        {\n            \"id\": 2,\n            \"name\": \"测试😊\",\n            \"barcode\": \"\",\n            \"barcode_type\": \"\",\n            \"description\": {\n                \"items\": [\n                    \"A\",\n                    \"B\",\n                    \"C\"\n                ],\n                \"origin\": \"Germany\",\n                \"price\": 123\n            },\n            \"description_status\": \"PENDING\",\n            \"description_loaded_at\": null,\n            \"created_at\": \"2025-06-14T21:34:05.334516Z\",\n            \"updated_at\": \"2025-06-14T21:34:05.334516Z\",\n            \"deleted_at\": null,\n            \"images\": [],\n            \"categories\": []\n        }\n    ],\n    \"pagination\": {\n        \"total_count\": 3,\n        \"page_size\": 5,\n        \"current_page\": 1,\n        \"total_pages\": 1\n    }\n}"
 								}
 							]
 						},
@@ -3589,16 +3666,20 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "81a944bc-31d8-4ff7-966c-100032f1b440"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:36:00 GMT"
+											"value": "Sun, 15 Jun 2025 21:07:07 GMT"
 										},
 										{
 											"key": "Content-Length",
-											"value": "658"
+											"value": "685"
 										}
 									],
 									"cookie": [],
-									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"更新后的名称\",\n        \"barcode\": \"8888888822221\",\n        \"barcode_type\": \"EAN13\",\n        \"description\": {\n            \"items\": [\n                \"World\",\n                \"Hello\",\n                \"!\"\n            ],\n            \"price\": 122.02\n        },\n        \"description_status\": \"LOADING\",\n        \"description_loaded_at\": null,\n        \"created_at\": \"2025-05-29T21:32:40.20582Z\",\n        \"updated_at\": \"2025-06-14T21:35:45.55173Z\",\n        \"deleted_at\": null,\n        \"images\": [\n            {\n                \"id\": 1,\n                \"product_id\": 1,\n                \"image_url\": \"hi\",\n                \"created_at\": \"2025-05-29T21:32:50.238021Z\",\n                \"updated_at\": \"2025-05-29T21:32:50.238021Z\",\n                \"deleted_at\": null\n            },\n            {\n                \"id\": 2,\n                \"product_id\": 1,\n                \"image_url\": \"hhhhhhh\",\n                \"created_at\": \"2025-06-14T21:35:45.561688Z\",\n                \"updated_at\": \"2025-06-14T21:35:45.561688Z\",\n                \"deleted_at\": null\n            }\n        ],\n        \"categories\": []\n    }\n}"
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"更新后的名称\",\n        \"barcode\": \"8888888822221\",\n        \"barcode_type\": \"EAN13\",\n        \"description\": {\n            \"items\": [\n                \"World\",\n                \"Hello\",\n                \"!\"\n            ],\n            \"price\": 122.02\n        },\n        \"description_status\": \"LOADING\",\n        \"description_loaded_at\": null,\n        \"created_at\": \"2025-05-29T21:32:40.20582Z\",\n        \"updated_at\": \"2025-06-15T21:07:00.38283Z\",\n        \"deleted_at\": null,\n        \"images\": [\n            {\n                \"id\": 3,\n                \"product_id\": 1,\n                \"image_url\": \"https://example.com\",\n                \"created_at\": \"2025-06-15T21:07:00.397538Z\",\n                \"updated_at\": \"2025-06-15T21:07:00.397538Z\",\n                \"deleted_at\": null\n            },\n            {\n                \"id\": 4,\n                \"product_id\": 1,\n                \"image_url\": \"https://example.com\",\n                \"created_at\": \"2025-06-15T21:07:00.40534Z\",\n                \"updated_at\": \"2025-06-15T21:07:00.40534Z\",\n                \"deleted_at\": null\n            }\n        ],\n        \"categories\": []\n    }\n}"
 								},
 								{
 									"name": "404 Not found",
@@ -3612,13 +3693,13 @@
 											}
 										],
 										"url": {
-											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"raw": "{{API_HOST_ADMIN}}/products/100",
 											"host": [
 												"{{API_HOST_ADMIN}}"
 											],
 											"path": [
 												"products",
-												"1"
+												"100"
 											]
 										}
 									},
@@ -3631,8 +3712,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "081bad38-8350-4fe1-926a-0cc14e672097"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:37:44 GMT"
+											"value": "Sun, 15 Jun 2025 21:05:02 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -3714,8 +3799,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "c18c775e-a432-4bcd-913d-8b3ae5a46685"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:34:05 GMT"
+											"value": "Sun, 15 Jun 2025 21:03:59 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -3723,7 +3812,7 @@
 										}
 									],
 									"cookie": [],
-									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 2\n    }\n}"
+									"body": "{\n    \"status\": \"success\",\n    \"data\": {\n        \"id\": 3\n    }\n}"
 								}
 							]
 						},
@@ -3740,7 +3829,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"hi\", \"hhhhhhh\"]\n}",
+									"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"https://example.com\", \"https://example.com\"]\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -3772,7 +3861,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"hi\", \"hhhhhhh\"]\n}",
+											"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"https://example.com\", \"https://example.com\"]\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -3799,8 +3888,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "a656d53e-e9b6-4f28-88f7-282237e6c1bb"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:35:45 GMT"
+											"value": "Sun, 15 Jun 2025 21:11:16 GMT"
 										}
 									],
 									"cookie": [],
@@ -3819,7 +3912,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"hi\", \"hhhhhhh\"]\n}",
+											"raw": "{\n    \"name\": \"更新后的名称\",\n    \"barcode\": \"8888888822221\",\n    \"barcode_type\": \"EAN13\",\n    \"description_status\": \"LOADING\",\n    \"image_urls\": [\"https://example.com\", \"https://example.com\"]\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -3827,13 +3920,13 @@
 											}
 										},
 										"url": {
-											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"raw": "{{API_HOST_ADMIN}}/products/100",
 											"host": [
 												"{{API_HOST_ADMIN}}"
 											],
 											"path": [
 												"products",
-												"1"
+												"100"
 											]
 										}
 									},
@@ -3846,8 +3939,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "b1069359-44e5-4ea1-807f-b75c3797a1ed"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:41:09 GMT"
+											"value": "Sun, 15 Jun 2025 21:11:42 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -3931,8 +4028,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "949bccd2-c353-4b3e-894e-908262582f88"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:36:22 GMT"
+											"value": "Sun, 15 Jun 2025 21:09:28 GMT"
 										}
 									],
 									"cookie": [],
@@ -3959,13 +4060,13 @@
 											}
 										},
 										"url": {
-											"raw": "{{API_HOST_ADMIN}}/products/1",
+											"raw": "{{API_HOST_ADMIN}}/products/100",
 											"host": [
 												"{{API_HOST_ADMIN}}"
 											],
 											"path": [
 												"products",
-												"1"
+												"100"
 											]
 										}
 									},
@@ -3978,8 +4079,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "133d69cc-6ef1-41f5-b4f6-39506c6edc94"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:41:57 GMT"
+											"value": "Sun, 15 Jun 2025 21:10:19 GMT"
 										},
 										{
 											"key": "Content-Length",
@@ -4045,8 +4150,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "f47c0820-ddb7-414d-b819-b2d97c474d3b"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:36:39 GMT"
+											"value": "Sun, 15 Jun 2025 21:12:33 GMT"
 										}
 									],
 									"cookie": [],
@@ -4083,8 +4192,12 @@
 											"value": "application/json; charset=utf-8"
 										},
 										{
+											"key": "X-Request-Id",
+											"value": "6039030f-39a5-4aee-a13e-b6ad9ce795b4"
+										},
+										{
 											"key": "Date",
-											"value": "Sat, 14 Jun 2025 21:37:16 GMT"
+											"value": "Sun, 15 Jun 2025 21:13:09 GMT"
 										},
 										{
 											"key": "Content-Length",
