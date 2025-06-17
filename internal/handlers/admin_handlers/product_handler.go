@@ -1,7 +1,6 @@
 package admin_handlers
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,75 +8,87 @@ import (
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/services"
+	"github.com/go-backend-template/internal/utils" // Added validator utility
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 )
+
+var customValidator = utils.NewCustomValidator() // Create a validator instance
 
 type ProductHandler struct {
 	ProductService services.ProductService
 }
 
+// NewProductHandler creates a new ProductHandler.
 func NewProductHandler(productService services.ProductService) *ProductHandler {
 	return &ProductHandler{
 		ProductService: productService,
 	}
 }
 
-// ListProducts 获取产品列表
+// ListProducts retrieves a list of products.
 func (h *ProductHandler) ListProducts(ctx *gin.Context) {
-	// 从上下文中获取已解析的查询参数
+	// Get parsed query parameters from context.
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
-		slog.Warn("Invalid query parameters type", "params", params)
+		logger.Warn(ctx, "Invalid query parameters type", "params", params)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid query parameters type"))
 		return
 	}
 
-	// 获取产品列表
-	products, pagination, err := h.ProductService.ListProducts(queryParams)
+	// Get product list.
+	products, pagination, err := h.ProductService.ListProducts(ctx.Request.Context(), queryParams) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(products, "", *pagination))
 }
 
-// GetProduct 获取单个产品详情
+// GetProduct retrieves details for a single product.
 func (h *ProductHandler) GetProduct(ctx *gin.Context) {
-	// 获取Path参数：product ID
+	// Get product ID from path parameters.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 调用 Service层 获取 Product
-	product, err := h.ProductService.GetProduct(uint(id))
+	// Call service layer to get the product.
+	product, err := h.ProductService.GetProduct(ctx.Request.Context(), uint(id)) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(product, ""))
 }
 
-// CreateProduct 创建新产品
+// CreateProduct creates a new product.
 func (h *ProductHandler) CreateProduct(ctx *gin.Context) {
-	// 解析请求体到DTO
+	// Parse request body to DTO.
 	var createReq dto.CreateProductRequest
 	if err := ctx.ShouldBindJSON(&createReq); err != nil {
-		slog.Warn("Invalid product creation request", "error", err)
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("请求参数错误: "+err.Error()))
+		logger.Warn(ctx, "Invalid product creation request", "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request parameters: "+err.Error())) // "请求参数错误: " -> "Invalid request parameters: "
 		return
 	}
 
-	// 转换DTO到产品模型
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&createReq); validationErrs != nil {
+		logger.Warn(ctx, "Validation failed for CreateProduct", "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Convert DTO to product model.
 	product := createReq.ToModel()
 
-	// 转换图片URLs到ProductImage模型
+	// Convert image URLs to ProductImage models.
 	var images []models.ProductImage
 	for _, url := range createReq.ImageURLs {
 		if url != "" {
@@ -87,48 +98,56 @@ func (h *ProductHandler) CreateProduct(ctx *gin.Context) {
 		}
 	}
 
-	// 调用Service层的创建方法，传递所有模型对象
-	createdProductID, err := h.ProductService.CreateProduct(
+	// Call service layer's creation method, passing all model objects.
+	createdProductID, err := h.ProductService.CreateProduct( // Pass context
+		ctx.Request.Context(),
 		product,
 		images,
 		createReq.CategoryIDs,
 	)
 
-	// 处理错误 - 现在只有一个错误返回，因为使用了事务
+	// Handle error - now only one error is returned due to transactions.
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回201 Created
-	slog.Info("Product created successfully", "productId", createdProductID)
+	// Return 201 Created.
+	logger.Info(ctx, "Product created successfully", "productId", createdProductID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdProductID}, ""))
 }
 
-// UpdateProduct 更新产品信息
+// UpdateProduct updates product information.
 func (h *ProductHandler) UpdateProduct(ctx *gin.Context) {
-	// 解析产品ID
+	// Parse product ID.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 解析请求体到DTO
+	// Parse request body to DTO.
 	var updateReq dto.UpdateProductRequest
 	if err := ctx.ShouldBindJSON(&updateReq); err != nil {
-		slog.Warn("Invalid product update request", "productId", id, "error", err)
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("请求参数错误: "+err.Error()))
+		logger.Warn(ctx, "Invalid product update request", "productId", id, "error", err)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request parameters: "+err.Error())) // "请求参数错误: " -> "Invalid request parameters: "
 		return
 	}
 
-	// 转换DTO到更新映射
+	// Validate payload.
+	if validationErrs := customValidator.ValidateStruct(&updateReq); validationErrs != nil {
+		logger.Warn(ctx, "Validation failed for UpdateProduct", "productId", id, "errors", validationErrs)
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
+		return
+	}
+
+	// Convert DTO to update map.
 	updates := updateReq.ToMap()
 
-	// 转换图片URLs到ProductImage模型
+	// Convert image URLs to ProductImage models.
 	var images []models.ProductImage
-	if updateReq.ImageURLs != nil { // 只有在请求中包含图片数组时才处理
+	if updateReq.ImageURLs != nil { // Only process if image array is included in the request.
 		if len(updateReq.ImageURLs) == 0 {
-			// 如果 ImageURLs 长度为0，则将images设置为空数组，但不能为nil。
+			// If ImageURLs length is 0, set images to an empty array, but not nil.
 			images = []models.ProductImage{}
 		} else {
 			for _, url := range updateReq.ImageURLs {
@@ -141,48 +160,49 @@ func (h *ProductHandler) UpdateProduct(ctx *gin.Context) {
 		}
 	}
 
-	// 如果没有要更新的内容，直接返回成功
+	// If there's nothing to update, return success directly.
 	if len(updates) == 0 && updateReq.ImageURLs == nil && updateReq.CategoryIDs == nil {
-		slog.Info("No fields to update", "productId", id)
+		logger.Info(ctx, "No fields to update", "productId", id)
 		ctx.JSON(http.StatusNoContent, nil)
 		return
 	}
 
-	// 调用Service层的更新方法，传递所有模型对象
-	err = h.ProductService.UpdateProduct(
+	// Call service layer's update method, passing all model objects.
+	err = h.ProductService.UpdateProduct( // Pass context
+		ctx.Request.Context(),
 		uint(id),
 		updates,
 		images,
 		updateReq.CategoryIDs,
 	)
 
-	// 处理错误 - 现在只有一个错误返回，因为使用了事务
+	// Handle error - now only one error is returned due to transactions.
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回204 No Content
-	slog.Info("Product updated successfully", "productId", id)
+	// Return 204 No Content.
+	logger.Info(ctx, "Product updated successfully", "productId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// DeleteProduct 删除产品
+// DeleteProduct deletes a product.
 func (h *ProductHandler) DeleteProduct(ctx *gin.Context) {
-	// 解析产品ID
+	// Parse product ID.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 调用 Service层 删除 Product
-	err = h.ProductService.DeleteProduct(uint(id))
+	// Call service layer to delete the product.
+	err = h.ProductService.DeleteProduct(ctx.Request.Context(), uint(id)) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回204 No Content
-	slog.Info("Product deleted", "productId", id)
+	// Return 204 No Content.
+	logger.Info(ctx, "Product deleted", "productId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }

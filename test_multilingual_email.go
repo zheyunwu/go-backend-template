@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -25,64 +26,57 @@ func main() {
 	resetToken := "ABCD1234"
 
 	fmt.Println("=== 测试多语言邮件发送 ===")
-
 	// 测试中文邮箱验证
 	fmt.Println("\n1. 测试中文邮箱验证邮件")
-	err = emailService.SendEmailVerification(testEmail, testName, verificationCode, "zh-CN")
+	err = emailService.SendEmailVerification(context.Background(), testEmail, testName, verificationCode, "zh-CN")
 	if err != nil {
 		fmt.Printf("发送中文验证邮件失败: %v\n", err)
 	} else {
 		fmt.Println("✓ 中文验证邮件发送成功")
 	}
-
 	// 测试英文邮箱验证
 	fmt.Println("\n2. 测试英文邮箱验证邮件")
-	err = emailService.SendEmailVerification(testEmail, "John Doe", verificationCode, "en-US")
+	err = emailService.SendEmailVerification(context.Background(), testEmail, "John Doe", verificationCode, "en-US")
 	if err != nil {
 		fmt.Printf("发送英文验证邮件失败: %v\n", err)
 	} else {
 		fmt.Println("✓ 英文验证邮件发送成功")
 	}
-
 	// 测试德文邮箱验证
 	fmt.Println("\n3. 测试德文邮箱验证邮件")
-	err = emailService.SendEmailVerification(testEmail, "Hans Müller", verificationCode, "de-DE")
+	err = emailService.SendEmailVerification(context.Background(), testEmail, "Hans Müller", verificationCode, "de-DE")
 	if err != nil {
 		fmt.Printf("发送德文验证邮件失败: %v\n", err)
 	} else {
 		fmt.Println("✓ 德文验证邮件发送成功")
 	}
-
 	// 测试不支持的语言（应该回退到英文）
 	fmt.Println("\n4. 测试不支持的语言（回退到英文）")
-	err = emailService.SendEmailVerification(testEmail, testName, verificationCode, "fr-FR")
+	err = emailService.SendEmailVerification(context.Background(), testEmail, testName, verificationCode, "fr-FR")
 	if err != nil {
 		fmt.Printf("发送回退语言邮件失败: %v\n", err)
 	} else {
 		fmt.Println("✓ 回退语言邮件发送成功（应为英文）")
 	}
-
 	// 测试中文密码重置
 	fmt.Println("\n5. 测试中文密码重置邮件")
-	err = emailService.SendPasswordReset(testEmail, testName, resetToken, "zh-CN")
+	err = emailService.SendPasswordReset(context.Background(), testEmail, testName, resetToken, "zh-CN")
 	if err != nil {
 		fmt.Printf("发送中文重置邮件失败: %v\n", err)
 	} else {
 		fmt.Println("✓ 中文重置邮件发送成功")
 	}
-
 	// 测试英文密码重置
 	fmt.Println("\n6. 测试英文密码重置邮件")
-	err = emailService.SendPasswordReset(testEmail, "John Doe", resetToken, "en-US")
+	err = emailService.SendPasswordReset(context.Background(), testEmail, "John Doe", resetToken, "en-US")
 	if err != nil {
 		fmt.Printf("发送英文重置邮件失败: %v\n", err)
 	} else {
 		fmt.Println("✓ 英文重置邮件发送成功")
 	}
-
 	// 测试德文密码重置
 	fmt.Println("\n7. 测试德文密码重置邮件")
-	err = emailService.SendPasswordReset(testEmail, "Hans Müller", resetToken, "de-DE")
+	err = emailService.SendPasswordReset(context.Background(), testEmail, "Hans Müller", resetToken, "de-DE")
 	if err != nil {
 		fmt.Printf("发送德文重置邮件失败: %v\n", err)
 	} else {

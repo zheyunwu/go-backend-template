@@ -1,15 +1,15 @@
 package utils
 
-// Language 是一个语言代码类型
+// Language is a type for language codes.
 type Language string
 
 const (
-	LanguageZh Language = "zh"
-	LanguageEn Language = "en"
-	LanguageDe Language = "de"
+	LanguageZh Language = "zh" // Chinese
+	LanguageEn Language = "en" // English
+	LanguageDe Language = "de" // German
 )
 
-// IsValid 用来校验是否是允许的语言
+// IsValid checks if the language code is allowed.
 func (l Language) IsValid() bool {
 	switch l {
 	case LanguageZh, LanguageEn, LanguageDe:

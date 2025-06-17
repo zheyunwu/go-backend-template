@@ -1,36 +1,37 @@
 package services
 
 import (
+	"context" // Added for context
 	"fmt"
-	"log/slog"
 
 	"github.com/go-backend-template/internal/errors"
 	"github.com/go-backend-template/internal/models"
 	"github.com/go-backend-template/internal/repositories"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 	"gorm.io/gorm"
 )
 
-// 全局验证器实例
+// Global validator instance (if any, usually not needed in service layer directly)
 
-// ProductService 定义产品相关的业务逻辑接口
+// ProductService defines the interface for product-related business logic.
 type ProductService interface {
-	// 基本功能
-	ListProducts(params *query_params.QueryParams) ([]models.Product, *response.Pagination, error)
-	GetProduct(id uint) (*models.Product, error)
-	CreateProduct(product *models.Product, images []models.ProductImage, categoryIDs []uint) (uint, error)
-	UpdateProduct(id uint, updates map[string]interface{}, images []models.ProductImage, categoryIDs []uint) error
-	DeleteProduct(id uint) error
+	// Basic functionalities
+	ListProducts(ctx context.Context, params *query_params.QueryParams) ([]models.Product, *response.Pagination, error)
+	GetProduct(ctx context.Context, id uint) (*models.Product, error)
+	CreateProduct(ctx context.Context, product *models.Product, images []models.ProductImage, categoryIDs []uint) (uint, error)
+	UpdateProduct(ctx context.Context, id uint, updates map[string]interface{}, images []models.ProductImage, categoryIDs []uint) error
+	DeleteProduct(ctx context.Context, id uint) error
 }
 
-// productService 产品服务实现
+// productService is the implementation of ProductService.
 type productService struct {
 	productRepo  repositories.ProductRepository
 	categoryRepo repositories.CategoryRepository
 }
 
-// NewProductService 创建一个产品服务实例
+// NewProductService creates a new instance of ProductService.
 func NewProductService(productRepo repositories.ProductRepository, categoryRepo repositories.CategoryRepository) ProductService {
 	return &productService{
 		productRepo:  productRepo,
@@ -38,21 +39,21 @@ func NewProductService(productRepo repositories.ProductRepository, categoryRepo 
 	}
 }
 
-// ListProducts 获取产品列表
-func (s *productService) ListProducts(params *query_params.QueryParams) ([]models.Product, *response.Pagination, error) {
-	// 调用Repo层获取产品列表
-	productList, total, err := s.productRepo.ListProducts(params)
+// ListProducts retrieves a list of products.
+func (s *productService) ListProducts(ctx context.Context, params *query_params.QueryParams) ([]models.Product, *response.Pagination, error) {
+	// Call the repository layer to get the list of products.
+	productList, total, err := s.productRepo.ListProducts(ctx, params) // Pass context
 	if err != nil {
-		slog.Error("Failed to list products", "error", err)
+		logger.Error(ctx, "Failed to list products", "error", err) // Use slog.ErrorContext
 		return nil, nil, fmt.Errorf("failed to list products: %w", err)
 	}
 
-	// 没有数据时返回空数组
+	// Return an empty array if there is no data.
 	if len(productList) == 0 {
 		productList = []models.Product{}
 	}
 
-	// 构建分页信息
+	// Construct pagination information.
 	pagination := &response.Pagination{
 		TotalCount:  int(total),
 		PageSize:    params.Limit,
@@ -63,42 +64,43 @@ func (s *productService) ListProducts(params *query_params.QueryParams) ([]model
 	return productList, pagination, nil
 }
 
-// GetProduct 获取产品详情
-func (s *productService) GetProduct(id uint) (*models.Product, error) {
-	// 调用repo层获取产品
-	product, err := s.productRepo.GetProduct(id)
+// GetProduct retrieves details for a single product.
+func (s *productService) GetProduct(ctx context.Context, id uint) (*models.Product, error) {
+	// Call the repository layer to get the product.
+	product, err := s.productRepo.GetProduct(ctx, id) // Pass context
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrProductNotFound
 		}
-		slog.Error("Failed to get product from repository", "productId", id, "error", err)
+		logger.Error(ctx, "Failed to get product from repository", "productId", id, "error", err) // Use slog.ErrorContext
 		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
 
 	return product, nil
 }
 
-// CreateProduct 使用事务创建产品及其关联数据
-func (s *productService) CreateProduct(product *models.Product, images []models.ProductImage, categoryIDs []uint) (uint, error) {
-	// 验证产品名称是否为空
+// CreateProduct creates a product and its associated data within a transaction.
+func (s *productService) CreateProduct(ctx context.Context, product *models.Product, images []models.ProductImage, categoryIDs []uint) (uint, error) {
+	// Validate that the product name is not empty.
 	if product.Name == "" {
 		return 0, errors.ErrProductNameEmpty
 	}
 
-	// 检查所有分类是否存在
+	// Check if all categories exist.
 	for _, categoryID := range categoryIDs {
-		_, err := s.categoryRepo.GetCategory(categoryID)
+		_, err := s.categoryRepo.GetCategory(ctx, categoryID) // Pass context
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return 0, errors.ErrCategoryNotFound
 			}
+			logger.Error(ctx, "Failed to check category for product creation", "categoryID", categoryID, "error", err) // Use slog.ErrorContext
 			return 0, fmt.Errorf("failed to check category %d: %w", categoryID, err)
 		}
 	}
 
-	// 使用事务创建产品及其关联数据
-	if err := s.productRepo.CreateProductWithRelations(product, images, categoryIDs); err != nil {
-		slog.Error("Failed to create product with relations",
+	// Create the product and its associated data within a transaction.
+	if err := s.productRepo.CreateProductWithRelations(ctx, product, images, categoryIDs); err != nil { // Pass context
+		logger.Error(ctx, "Failed to create product with relations", // Use slog.ErrorContext
 			"name", product.Name,
 			"barcode", product.Barcode,
 			"error", err)
@@ -108,54 +110,57 @@ func (s *productService) CreateProduct(product *models.Product, images []models.
 	return product.ID, nil
 }
 
-// UpdateProduct 使用事务更新产品及其关联数据
-func (s *productService) UpdateProduct(id uint, updates map[string]interface{}, images []models.ProductImage, categoryIDs []uint) error {
-	// 检查产品是否存在
-	if _, err := s.productRepo.GetProduct(id); err != nil {
+// UpdateProduct updates a product and its associated data within a transaction.
+func (s *productService) UpdateProduct(ctx context.Context, id uint, updates map[string]interface{}, images []models.ProductImage, categoryIDs []uint) error {
+	// Check if the product exists.
+	if _, err := s.productRepo.GetProduct(ctx, id); err != nil { // Pass context
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
+		logger.Error(ctx, "Failed to check product for update", "productID", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
-	// 验证产品名称是否为空
+	// Validate that the product name is not empty if it's being updated.
 	if name, ok := updates["name"].(string); ok && name == "" {
 		return errors.ErrProductNameEmpty
 	}
 
-	// 检查所有分类是否存在
+	// Check if all categories exist if they are being updated.
 	for _, categoryID := range categoryIDs {
-		_, err := s.categoryRepo.GetCategory(categoryID)
+		_, err := s.categoryRepo.GetCategory(ctx, categoryID) // Pass context
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return errors.ErrCategoryNotFound
 			}
+			logger.Error(ctx, "Failed to check category for product update", "categoryID", categoryID, "error", err) // Use slog.ErrorContext
 			return fmt.Errorf("failed to check category %d: %w", categoryID, err)
 		}
 	}
 
-	// 使用事务更新产品及其关联数据
-	if err := s.productRepo.UpdateProductWithRelations(id, updates, images, categoryIDs); err != nil {
-		slog.Error("Failed to update product with relations", "productId", id, "error", err)
+	// Update the product and its associated data within a transaction.
+	if err := s.productRepo.UpdateProductWithRelations(ctx, id, updates, images, categoryIDs); err != nil { // Pass context
+		logger.Error(ctx, "Failed to update product with relations", "productId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to update product: %w", err)
 	}
 
 	return nil
 }
 
-// DeleteProduct 删除产品
-func (s *productService) DeleteProduct(id uint) error {
-	// 检查产品是否存在
-	if _, err := s.productRepo.GetProduct(id); err != nil {
+// DeleteProduct deletes a product.
+func (s *productService) DeleteProduct(ctx context.Context, id uint) error {
+	// Check if the product exists.
+	if _, err := s.productRepo.GetProduct(ctx, id); err != nil { // Pass context
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrProductNotFound
 		}
+		logger.Error(ctx, "Failed to check product for delete", "productID", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to check product: %w", err)
 	}
 
-	// 调用repo层删除产品
-	if err := s.productRepo.DeleteProduct(id); err != nil {
-		slog.Error("Failed to delete product", "productId", id, "error", err)
+	// Call the repository layer to delete the product.
+	if err := s.productRepo.DeleteProduct(ctx, id); err != nil { // Pass context
+		logger.Error(ctx, "Failed to delete product", "productId", id, "error", err) // Use slog.ErrorContext
 		return fmt.Errorf("failed to delete product: %w", err)
 	}
 

@@ -1,8 +1,8 @@
 package response
 
-// Response 通用API响应结构
+// Response is a generic API response structure.
 type Response struct {
-	Status     string      `json:"status"`
+	Status     string      `json:"status"` // "success" or "error"
 	Message    string      `json:"message,omitempty"`
 	Data       interface{} `json:"data,omitempty"`
 	Pagination *Pagination `json:"pagination,omitempty"`
@@ -15,11 +15,11 @@ type Pagination struct {
 	TotalPages  int `json:"total_pages"`
 }
 
-// NewSuccessResponse 创建成功响应
-func NewSuccessResponse(data interface{}, messgae string, pagination ...Pagination) Response {
+// NewSuccessResponse creates a success response.
+func NewSuccessResponse(data interface{}, message string, pagination ...Pagination) Response {
 	resp := Response{
 		Status:  "success",
-		Message: messgae,
+		Message: message,
 	}
 
 	if data != nil {
@@ -33,7 +33,7 @@ func NewSuccessResponse(data interface{}, messgae string, pagination ...Paginati
 	return resp
 }
 
-// NewErrorResponse 创建错误响应
+// NewErrorResponse creates an error response.
 func NewErrorResponse(message string) Response {
 	return Response{
 		Status:  "error",

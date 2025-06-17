@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context" // Added for context
 	"strconv"
 
 	"github.com/go-backend-template/internal/models"
@@ -8,17 +9,18 @@ import (
 	"gorm.io/gorm"
 )
 
+// ProductRepository defines the interface for product data access operations.
 type ProductRepository interface {
-	// 通用CRUD查询
-	ListProducts(params *query_params.QueryParams) ([]models.Product, int, error)
-	GetProduct(id uint) (*models.Product, error)
-	CreateProduct(product *models.Product) error
-	UpdateProduct(id uint, updates map[string]interface{}) error
-	DeleteProduct(id uint) error
+	// General CRUD queries
+	ListProducts(ctx context.Context, params *query_params.QueryParams) ([]models.Product, int, error)
+	GetProduct(ctx context.Context, id uint) (*models.Product, error)
+	CreateProduct(ctx context.Context, product *models.Product) error
+	UpdateProduct(ctx context.Context, id uint, updates map[string]interface{}) error
+	DeleteProduct(ctx context.Context, id uint) error
 
-	// 事务支持
-	CreateProductWithRelations(product *models.Product, images []models.ProductImage, categoryIDs []uint) error
-	UpdateProductWithRelations(id uint, updates map[string]interface{}, images []models.ProductImage, categoryIDs []uint) error
+	// Transaction support
+	CreateProductWithRelations(ctx context.Context, product *models.Product, images []models.ProductImage, categoryIDs []uint) error
+	UpdateProductWithRelations(ctx context.Context, id uint, updates map[string]interface{}, images []models.ProductImage, categoryIDs []uint) error
 }
 
 type productRepository struct {
@@ -34,134 +36,139 @@ func NewProductRepository(db *gorm.DB, categoryRepo CategoryRepository) ProductR
 }
 
 /*
-5个通用CRUD查询
+5 general CRUD queries
 */
 
-func (r *productRepository) ListProducts(params *query_params.QueryParams) ([]models.Product, int, error) {
+// ListProducts retrieves a list of products based on query parameters.
+func (r *productRepository) ListProducts(ctx context.Context, params *query_params.QueryParams) ([]models.Product, int, error) {
 	var products []models.Product
 	var totalCount int64
 
-	// 创建查询
-	query := r.db.Model(&models.Product{})
+	// Create query.
+	query := r.db.WithContext(ctx).Model(&models.Product{}) // Add WithContext
 
-	// 处理搜索 search
+	// Handle search.
 	if params.Search != "" {
 		query = query.Where("products.name LIKE ? OR products.barcode LIKE ?",
 			"%"+params.Search+"%", "%"+params.Search+"%")
 	}
 
-	// 处理过滤 filter
+	// Handle filters.
 	if params.Filter != nil {
 		for key, value := range params.Filter {
-			// 特殊处理: categories过滤
+			// Special handling for 'categories' filter.
 			if key == "categories" {
 				if categoryIDs, ok := value.([]interface{}); ok && len(categoryIDs) > 0 {
-					// 创建存储数字ID的切片
+					// Create a slice to store numeric IDs.
 					var categoryIDsUint []uint
 
-					// 将interface{}转换为uint类型的ID
+					// Convert interface{} to uint IDs.
 					for _, id := range categoryIDs {
 						switch v := id.(type) {
 						case float64:
-							// JSON数字默认解析为float64
+							// JSON numbers are parsed as float64 by default.
 							categoryIDsUint = append(categoryIDsUint, uint(v))
 						case int:
 							categoryIDsUint = append(categoryIDsUint, uint(v))
 						case uint:
 							categoryIDsUint = append(categoryIDsUint, v)
 						case string:
-							// 如果是字符串形式的数字，尝试转换
+							// If it's a string representation of a number, try to convert.
 							if numID, err := strconv.ParseUint(v, 10, 64); err == nil {
 								categoryIDsUint = append(categoryIDsUint, uint(numID))
 							}
 						}
 					}
 
-					// 扩展分类ID列表，包含所有指定分类的子分类
-					expandedCategoryIDs, err := r.categoryRepo.ExpandCategoryIDsWithChildren(categoryIDsUint)
+					// Expand category ID list to include all children of the specified categories.
+					expandedCategoryIDs, err := r.categoryRepo.ExpandCategoryIDsWithChildren(ctx, categoryIDsUint) // Pass context
 					if err != nil {
 						return nil, 0, err
 					}
 
-					// 使用扩展后的分类ID列表过滤产品
+					// Filter products using the expanded category ID list.
 					if len(expandedCategoryIDs) > 0 {
-						// 使用EXISTS子查询，比JOIN和IN更高效
+						// Using EXISTS subquery, which is more efficient than JOIN and IN for this case.
 						query = query.Where("EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = products.id AND pc.category_id IN ?)", expandedCategoryIDs)
 					}
 				}
 			} else {
-				// 常规过滤条件处理
+				// Handle regular filter conditions.
 				query = query.Where("products."+key+" = ?", value)
 			}
 		}
 	}
 
-	// 处理排序 sort
+	// Handle sorting.
 	if params.Sort != "" {
 		query = query.Order("products." + params.Sort)
 	} else {
-		query = query.Order("products.updated_at DESC") // 默认按更新时间倒序
+		query = query.Order("products.updated_at DESC") // Default sort by update time descending.
 	}
 
-	// 查询数据总数
+	// Get total count of records.
 	err := query.Count(&totalCount).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// 应用分页
+	// Apply pagination.
 	offset := (params.Page - 1) * params.Limit
 	query = query.Offset(offset).Limit(params.Limit)
 
-	// 预加载关联数据
+	// Preload associated data.
 	query = query.Preload("Images").Preload("Categories")
 
-	// 查询数据
+	// Execute query.
 	err = query.Find(&products).Error
 	return products, int(totalCount), err
 }
 
-func (r *productRepository) GetProduct(id uint) (*models.Product, error) {
+// GetProduct retrieves a single product by ID, with preloaded associations.
+func (r *productRepository) GetProduct(ctx context.Context, id uint) (*models.Product, error) {
 	var product models.Product
-	// 预加载关联数据
-	err := r.db.Preload("Images").Preload("Categories").First(&product, id).Error
+	// Preload associated data.
+	err := r.db.WithContext(ctx).Preload("Images").Preload("Categories").First(&product, id).Error // Add WithContext
 	return &product, err
 }
 
-func (r *productRepository) CreateProduct(product *models.Product) error {
-	return r.db.Create(product).Error
+// CreateProduct creates a new product.
+func (r *productRepository) CreateProduct(ctx context.Context, product *models.Product) error {
+	return r.db.WithContext(ctx).Create(product).Error // Add WithContext
 }
 
-func (r *productRepository) UpdateProduct(id uint, updates map[string]interface{}) error {
-	return r.db.Model(&models.Product{}).Where("id = ?", id).Updates(updates).Error
+// UpdateProduct updates an existing product.
+func (r *productRepository) UpdateProduct(ctx context.Context, id uint, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&models.Product{}).Where("id = ?", id).Updates(updates).Error // Add WithContext
 }
 
-func (r *productRepository) DeleteProduct(id uint) error {
-	// 只要Model中有DeletedAt gorm.DeletedAt字段，GORM就会自动软删除
-	return r.db.Delete(&models.Product{}, id).Error
+// DeleteProduct deletes a product (soft delete if DeletedAt field exists in the model).
+func (r *productRepository) DeleteProduct(ctx context.Context, id uint) error {
+	// GORM automatically performs a soft delete if the model has a gorm.DeletedAt field.
+	return r.db.WithContext(ctx).Delete(&models.Product{}, id).Error // Add WithContext
 }
 
 /*
-事务支持
+Transaction support
 */
 
-// CreateProductWithRelations 在同一事务中创建产品及其所有关联数据
-func (r *productRepository) CreateProductWithRelations(product *models.Product, images []models.ProductImage, categoryIDs []uint) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 1. 创建产品基本信息
+// CreateProductWithRelations creates a product and all its associated data within a single transaction.
+func (r *productRepository) CreateProductWithRelations(ctx context.Context, product *models.Product, images []models.ProductImage, categoryIDs []uint) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { // Add WithContext to db for Transaction
+		// 1. Create basic product information.
 		if err := tx.Create(product).Error; err != nil {
 			return err
 		}
 
-		// 2. 添加产品图片
+		// 2. Add product images.
 		for i := range images {
-			images[i].ProductID = product.ID // 设置产品ID
+			images[i].ProductID = product.ID // Set product ID.
 			if err := tx.Create(&images[i]).Error; err != nil {
 				return err
 			}
 		}
 
-		// 3. 添加产品分类关联
+		// 3. Add product category associations.
 		for _, categoryID := range categoryIDs {
 			productCategory := models.ProductCategory{
 				ProductID:  product.ID,
@@ -172,41 +179,41 @@ func (r *productRepository) CreateProductWithRelations(product *models.Product, 
 			}
 		}
 
-		// 所有操作成功
+		// All operations successful.
 		return nil
 	})
 }
 
-// UpdateProductWithRelations 在同一事务中智能更新产品及其所有关联数据
-func (r *productRepository) UpdateProductWithRelations(id uint, updates map[string]interface{}, newImages []models.ProductImage, categoryIDs []uint) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 1. 更新产品基本信息
+// UpdateProductWithRelations intelligently updates a product and its associated data within a single transaction.
+func (r *productRepository) UpdateProductWithRelations(ctx context.Context, id uint, updates map[string]interface{}, newImages []models.ProductImage, categoryIDs []uint) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { // Add WithContext to db for Transaction
+		// 1. Update basic product information.
 		if len(updates) > 0 {
 			if err := tx.Model(&models.Product{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 				return err
 			}
 		}
 
-		// 2. 智能更新图片 - 仅当提供了新图片列表时
+		// 2. Intelligently update images - only if a new list of images is provided.
 		if newImages != nil {
-			// 2.1 获取当前所有图片
+			// 2.1 Get all current images.
 			var existingImages []models.ProductImage
 			if err := tx.Where("product_id = ?", id).Find(&existingImages).Error; err != nil {
 				return err
 			}
 
-			// 2.2 创建URL映射用于快速查找
+			// 2.2 Create a URL map for quick lookup.
 			existingImageMap := make(map[string]uint) // URL -> ID
 			for _, img := range existingImages {
 				existingImageMap[img.ImageURL] = img.ID
 			}
 
-			newImageMap := make(map[string]bool) // 记录新图片URL
+			newImageMap := make(map[string]bool) // Record new image URLs.
 			for _, img := range newImages {
 				newImageMap[img.ImageURL] = true
 			}
 
-			// 2.3 删除不再需要的图片 - 使用Unscoped()强制永久删除
+			// 2.3 Delete images that are no longer needed - use Unscoped() for permanent deletion.
 			for url, imgID := range existingImageMap {
 				if !newImageMap[url] {
 					if err := tx.Unscoped().Delete(&models.ProductImage{}, imgID).Error; err != nil {
@@ -215,7 +222,7 @@ func (r *productRepository) UpdateProductWithRelations(id uint, updates map[stri
 				}
 			}
 
-			// 2.4 只添加新的图片
+			// 2.4 Add only new images.
 			for _, img := range newImages {
 				if _, exists := existingImageMap[img.ImageURL]; !exists {
 					img.ProductID = id
@@ -226,15 +233,15 @@ func (r *productRepository) UpdateProductWithRelations(id uint, updates map[stri
 			}
 		}
 
-		// 3. 更新分类关联 - 仅当提供了新分类列表时
+		// 3. Update category associations - only if a new list of category IDs is provided.
 		if categoryIDs != nil {
-			// 4.1 获取当前分类关联
+			// 3.1 Get current category associations.
 			var existingCategories []models.ProductCategory
 			if err := tx.Where("product_id = ?", id).Find(&existingCategories).Error; err != nil {
 				return err
 			}
 
-			// 3.2 创建映射用于快速查找
+			// 3.2 Create a map for quick lookup.
 			existingCategoryMap := make(map[uint]bool)
 			for _, pc := range existingCategories {
 				existingCategoryMap[pc.CategoryID] = true
@@ -245,7 +252,7 @@ func (r *productRepository) UpdateProductWithRelations(id uint, updates map[stri
 				newCategoryMap[catID] = true
 			}
 
-			// 3.3 删除不再需要的分类关联 - 这里使用Unscoped()确保物理删除
+			// 3.3 Delete category associations that are no longer needed - use Unscoped() for physical deletion.
 			for _, pc := range existingCategories {
 				if !newCategoryMap[pc.CategoryID] {
 					if err := tx.Unscoped().Where("product_id = ? AND category_id = ?",
@@ -255,7 +262,7 @@ func (r *productRepository) UpdateProductWithRelations(id uint, updates map[stri
 				}
 			}
 
-			// 3.4 只添加新的分类关联
+			// 3.4 Add only new category associations.
 			for _, catID := range categoryIDs {
 				if !existingCategoryMap[catID] {
 					productCategory := models.ProductCategory{
@@ -269,7 +276,7 @@ func (r *productRepository) UpdateProductWithRelations(id uint, updates map[stri
 			}
 		}
 
-		// 所有操作成功
+		// All operations successful.
 		return nil
 	})
 }

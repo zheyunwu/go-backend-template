@@ -8,93 +8,93 @@ import (
 )
 
 func InitRoutes(r *gin.Engine, container *di.Container) {
-	// 使用默认的CORS中间件，允许所有来源，按需配置
+	// Use default CORS middleware, allows all origins, configure as needed.
 	r.Use(cors.Default())
 
-	// 全局中间件
-	r.Use(middlewares.RequestLogger())
+	// Global middlewares
+	r.Use(middlewares.LoggingMiddleware())
 	r.Use(middlewares.ErrorHandler())
 	r.Use(middlewares.QueryParamParser())
 
-	// 初始化公共API路由组
+	// Initialize public API route group.
 	api := r.Group("/api/v1")
 	initRoutes(api, container)
 
-	// 初始化Admin API路由组
+	// Initialize Admin API route group.
 	adminApi := r.Group("/admin-api/v1")
 	initAdminRoutes(adminApi, container)
 }
 
-// 公共API路由
+// Public API routes
 func initRoutes(api *gin.RouterGroup, container *di.Container) {
-	// 中间件
-	requiredAuthMiddleware := middlewares.RequiredAuthenticate(container.Config, container.UserService) // 必须登录
-	optionalAuthMiddleware := middlewares.OptionalAuthenticate(container.Config, container.UserService) // 可选登录
+	// Middlewares
+	requiredAuthMiddleware := middlewares.RequiredAuthenticate(container.Config, container.UserService) // Must be logged in
+	optionalAuthMiddleware := middlewares.OptionalAuthenticate(container.Config, container.UserService) // Optional login
 
-	rateLimiter := middlewares.NewRateLimiter(container.Redis) // 速率限制
+	rateLimiter := middlewares.NewRateLimiter(container.Redis) // Rate limiter
 	emailVerificationRateLimit := rateLimiter.EmailVerificationRateLimit()
 	passwordResetRateLimit := rateLimiter.PasswordResetRateLimit()
 
-	// Auth相关路由
+	// Auth related routes
 	authRoutes := api.Group("/auth")
 	{
-		authRoutes.GET("/profile", requiredAuthMiddleware, container.AuthHandler.GetProfile)        // 获取用户个人资料
-		authRoutes.PATCH("/profile", requiredAuthMiddleware, container.AuthHandler.UpdateProfile)   // 更新用户个人资料
-		authRoutes.PATCH("/password", requiredAuthMiddleware, container.AuthHandler.UpdatePassword) // 更新密码
+		authRoutes.GET("/profile", requiredAuthMiddleware, container.AuthHandler.GetProfile)        // Get user profile
+		authRoutes.PATCH("/profile", requiredAuthMiddleware, container.AuthHandler.UpdateProfile)   // Update user profile
+		authRoutes.PATCH("/password", requiredAuthMiddleware, container.AuthHandler.UpdatePassword) // Update password
 
-		authRoutes.POST("/register", container.AuthHandler.RegisterWithPassword) // 使用密码注册
-		authRoutes.POST("/login", container.AuthHandler.LoginWithPassword)       // 使用密码登录
-		authRoutes.POST("/refresh", container.AuthHandler.RefreshToken)          // 刷新访问令牌
+		authRoutes.POST("/register", container.AuthHandler.RegisterWithPassword) // Register with password
+		authRoutes.POST("/login", container.AuthHandler.LoginWithPassword)       // Login with password
+		authRoutes.POST("/refresh", container.AuthHandler.RefreshToken)          // Refresh access token
 
-		// 邮箱验证相关 (with rate limiting)
-		authRoutes.POST("/email/send-verification", emailVerificationRateLimit, container.AuthHandler.SendEmailVerification) // 发送邮箱验证码
-		authRoutes.POST("/email/verify", container.AuthHandler.VerifyEmail)                                                  // 验证邮箱
+		// Email verification related (with rate limiting)
+		authRoutes.POST("/email/send-verification", emailVerificationRateLimit, container.AuthHandler.SendEmailVerification) // Send email verification code
+		authRoutes.POST("/email/verify", container.AuthHandler.VerifyEmail)                                                  // Verify email
 
-		// 密码重置相关 (with rate limiting)
-		authRoutes.POST("/password/reset-request", passwordResetRateLimit, container.AuthHandler.SendPasswordReset) // 发送密码重置邮件
-		authRoutes.POST("/password/reset", container.AuthHandler.ResetPassword)                                     // 重置密码
+		// Password reset related (with rate limiting)
+		authRoutes.POST("/password/reset-request", passwordResetRateLimit, container.AuthHandler.SendPasswordReset) // Send password reset email
+		authRoutes.POST("/password/reset", container.AuthHandler.ResetPassword)                                     // Reset password
 
-		// 微信小程序端
-		authRoutes.POST("/wxmini/register", container.AuthHandler.RegisterFromWechatMiniProgram) // 微信小程序注册
-		authRoutes.POST("/wxmini/login", container.AuthHandler.LoginFromWechatMiniProgram)       // 微信小程序登录
+		// WeChat Mini Program
+		authRoutes.POST("/wxmini/register", container.AuthHandler.RegisterFromWechatMiniProgram) // WeChat Mini Program registration
+		authRoutes.POST("/wxmini/login", container.AuthHandler.LoginFromWechatMiniProgram)       // WeChat Mini Program login
 
 		// OAuth2
-		authRoutes.POST("/wechat/token", container.AuthHandler.ExchangeWechatOAuth)                            // 微信登录（Authorization Code Flow）
-		authRoutes.POST("/wechat/bind", requiredAuthMiddleware, container.AuthHandler.BindWechatAccount)       // 绑定微信账号
-		authRoutes.DELETE("/wechat/unbind", requiredAuthMiddleware, container.AuthHandler.UnbindWechatAccount) // 解绑微信账号
+		authRoutes.POST("/wechat/token", container.AuthHandler.ExchangeWechatOAuth)                            // WeChat login (Authorization Code Flow)
+		authRoutes.POST("/wechat/bind", requiredAuthMiddleware, container.AuthHandler.BindWechatAccount)       // Bind WeChat account
+		authRoutes.DELETE("/wechat/unbind", requiredAuthMiddleware, container.AuthHandler.UnbindWechatAccount) // Unbind WeChat account
 
-		authRoutes.POST("/google/token", container.AuthHandler.ExchangeGoogleOAuth)                            // Google登录（Authorization Code Flow with PKCE）
-		authRoutes.POST("/google/bind", requiredAuthMiddleware, container.AuthHandler.BindGoogleAccount)       // 绑定Google账号
-		authRoutes.DELETE("/google/unbind", requiredAuthMiddleware, container.AuthHandler.UnbindGoogleAccount) // 解绑Google账号
+		authRoutes.POST("/google/token", container.AuthHandler.ExchangeGoogleOAuth)                            // Google login (Authorization Code Flow with PKCE)
+		authRoutes.POST("/google/bind", requiredAuthMiddleware, container.AuthHandler.BindGoogleAccount)       // Bind Google account
+		authRoutes.DELETE("/google/unbind", requiredAuthMiddleware, container.AuthHandler.UnbindGoogleAccount) // Unbind Google account
 	}
 
-	// 产品相关路由
+	// Product related routes
 	productRoutes := api.Group("/products")
 	{
-		// 查询产品列表 - 支持?is_liked=true和?is_favorited=true筛选已点赞和已收藏的产品
+		// List products - supports ?is_liked=true and ?is_favorited=true to filter liked/favorited products
 		productRoutes.GET("", optionalAuthMiddleware, container.ProductHandler.ListProducts)
 		productRoutes.GET("/:id", optionalAuthMiddleware, container.ProductHandler.GetProduct)
 
-		// 用户交互（点赞、收藏）相关路由
-		productRoutes.GET("/:id/stats", container.UserInteractionHandler.GetProductStats)                           // 获取产品统计信息(点赞数、收藏数)
-		productRoutes.PUT("/:id/like", requiredAuthMiddleware, container.UserInteractionHandler.ToggleLike)         // 点赞/取消点赞产品
-		productRoutes.PUT("/:id/favorite", requiredAuthMiddleware, container.UserInteractionHandler.ToggleFavorite) // 收藏/取消收藏产品
+		// User interaction (like, favorite) related routes
+		productRoutes.GET("/:id/stats", container.UserInteractionHandler.GetProductStats)                           // Get product statistics (like count, favorite count)
+		productRoutes.PUT("/:id/like", requiredAuthMiddleware, container.UserInteractionHandler.ToggleLike)         // Like/unlike product
+		productRoutes.PUT("/:id/favorite", requiredAuthMiddleware, container.UserInteractionHandler.ToggleFavorite) // Favorite/unfavorite product
 	}
 
-	// 分类相关路由
+	// Category related routes
 	categoryRoutes := api.Group("/categories")
 	{
-		categoryRoutes.GET("", container.CategoryHandler.ListCategories)       // 获取分类列表
-		categoryRoutes.GET("/tree", container.CategoryHandler.GetCategoryTree) // 获取分类树结构
+		categoryRoutes.GET("", container.CategoryHandler.ListCategories)       // Get category list
+		categoryRoutes.GET("/tree", container.CategoryHandler.GetCategoryTree) // Get category tree structure
 	}
 }
 
-// Admin API路由
+// Admin API routes
 func initAdminRoutes(admin *gin.RouterGroup, container *di.Container) {
-	// 中间件
-	admin.Use(middlewares.AdminAuthMiddleware(container.Config, container.UserService)) // 所有后台路由都需要管理员权限
+	// Middlewares
+	admin.Use(middlewares.AdminAuthMiddleware(container.Config, container.UserService)) // All admin routes require admin privileges
 
-	// 用户管理路由
+	// User management routes
 	userRoutes := admin.Group("/users")
 	{
 		userRoutes.GET("", container.UserHandlerForAdmin.ListUsers)
@@ -102,11 +102,11 @@ func initAdminRoutes(admin *gin.RouterGroup, container *di.Container) {
 		userRoutes.POST("", container.UserHandlerForAdmin.CreateUser)
 		userRoutes.PATCH("/:id", container.UserHandlerForAdmin.UpdateUser)
 		userRoutes.DELETE("/:id", container.UserHandlerForAdmin.DeleteUser)
-		userRoutes.PATCH("/:id/restore", container.UserHandlerForAdmin.RestoreUser) // 恢复软删除的用户
+		userRoutes.PATCH("/:id/restore", container.UserHandlerForAdmin.RestoreUser) // Restore soft-deleted user
 		userRoutes.PATCH("/:id/ban", container.UserHandlerForAdmin.BanUser)
 	}
 
-	// 产品管理路由
+	// Product management routes
 	productRoutes := admin.Group("/products")
 	{
 		productRoutes.GET("", container.ProductHandlerForAdmin.ListProducts)

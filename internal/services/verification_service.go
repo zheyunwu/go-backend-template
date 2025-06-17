@@ -4,134 +4,134 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"log/slog"
 	"math/big"
 	"time"
 
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
 
-// VerificationService 验证码服务接口
+// VerificationService defines the interface for the verification code service.
 type VerificationService interface {
-	// 生成并存储邮箱验证码
-	GenerateEmailVerificationCode(email string) (string, error)
-	// 验证邮箱验证码
-	VerifyEmailVerificationCode(email, code string) (bool, error)
-	// 生成并存储密码重置令牌
-	GeneratePasswordResetToken(email string) (string, error)
-	// 验证密码重置令牌
-	VerifyPasswordResetToken(email, token string) (bool, error)
+	// GenerateEmailVerificationCode generates and stores an email verification code.
+	GenerateEmailVerificationCode(ctx context.Context, email string) (string, error)
+	// VerifyEmailVerificationCode verifies an email verification code.
+	VerifyEmailVerificationCode(ctx context.Context, email, code string) (bool, error)
+	// GeneratePasswordResetToken generates and stores a password reset token.
+	GeneratePasswordResetToken(ctx context.Context, email string) (string, error)
+	// VerifyPasswordResetToken verifies a password reset token.
+	VerifyPasswordResetToken(ctx context.Context, email, token string) (bool, error)
 }
 
-// verificationService 验证码服务实现
+// verificationService is the implementation of the VerificationService.
 type verificationService struct {
 	redis *redis.Client
 }
 
-// NewVerificationService 创建验证码服务实例
+// NewVerificationService creates a new instance of the verification service.
 func NewVerificationService(redisClient *redis.Client) VerificationService {
 	return &verificationService{
 		redis: redisClient,
 	}
 }
 
-// GenerateEmailVerificationCode 生成并存储邮箱验证码
-func (s *verificationService) GenerateEmailVerificationCode(email string) (string, error) {
-	// 生成6位数字验证码
+// GenerateEmailVerificationCode generates and stores an email verification code.
+func (s *verificationService) GenerateEmailVerificationCode(ctx context.Context, email string) (string, error) {
+	// Generate a 6-digit numeric code.
 	code, err := s.generateNumericCode(6)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate verification code: %w", err)
 	}
 
-	// 存储到 Redis，有效期 10 分钟
+	// Store in Redis with an expiration of 10 minutes.
 	key := fmt.Sprintf("email_verification:%s", email)
-	ctx := context.Background()
+	// ctx := context.Background() // Use passed context
 
 	err = s.redis.Set(ctx, key, code, 10*time.Minute).Err()
 	if err != nil {
-		slog.Error("Failed to store verification code in Redis", "email", email, "error", err)
+		logger.Error(ctx, "Failed to store verification code in Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return "", fmt.Errorf("failed to store verification code: %w", err)
 	}
 
-	slog.Info("Email verification code generated", "email", email)
+	logger.Info(ctx, "Email verification code generated", "email", email) // Use slog.InfoContext
 	return code, nil
 }
 
-// VerifyEmailVerificationCode 验证邮箱验证码
-func (s *verificationService) VerifyEmailVerificationCode(email, code string) (bool, error) {
+// VerifyEmailVerificationCode verifies an email verification code.
+func (s *verificationService) VerifyEmailVerificationCode(ctx context.Context, email, code string) (bool, error) {
 	key := fmt.Sprintf("email_verification:%s", email)
-	ctx := context.Background()
+	// ctx := context.Background() // Use passed context
 
 	storedCode, err := s.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			slog.Warn("Email verification code not found or expired", "email", email)
+			logger.Warn(ctx, "Email verification code not found or expired", "email", email) // Use slog.WarnContext
 			return false, nil
 		}
-		slog.Error("Failed to get verification code from Redis", "email", email, "error", err)
+		logger.Error(ctx, "Failed to get verification code from Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to verify code: %w", err)
 	}
 
-	// 验证成功后删除验证码（一次性使用）
+	// Delete the code after successful verification (one-time use).
 	if storedCode == code {
 		s.redis.Del(ctx, key)
-		slog.Info("Email verification code verified successfully", "email", email)
+		logger.Info(ctx, "Email verification code verified successfully", "email", email) // Use slog.InfoContext
 		return true, nil
 	}
 
-	slog.Warn("Invalid email verification code", "email", email)
+	logger.Warn(ctx, "Invalid email verification code", "email", email) // Use slog.WarnContext
 	return false, nil
 }
 
-// GeneratePasswordResetToken 生成并存储密码重置令牌
-func (s *verificationService) GeneratePasswordResetToken(email string) (string, error) {
-	// 生成8位字母数字混合令牌
+// GeneratePasswordResetToken generates and stores a password reset token.
+func (s *verificationService) GeneratePasswordResetToken(ctx context.Context, email string) (string, error) {
+	// Generate an 8-character alphanumeric token.
 	token, err := s.generateAlphanumericToken(8)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate reset token: %w", err)
 	}
 
-	// 存储到 Redis，有效期 30 分钟
+	// Store in Redis with an expiration of 30 minutes.
 	key := fmt.Sprintf("password_reset:%s", email)
-	ctx := context.Background()
+	// ctx := context.Background() // Use passed context
 
 	err = s.redis.Set(ctx, key, token, 30*time.Minute).Err()
 	if err != nil {
-		slog.Error("Failed to store password reset token in Redis", "email", email, "error", err)
+		logger.Error(ctx, "Failed to store password reset token in Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return "", fmt.Errorf("failed to store reset token: %w", err)
 	}
 
-	slog.Info("Password reset token generated", "email", email)
+	logger.Info(ctx, "Password reset token generated", "email", email) // Use slog.InfoContext
 	return token, nil
 }
 
-// VerifyPasswordResetToken 验证密码重置令牌
-func (s *verificationService) VerifyPasswordResetToken(email, token string) (bool, error) {
+// VerifyPasswordResetToken verifies a password reset token.
+func (s *verificationService) VerifyPasswordResetToken(ctx context.Context, email, token string) (bool, error) {
 	key := fmt.Sprintf("password_reset:%s", email)
-	ctx := context.Background()
+	// ctx := context.Background() // Use passed context
 
 	storedToken, err := s.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			slog.Warn("Password reset token not found or expired", "email", email)
+			logger.Warn(ctx, "Password reset token not found or expired", "email", email) // Use slog.WarnContext
 			return false, nil
 		}
-		slog.Error("Failed to get reset token from Redis", "email", email, "error", err)
+		logger.Error(ctx, "Failed to get reset token from Redis", "email", email, "error", err) // Use slog.ErrorContext
 		return false, fmt.Errorf("failed to verify token: %w", err)
 	}
 
-	// 验证成功后删除令牌（一次性使用）
+	// Delete the token after successful verification (one-time use).
 	if storedToken == token {
 		s.redis.Del(ctx, key)
-		slog.Info("Password reset token verified successfully", "email", email)
+		logger.Info(ctx, "Password reset token verified successfully", "email", email) // Use slog.InfoContext
 		return true, nil
 	}
 
-	slog.Warn("Invalid password reset token", "email", email)
+	logger.Warn(ctx, "Invalid password reset token", "email", email) // Use slog.WarnContext
 	return false, nil
 }
 
-// generateNumericCode 生成数字验证码
+// generateNumericCode generates a numeric verification code of a given length.
 func (s *verificationService) generateNumericCode(length int) (string, error) {
 	code := ""
 	for i := 0; i < length; i++ {
@@ -144,7 +144,7 @@ func (s *verificationService) generateNumericCode(length int) (string, error) {
 	return code, nil
 }
 
-// generateAlphanumericToken 生成字母数字混合令牌
+// generateAlphanumericToken generates an alphanumeric token of a given length.
 func (s *verificationService) generateAlphanumericToken(length int) (string, error) {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	token := make([]byte, length)

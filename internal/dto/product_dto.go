@@ -7,20 +7,20 @@ import (
 )
 
 /*
-面向Admin的DTO
+DTOs for Admin operations
 */
 
-// CreateProductRequest 创建产品的请求体
+// CreateProductRequest is the request body for creating a product.
 type CreateProductRequest struct {
-	Name        string          `json:"name" binding:"required"`
-	Barcode     string          `json:"barcode" binding:"omitempty,min=8,max=13"`
-	BarcodeType string          `json:"barcode_type" binding:"omitempty,oneof=EAN13 EAN8 UPC ISBN ASIN GTIN"`
-	Description models.JSONData `json:"description"`
-	CategoryIDs []uint          `json:"category_ids"`
-	ImageURLs   []string        `json:"image_urls"`
+	Name        string          `json:"name" validate:"required,min=1,max=255"`
+	Barcode     string          `json:"barcode" validate:"omitempty,min=8,max=13"`
+	BarcodeType string          `json:"barcode_type" validate:"omitempty,oneof=EAN13 EAN8 UPC ISBN ASIN GTIN"`
+	Description models.JSONData `json:"description" validate:"omitempty"`
+	CategoryIDs []uint          `json:"category_ids" validate:"omitempty,dive,gt=0"`
+	ImageURLs   []string        `json:"image_urls" validate:"omitempty,dive,url"`
 }
 
-// ToModel 将请求体转换为产品模型
+// ToModel converts the request body to a Product model.
 func (r *CreateProductRequest) ToModel() *models.Product {
 	return &models.Product{
 		Name:        r.Name,
@@ -30,19 +30,19 @@ func (r *CreateProductRequest) ToModel() *models.Product {
 	}
 }
 
-// UpdateProductRequest 更新产品的请求体
+// UpdateProductRequest is the request body for updating a product.
 type UpdateProductRequest struct {
-	Name              *string                   `json:"name"`
-	Barcode           *string                   `json:"barcode" binding:"omitempty,min=8,max=13"`
-	BarcodeType       *string                   `json:"barcode_type" binding:"omitempty,oneof=EAN13 EAN8 UPC ISBN ASIN GTIN"`
-	Description       *models.JSONData          `json:"description"`
-	DescriptionStatus *models.DescriptionStatus `json:"description_status"`
-	ProductType       *string                   `json:"product_type"`
-	CategoryIDs       []uint                    `json:"category_ids"`
-	ImageURLs         []string                  `json:"image_urls"`
+	Name              *string                   `json:"name" validate:"omitempty,min=1,max=255"`
+	Barcode           *string                   `json:"barcode" validate:"omitempty,min=8,max=13"`
+	BarcodeType       *string                   `json:"barcode_type" validate:"omitempty,oneof=EAN13 EAN8 UPC ISBN ASIN GTIN"`
+	Description       *models.JSONData          `json:"description" validate:"omitempty"`
+	DescriptionStatus *models.DescriptionStatus `json:"description_status" validate:"omitempty,oneof=PENDING LOADING LOADED OUTDATED"`
+	ProductType       *string                   `json:"product_type" validate:"omitempty,min=1"`
+	CategoryIDs       []uint                    `json:"category_ids" validate:"omitempty,dive,gt=0"`
+	ImageURLs         []string                  `json:"image_urls" validate:"omitempty,dive,url"`
 }
 
-// ToMap 将更新请求转换为更新字段映射
+// ToMap converts the update request to a map of fields to update.
 func (r *UpdateProductRequest) ToMap() map[string]interface{} {
 	updates := make(map[string]interface{})
 
@@ -66,10 +66,10 @@ func (r *UpdateProductRequest) ToMap() map[string]interface{} {
 }
 
 /*
-面向User的DTO
+DTOs for User-facing operations
 */
 
-// UserProductDTO 面向用户的产品DTO，不包含deleted_at字段
+// UserProductDTO is the product DTO for user-facing APIs, excluding the deleted_at field.
 type UserProductDTO struct {
 	ID                   uint                     `json:"id"`
 	Barcode              string                   `json:"barcode"`
@@ -80,25 +80,25 @@ type UserProductDTO struct {
 	DescriptionUpdatedAt *time.Time               `json:"description_updated_at"`
 	CreatedAt            time.Time                `json:"created_at"`
 	UpdatedAt            time.Time                `json:"updated_at"`
-	// 关联字段
+	// Associated fields
 	Categories  []CategoryDTO         `json:"categories"`
 	Images      []UserProductImageDTO `json:"images"`
 	IsLiked     bool                  `json:"is_liked"`
 	IsFavorited bool                  `json:"is_favorited"`
 }
 
-// CategoryDTO 简化的分类DTO，用于在产品中展示
+// CategoryDTO is a simplified category DTO for display within product details.
 type CategoryDTO struct {
 	ID   uint   `json:"id"`
 	Name string `json:"name"`
 }
 
-// UserProductImageDTO 面向用户的产品图片DTO
+// UserProductImageDTO is the product image DTO for user-facing APIs.
 type UserProductImageDTO struct {
 	ImageURL string `json:"image_url"`
 }
 
-// ToUserProductDTO 将产品模型转换为用户产品DTO
+// ToUserProductDTO converts a Product model to a UserProductDTO.
 func ToUserProductDTO(product *models.Product) *UserProductDTO {
 	if product == nil {
 		return nil
@@ -114,11 +114,11 @@ func ToUserProductDTO(product *models.Product) *UserProductDTO {
 		DescriptionUpdatedAt: product.DescriptionUpdatedAt,
 		CreatedAt:            product.CreatedAt,
 		UpdatedAt:            product.UpdatedAt,
-		IsLiked:              false,
-		IsFavorited:          false,
+		IsLiked:              false, // Default value, will be set by handler if user is authenticated
+		IsFavorited:          false, // Default value, will be set by handler if user is authenticated
 	}
 
-	// 转换分类
+	// Convert categories
 	for _, category := range product.Categories {
 		dto.Categories = append(dto.Categories, CategoryDTO{
 			ID:   category.ID,
@@ -126,7 +126,7 @@ func ToUserProductDTO(product *models.Product) *UserProductDTO {
 		})
 	}
 
-	// 转换图片
+	// Convert images
 	for _, img := range product.Images {
 		dto.Images = append(dto.Images, UserProductImageDTO{
 			ImageURL: img.ImageURL,
@@ -136,7 +136,7 @@ func ToUserProductDTO(product *models.Product) *UserProductDTO {
 	return dto
 }
 
-// ToUserProductDTOList 将产品模型列表转换为用户产品DTO列表
+// ToUserProductDTOList converts a list of Product models to a list of UserProductDTOs.
 func ToUserProductDTOList(products []models.Product) []UserProductDTO {
 	dtos := make([]UserProductDTO, 0, len(products))
 	for i := range products {

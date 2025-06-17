@@ -2,41 +2,42 @@ package services
 
 import (
 	"bytes"
+	"context" // Added for context
 	"fmt"
 	"html/template"
-	"log/slog"
 	"net/smtp"
 	"time"
 
 	"github.com/go-backend-template/config"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-// EmailService 邮件服务接口
+// EmailService defines the interface for the email service.
 type EmailService interface {
-	// 发送邮箱验证邮件
-	SendEmailVerification(to, name, verificationCode, locale string) error
-	// 发送密码重置邮件
-	SendPasswordReset(to, name, resetToken, locale string) error
+	// SendEmailVerification sends an email verification email.
+	SendEmailVerification(ctx context.Context, to, name, verificationCode, locale string) error
+	// SendPasswordReset sends a password reset email.
+	SendPasswordReset(ctx context.Context, to, name, resetToken, locale string) error
 }
 
-// emailService 邮件服务实现
+// emailService is the implementation of the EmailService.
 type emailService struct {
 	config *config.Config
 }
 
-// EmailTemplate 邮件模板结构
+// EmailTemplate defines the structure for an email template.
 type EmailTemplate struct {
 	Subject     string
 	HTMLContent string
 	TextContent string
 }
 
-// 邮件验证模板
+// Email verification templates
 var emailVerificationTemplates = map[string]EmailTemplate{
 	"zh": {
-		Subject: "邮箱验证",
+		Subject: "邮箱验证", // Email Verification
 		HTMLContent: `
 <!DOCTYPE html>
 <html>
@@ -196,10 +197,10 @@ Dies ist eine automatisch generierte E-Mail, bitte antworten Sie nicht darauf.
 	},
 }
 
-// 密码重置模板
+// Password reset templates
 var passwordResetTemplates = map[string]EmailTemplate{
 	"zh": {
-		Subject: "密码重置",
+		Subject: "密码重置", // Password Reset
 		HTMLContent: `
 <!DOCTYPE html>
 <html>
@@ -359,42 +360,42 @@ Dies ist eine automatisch generierte E-Mail, bitte antworten Sie nicht darauf.
 	},
 }
 
-// NewEmailService 创建邮件服务实例
+// NewEmailService creates a new instance of the email service.
 func NewEmailService(config *config.Config) EmailService {
 	return &emailService{
 		config: config,
 	}
 }
 
-// getSupportedLanguage 从locale获取支持的语言，遵循IETF BCP 47标准
+// getSupportedLanguage gets the supported language from a locale, following IETF BCP 47 standard.
 func (s *emailService) getSupportedLanguage(locale string) string {
-	// 支持的语言映射表
+	// Map of supported languages
 	supportedLanguages := map[string]string{
-		// 中文相关的locale
+		// Chinese related locales
 		"zh":    "zh",
 		"zh-CN": "zh",
 		"zh-TW": "zh",
 		"zh-HK": "zh",
 		"zh-SG": "zh",
-		// 英文相关的locale
+		// English related locales
 		"en":    "en",
 		"en-US": "en",
 		"en-GB": "en",
 		"en-AU": "en",
 		"en-CA": "en",
-		// 德文相关的locale
+		// German related locales
 		"de":    "de",
 		"de-DE": "de",
 		"de-AT": "de",
 		"de-CH": "de",
 	}
 
-	// 直接匹配完整locale
+	// Direct match for full locale
 	if lang, exists := supportedLanguages[locale]; exists {
 		return lang
 	}
 
-	// 如果完整locale不匹配，尝试匹配语言部分（取'-'前面的部分）
+	// If full locale doesn't match, try matching the language part (before '-')
 	if len(locale) >= 2 {
 		langCode := locale[:2]
 		if lang, exists := supportedLanguages[langCode]; exists {
@@ -402,16 +403,16 @@ func (s *emailService) getSupportedLanguage(locale string) string {
 		}
 	}
 
-	// 默认返回英文
+	// Default to English
 	return "en"
 }
 
-// SendEmailVerification 发送邮箱验证邮件
-func (s *emailService) SendEmailVerification(to, name, verificationCode, locale string) error {
-	// 验证并获取支持的语言
+// SendEmailVerification sends an email verification email.
+func (s *emailService) SendEmailVerification(ctx context.Context, to, name, verificationCode, locale string) error {
+	// Validate and get the supported language.
 	lang := s.getSupportedLanguage(locale)
 
-	// 获取对应语言的模板
+	// Get the template for the corresponding language.
 	template := emailVerificationTemplates[lang]
 
 	subject := template.Subject + " - " + s.config.Email.FromName
@@ -438,15 +439,15 @@ func (s *emailService) SendEmailVerification(to, name, verificationCode, locale 
 		return fmt.Errorf("failed to render text email template: %w", err)
 	}
 
-	return s.sendEmail(to, subject, textContent, htmlContent)
+	return s.sendEmail(ctx, to, subject, textContent, htmlContent) // Pass context
 }
 
-// SendPasswordReset 发送密码重置邮件
-func (s *emailService) SendPasswordReset(to, name, resetToken, locale string) error {
-	// 验证并获取支持的语言
+// SendPasswordReset sends a password reset email.
+func (s *emailService) SendPasswordReset(ctx context.Context, to, name, resetToken, locale string) error {
+	// Validate and get the supported language.
 	lang := s.getSupportedLanguage(locale)
 
-	// 获取对应语言的模板
+	// Get the template for the corresponding language.
 	template := passwordResetTemplates[lang]
 
 	subject := template.Subject + " - " + s.config.Email.FromName
@@ -473,23 +474,23 @@ func (s *emailService) SendPasswordReset(to, name, resetToken, locale string) er
 		return fmt.Errorf("failed to render text email template: %w", err)
 	}
 
-	return s.sendEmail(to, subject, textContent, htmlContent)
+	return s.sendEmail(ctx, to, subject, textContent, htmlContent) // Pass context
 }
 
-// sendEmail 根据配置选择邮件发送方式
-func (s *emailService) sendEmail(to, subject, textContent, htmlContent string) error {
+// sendEmail selects the email sending method based on configuration.
+func (s *emailService) sendEmail(ctx context.Context, to, subject, textContent, htmlContent string) error {
 	switch s.config.Email.Provider {
 	case "sendgrid":
-		return s.sendWithSendGrid(to, subject, textContent, htmlContent)
+		return s.sendWithSendGrid(ctx, to, subject, textContent, htmlContent) // Pass context
 	case "smtp":
-		return s.sendWithSMTP(to, subject, textContent, htmlContent)
+		return s.sendWithSMTP(ctx, to, subject, textContent, htmlContent) // Pass context
 	default:
 		return fmt.Errorf("unsupported email provider: %s", s.config.Email.Provider)
 	}
 }
 
-// sendWithSendGrid 使用 SendGrid 发送邮件
-func (s *emailService) sendWithSendGrid(to, subject, textContent, htmlContent string) error {
+// sendWithSendGrid sends an email using SendGrid.
+func (s *emailService) sendWithSendGrid(ctx context.Context, to, subject, textContent, htmlContent string) error {
 	from := mail.NewEmail(s.config.Email.FromName, s.config.Email.FromEmail)
 	toEmail := mail.NewEmail("", to)
 
@@ -499,24 +500,24 @@ func (s *emailService) sendWithSendGrid(to, subject, textContent, htmlContent st
 	response, err := client.Send(message)
 
 	if err != nil {
-		slog.Error("Failed to send email via SendGrid", "error", err, "to", to)
+		logger.Error(ctx, "Failed to send email via SendGrid", "error", err, "to", to)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
 	if response.StatusCode >= 400 {
-		slog.Error("SendGrid returned error", "status", response.StatusCode, "body", response.Body, "to", to)
+		logger.Error(ctx, "SendGrid returned error", "status", response.StatusCode, "body", response.Body, "to", to)
 		return fmt.Errorf("sendgrid error: status %d", response.StatusCode)
 	}
 
-	slog.Info("Email sent successfully via SendGrid", "to", to, "status", response.StatusCode)
+	logger.Info(ctx, "Email sent successfully via SendGrid", "to", to, "status", response.StatusCode)
 	return nil
 }
 
-// sendWithSMTP 使用 SMTP 发送邮件
-func (s *emailService) sendWithSMTP(to, subject, textContent, htmlContent string) error {
+// sendWithSMTP sends an email using SMTP.
+func (s *emailService) sendWithSMTP(ctx context.Context, to, subject, textContent, htmlContent string) error {
 	auth := smtp.PlainAuth("", s.config.Email.SMTP.Username, s.config.Email.SMTP.Password, s.config.Email.SMTP.Host)
 
-	// 构建邮件内容
+	// Construct the email body
 	var body bytes.Buffer
 	body.WriteString(fmt.Sprintf("From: %s <%s>\r\n", s.config.Email.FromName, s.config.Email.FromEmail))
 	body.WriteString(fmt.Sprintf("To: %s\r\n", to))
@@ -541,15 +542,15 @@ func (s *emailService) sendWithSMTP(to, subject, textContent, htmlContent string
 	err := smtp.SendMail(addr, auth, s.config.Email.FromEmail, []string{to}, body.Bytes())
 
 	if err != nil {
-		slog.Error("Failed to send email via SMTP", "error", err, "to", to)
+		logger.Error(ctx, "Failed to send email via SMTP", "error", err, "to", to)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
-	slog.Info("Email sent successfully via SMTP", "to", to)
+	logger.Info(ctx, "Email sent successfully via SMTP", "to", to)
 	return nil
 }
 
-// renderTemplate 渲染邮件模板
+// renderTemplate renders an email template.
 func (s *emailService) renderTemplate(templateContent string, data interface{}) (string, error) {
 	tmpl, err := template.New("email").Parse(templateContent)
 	if err != nil {

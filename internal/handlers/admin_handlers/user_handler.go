@@ -1,13 +1,13 @@
 package admin_handlers
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-backend-template/internal/dto"
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/services"
+	"github.com/go-backend-template/pkg/logger"
 	"github.com/go-backend-template/pkg/query_params"
 	"github.com/go-backend-template/pkg/response"
 )
@@ -23,171 +23,171 @@ func NewUserHandler(UserService services.UserService) *UserHandler {
 }
 
 /*
-5个通用CRUD接口
+5 general CRUD interfaces
 */
 
-// GetUsers 获取用户列表
+// ListUsers retrieves a list of users.
 func (h *UserHandler) ListUsers(ctx *gin.Context) {
-	// 从上下文中获取已解析的查询参数
+	// Get parsed query parameters from context.
 	params, _ := ctx.Get("queryParams")
 	queryParams, ok := params.(*query_params.QueryParams)
 	if !ok {
-		slog.Warn("Invalid query parameters type", "params", params)
+		logger.Warn(ctx, "Invalid query parameters type", "params", params)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid query parameters type"))
 		return
 	}
 
-	// 检查是否需要包含软删除的记录
+	// Check if soft-deleted records should be included.
 	includeSoftDeleted := ctx.Query("include_soft_deleted") == "true"
 
-	// 获取用户列表
-	users, pagination, err := h.UserService.ListUsers(queryParams, includeSoftDeleted)
+	// Get user list.
+	users, pagination, err := h.UserService.ListUsers(ctx.Request.Context(), queryParams, includeSoftDeleted) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(users, "", *pagination))
 }
 
-// GetUser 获取单个用户详情
+// GetUser retrieves details for a single user.
 func (h *UserHandler) GetUser(ctx *gin.Context) {
-	// 获取Path参数：user ID
+	// Get user ID from path parameters.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 检查是否需要包含软删除的记录
+	// Check if soft-deleted records should be included.
 	includeSoftDeleted := ctx.Query("include_soft_deleted") == "true"
 
-	// 调用 Service层 获取 User
-	user, err := h.UserService.GetUser(uint(id), includeSoftDeleted)
+	// Call service layer to get the user.
+	user, err := h.UserService.GetUser(ctx.Request.Context(), uint(id), includeSoftDeleted) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回200 OK
+	// Return 200 OK.
 	ctx.JSON(http.StatusOK, response.NewSuccessResponse(user, ""))
 }
 
-// CreateUser 创建新用户
+// CreateUser creates a new user.
 func (h *UserHandler) CreateUser(ctx *gin.Context) {
-	// 解析请求体
+	// Parse request body.
 	var payload dto.RegisterWithPasswordRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user creation request", "error", err)
+		logger.Warn(ctx, "Invalid user creation request", "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
-	// 调用 Service层 创建 User
-	createdUserID, err := h.UserService.CreateUser(&payload)
+	// Call service layer to create the user.
+	createdUserID, err := h.UserService.CreateUser(ctx.Request.Context(), &payload) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回201 Created
-	slog.Info("User created", "userId", createdUserID)
+	// Return 201 Created.
+	logger.Info(ctx, "User created", "userId", createdUserID)
 	ctx.JSON(http.StatusCreated, response.NewSuccessResponse(gin.H{"id": createdUserID}, ""))
 }
 
-// UpdateUser 更新用户信息
+// UpdateUser updates user information.
 func (h *UserHandler) UpdateUser(ctx *gin.Context) {
-	// 解析用户ID
+	// Parse user ID.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 解析请求体
+	// Parse request body.
 	var payload dto.UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		slog.Warn("Invalid user update request", "userId", id, "error", err)
+		logger.Warn(ctx, "Invalid user update request", "userId", id, "error", err)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Invalid request body: "+err.Error()))
 		return
 	}
 
-	// 调用 Service层 更新 User
-	err = h.UserService.UpdateUser(uint(id), &payload)
+	// Call service layer to update the user.
+	err = h.UserService.UpdateUser(ctx.Request.Context(), uint(id), &payload) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回204 No Content
-	slog.Info("User updated", "userId", id)
+	// Return 204 No Content.
+	logger.Info(ctx, "User updated", "userId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// DeleteUser 删除用户
+// DeleteUser deletes a user.
 func (h *UserHandler) DeleteUser(ctx *gin.Context) {
-	// 解析用户ID
+	// Parse user ID.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 调用 Service层 删除 User
-	err = h.UserService.DeleteUser(uint(id))
+	// Call service layer to delete the user.
+	err = h.UserService.DeleteUser(ctx.Request.Context(), uint(id)) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	// 返回204 No Content
-	slog.Info("User deleted", "userId", id)
+	// Return 204 No Content.
+	logger.Info(ctx, "User deleted", "userId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// RestoreUser 恢复软删除的用户
+// RestoreUser restores a soft-deleted user.
 func (h *UserHandler) RestoreUser(ctx *gin.Context) {
-	// 解析用户ID
+	// Parse user ID.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 调用 Service层 恢复软删除的 User
-	err = h.UserService.RestoreUser(uint(id))
+	// Call service layer to restore the soft-deleted user.
+	err = h.UserService.RestoreUser(ctx.Request.Context(), uint(id)) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	slog.Info("User restored", "userId", id)
+	logger.Info(ctx, "User restored", "userId", id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
 /*
-定制接口
+Custom interfaces
 */
 
-// BanUser 封禁或解除封禁用户
+// BanUser bans or unbans a user.
 func (h *UserHandler) BanUser(ctx *gin.Context) {
-	// 解析用户ID
+	// Parse user ID.
 	id, err := handler_utils.ParseUintParam(ctx, "id")
 	if err != nil {
 		return
 	}
 
-	// 解析请求体中是否封禁或解除封禁，默认封禁
+	// Parse whether to ban or unban from the request body, defaults to ban.
 	var payload struct {
 		IsBanned bool `json:"is_banned"`
 	}
-	// 如果未传值，可默认封禁
+	// If no value is provided, it can default to ban (or handle as needed).
 	ctx.ShouldBindJSON(&payload)
 
-	// 调用 Service 层封禁/解除封禁 User
-	err = h.UserService.BanUser(uint(id), payload.IsBanned)
+	// Call service layer to ban/unban the user.
+	err = h.UserService.BanUser(ctx.Request.Context(), uint(id), payload.IsBanned) // Pass context
 	if err != nil {
 		handler_utils.HandleError(ctx, err)
 		return
 	}
 
-	slog.Info("User ban status updated", "userId", id, "banned", payload.IsBanned)
+	logger.Info(ctx, "User ban status updated", "userId", id, "banned", payload.IsBanned)
 	ctx.JSON(http.StatusNoContent, nil)
 }

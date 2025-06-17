@@ -10,23 +10,23 @@ import (
 )
 
 func StartServer(env string) {
-	// 设置 Gin 模式
+	// Set Gin mode.
 	if env == "prod" {
 		gin.SetMode(gin.ReleaseMode)
 	} else {
 		gin.SetMode(gin.DebugMode)
 	}
 
-	// 初始化DI Container
+	// Initialize DI Container.
 	diContainer := di.NewContainer(env)
 
-	// 创建 Gin 实例
+	// Create Gin instance.
 	r := gin.New()
 
-	// 初始化路由
+	// Initialize routes.
 	routes.InitRoutes(r, diContainer)
 
-	// 使用配置的端口
+	// Use configured port.
 	port := strconv.Itoa(diContainer.Config.Server.Port)
 	slog.Info("Server starting", "port", port, "env", env)
 	slog.Info("Server running at http://localhost:" + port)

@@ -1,75 +1,77 @@
-# 邮件验证配置指南
+# Email Verification Configuration Guide
 
-本指南介绍如何在 Go 后端应用中快速配置邮件验证和密码重置功能。
+This guide explains how to quickly configure email verification and password reset features in the Go backend application.
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 1. 环境要求
+### 1. Prerequisites
 
-- Redis 服务器
-- 邮件服务商（SendGrid 或 SMTP）
+- Redis server
+- Email service provider (SendGrid or SMTP)
 
 ```bash
-# 启动 Redis（Docker）
+# Start Redis (Docker)
 docker run --name redis -p 6379:6379 -d redis:alpine
 ```
 
-### 2. 配置邮件服务
+### 2. Configure Email Service
 
-在 `config/config.dev.yaml` 中配置：
+Configure in `config/config.dev.yaml`:
 
 ```yaml
-# Redis 配置
+# Redis Configuration
 redis:
   host: "localhost"
   port: 6379
-  password: ""
-  db: 0
+  password: "" # No password by default for local Redis
+  db: 0         # Default DB
 
-# 邮件配置
+# Email Configuration
 email:
-  provider: "sendgrid"  # 推荐，或使用 "smtp"
+  provider: "sendgrid"  # Recommended, or use "smtp"
   sendgrid:
     api_key: "your-sendgrid-api-key"
     from_email: "noreply@yourdomain.com"
-    from_name: "Your App"
-  smtp:  # Gmail 示例
+    from_name: "Your App Name" # Name displayed as sender
+  smtp:  # Example for Gmail
     host: "smtp.gmail.com"
     port: 587
     username: "your-email@gmail.com"
-    password: "your-app-password"
+    password: "your-app-password" # Use an app-specific password for Gmail
     from_email: "noreply@yourdomain.com"
-    from_name: "Your App"
+    from_name: "Your App Name"
 ```
 
-### 3. 测试验证
+### 3. Test Verification
 
 ```bash
-# 启动应用
+# Start the application
 go run cmd/*.go server
 
-# 测试邮件验证
-go run test_email_verification.go
+# Test email verification (Example script or API call)
+# (Assuming you have a test script or use a tool like Postman)
+# go run test_email_verification.go
 ```
+(Note: `test_email_verification.go` is a placeholder for your testing method.)
 
-## ⚙️ 邮件服务配置
+## ⚙️ Email Service Configuration
 
-### SendGrid（推荐）
+### SendGrid (Recommended)
 
-1. 注册 [SendGrid](https://sendgrid.com) 免费账户
-2. 创建 API Key：`Settings → API Keys → Create API Key`
-3. 权限选择：`Mail Send`
-4. 验证发件人邮箱或域名
+1. Register for a free [SendGrid](https://sendgrid.com) account.
+2. Create an API Key: `Settings → API Keys → Create API Key`.
+3. Choose permissions: `Mail Send`.
+4. Verify sender email or domain.
 
-### SMTP（Gmail 示例）
+### SMTP (Gmail Example)
 
-1. 开启两步验证
-2. 生成应用专用密码：`Google 账户 → 安全性 → 应用专用密码`
-3. 使用应用专用密码作为配置中的 password
+1. Enable 2-Step Verification for your Google account.
+2. Generate an App Password: `Google Account → Security → App passwords`.
+3. Use the App Password as the `password` in the SMTP configuration.
 
-## 📡 API 端点
+## 📡 API Endpoints
 
-### 邮箱验证
+### Email Verification
 
 ```http
 POST /api/v1/auth/email/send-verification
@@ -85,7 +87,7 @@ Content-Type: application/json
 {"email": "user@example.com", "code": "123456"}
 ```
 
-### 密码重置
+### Password Reset
 
 ```http
 POST /api/v1/auth/password/reset-request
@@ -105,55 +107,59 @@ Content-Type: application/json
 }
 ```
 
-## 🛡️ 安全特性
+## 🛡️ Security Features
 
-### 限流保护
+### Rate Limiting
 
-| 功能 | 限制 | 窗口期 |
-|------|------|--------|
-| 邮箱验证 | 3次/邮箱 | 10分钟 |
-| 密码重置 | 2次/邮箱 | 15分钟 |
+| Feature             | Limit         | Window Period |
+|---------------------|---------------|---------------|
+| Email Verification  | 3 times/email | 10 minutes    |
+| Password Reset      | 2 times/email | 15 minutes    |
 
-### 验证码规则
+### Verification Code Rules
 
-| 类型 | 格式 | 有效期 | Redis Key |
-|------|------|--------|-----------|
-| 邮箱验证 | 6位数字 | 10分钟 | `email_verification:{email}` |
-| 密码重置 | 8位字母数字 | 30分钟 | `password_reset:{email}` |
+| Type                | Format              | Validity Period | Redis Key                   |
+|---------------------|---------------------|-----------------|-----------------------------|
+| Email Verification  | 6-digit number      | 10 minutes      | `email_verification:{email}` |
+| Password Reset      | 8-char alphanumeric | 30 minutes      | `password_reset:{email}`    |
 
-## 🔧 故障排除
+## 🔧 Troubleshooting
 
-### 常见问题
+### Common Issues
 
-**Redis 连接失败**
+**Redis Connection Failed**
 ```bash
-# 检查 Redis 状态
+# Check Redis status
 redis-cli ping
 ```
 
-**邮件发送失败**
-- 检查 API Key 权限（SendGrid）
-- 验证应用专用密码（Gmail）
-- 确认发件人邮箱已验证
+**Email Sending Failed**
+- Check API Key permissions (SendGrid).
+- Verify App Password (Gmail).
+- Confirm sender email is verified.
 
-**验证码问题**
+**Verification Code Issues**
 ```bash
-# 查看 Redis 中的验证码
+# View verification code in Redis
 redis-cli get "email_verification:user@example.com"
 
-# 监控 Redis 操作
+# Monitor Redis operations
 redis-cli monitor
 ```
 
-### 环境变量覆盖
+### Environment Variable Override
 
 ```bash
-# 覆盖邮件配置
+# Override email configuration
 export EMAIL_PROVIDER="sendgrid"
 export EMAIL_SENDGRID_API_KEY="your-api-key"
 export EMAIL_SENDGRID_FROM_EMAIL="noreply@yourdomain.com"
+export EMAIL_SENDGRID_FROM_NAME="Your App Name"
 
-# 覆盖 Redis 配置
+
+# Override Redis configuration
 export REDIS_HOST="localhost"
 export REDIS_PORT=6379
+# export REDIS_PASSWORD="" # If you set one
+# export REDIS_DB=0
 ```

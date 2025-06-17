@@ -12,9 +12,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// Container 依赖注入容器，统一管理组件依赖
+// Container is the dependency injection container, managing component dependencies.
 type Container struct {
-	// 配置
+	// Configuration
 	Config         *config.Config
 	DB             *gorm.DB
 	Redis          *redis.Client
@@ -22,39 +22,39 @@ type Container struct {
 	MoonshotClient *openai.Client
 	DeepSeekClient *openai.Client
 
-	// Service层 (基础服务)
+	// Service Layer (Core Services)
 	EmailService        services.EmailService
 	VerificationService services.VerificationService
 	GoogleOAuthService  services.GoogleOAuthService
 
-	// Repository层
+	// Repository Layer
 	UserRepository            repositories.UserRepository
 	CategoryRepository        repositories.CategoryRepository
 	ProductRepository         repositories.ProductRepository
 	UserInteractionRepository repositories.UserInteractionRepository
 
-	// Service层 (业务服务)
+	// Service Layer (Business Services)
 	UserService            services.UserService
 	CategoryService        services.CategoryService
 	ProductService         services.ProductService
 	UserInteractionService services.UserInteractionService
 
-	// Handler层
+	// Handler Layer
 	AuthHandler            *handlers.AuthHandler
 	CategoryHandler        *handlers.CategoryHandler
 	ProductHandler         *handlers.ProductHandler
 	UserInteractionHandler *handlers.UserInteractionHandler
 
-	// Admin Handler层
+	// Admin Handler Layer
 	UserHandlerForAdmin    *admin_handlers.UserHandler
 	ProductHandlerForAdmin *admin_handlers.ProductHandler
 }
 
-// NewContainer 创建一个新的依赖注入容器
+// NewContainer creates a new dependency injection container.
 func NewContainer(env string) *Container {
 	container := &Container{}
 
-	// 加载配置
+	// Load configuration.
 	cfg, err := config.LoadConfig(env)
 	if err != nil {
 		panic("Failed to load config: " + err.Error())
@@ -65,7 +65,7 @@ func NewContainer(env string) *Container {
 	moonshotClient := infra.InitMoonshotClient(cfg)
 	deepSeekClient := infra.InitDeepSeekClient(cfg)
 
-	// 设置配置和数据库连接
+	// Set configuration and database connections.
 	container.Config = cfg
 	container.DB = db
 	container.Redis = redis
@@ -73,24 +73,24 @@ func NewContainer(env string) *Container {
 	container.MoonshotClient = moonshotClient
 	container.DeepSeekClient = deepSeekClient
 
-	// 初始化基础服务
+	// Initialize core services.
 	container.EmailService = services.NewEmailService(cfg)
 	container.VerificationService = services.NewVerificationService(redis)
 	container.GoogleOAuthService = services.NewGoogleOAuthService(cfg)
 
-	// 初始化仓库层
+	// Initialize repository layer.
 	container.initRepositoryLayer(db)
 
-	// 初始化服务层
+	// Initialize service layer.
 	container.initServiceLayer(cfg)
 
-	// 初始化处理器层
+	// Initialize handler layer.
 	container.initHandlerLayer()
 
 	return container
 }
 
-// 初始化Repository层
+// initRepositoryLayer initializes the repository layer.
 func (c *Container) initRepositoryLayer(db *gorm.DB) {
 	c.UserRepository = repositories.NewUserRepository(db)
 	c.CategoryRepository = repositories.NewCategoryRepository(db)
@@ -98,7 +98,7 @@ func (c *Container) initRepositoryLayer(db *gorm.DB) {
 	c.UserInteractionRepository = repositories.NewUserInteractionRepository(db, c.CategoryRepository)
 }
 
-// 初始化Service层
+// initServiceLayer initializes the service layer.
 func (c *Container) initServiceLayer(cfg *config.Config) {
 	c.UserService = services.NewUserService(cfg, c.UserRepository, c.GoogleOAuthService, c.EmailService, c.VerificationService)
 	c.CategoryService = services.NewCategoryService(c.CategoryRepository)
@@ -106,15 +106,15 @@ func (c *Container) initServiceLayer(cfg *config.Config) {
 	c.UserInteractionService = services.NewUserInteractionService(c.UserInteractionRepository, c.ProductRepository)
 }
 
-// 初始化Handler层
+// initHandlerLayer initializes the handler layer.
 func (c *Container) initHandlerLayer() {
-	// 公共处理器
+	// Public handlers
 	c.AuthHandler = handlers.NewAuthHandler(c.UserService)
 	c.CategoryHandler = handlers.NewCategoryHandler(c.CategoryService)
 	c.ProductHandler = handlers.NewProductHandler(c.ProductService, c.UserInteractionService)
 	c.UserInteractionHandler = handlers.NewUserInteractionHandler(c.UserInteractionService)
 
-	// Admin处理器
+	// Admin handlers
 	c.UserHandlerForAdmin = admin_handlers.NewUserHandler(c.UserService)
 	c.ProductHandlerForAdmin = admin_handlers.NewProductHandler(c.ProductService)
 }

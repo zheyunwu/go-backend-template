@@ -8,22 +8,22 @@ import (
 	"github.com/go-backend-template/internal/models"
 )
 
-// RunMigration 负责执行数据库迁移
+// RunMigration is responsible for executing database migrations.
 func RunMigration(env string) {
 	slog.Info("Starting database migration...")
 
-	// 初始化DI Container
+	// Initialize DI Container.
 	diContainer := di.NewContainer(env)
 
-	// 获取数据库驱动类型
+	// Get database driver type.
 	dbDriver := strings.ToLower(diContainer.Config.Database.Driver)
 	slog.Info("Detected database driver", "driver", dbDriver)
 
-	// 根据数据库类型执行不同的迁移策略
+	// Execute different migration strategies based on database type.
 	var err error
 	switch dbDriver {
 	case "mysql":
-		// MySQL特有的表选项
+		// MySQL specific table options.
 		err = diContainer.DB.Set("gorm:table_options", "CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci").AutoMigrate(
 			&models.User{},
 			&models.UserProvider{},
@@ -35,7 +35,7 @@ func RunMigration(env string) {
 			&models.UserProductFavorite{},
 		)
 	case "postgres", "postgresql":
-		// PostgreSQL不需要指定字符集，直接执行迁移
+		// PostgreSQL does not require specifying character sets, execute migration directly.
 		err = diContainer.DB.AutoMigrate(
 			&models.User{},
 			&models.UserProvider{},

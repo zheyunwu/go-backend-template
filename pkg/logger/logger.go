@@ -1,49 +1,50 @@
 package logger
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"os"
 	"time"
 )
 
-// 日志级别常量
-const (
-	LevelDebug = slog.LevelDebug
-	LevelInfo  = slog.LevelInfo
-	LevelWarn  = slog.LevelWarn
-	LevelError = slog.LevelError
-)
+// contextKey is a type for context keys to avoid collisions.
+type contextKey string
 
-// Config 日志配置
+// loggerKey is the key for storing a logger in the context.
+const loggerKey contextKey = "logger"
+
+// Config holds logger configuration.
 type Config struct {
-	Level      slog.Level
-	JSONFormat bool
-	Output     io.Writer
+	Level      slog.Level // Log level (Debug, Info, Warn, Error)
+	JSONFormat bool       // Whether to output logs in JSON format
+	Output     io.Writer  // Output destination for logs (e.g., os.Stdout)
+	Service    string     // Service name for structured logging
+	Version    string     // Service version
 }
 
-// DefaultConfig 返回默认日志配置
-func DefaultConfig() *Config {
-	return &Config{
-		Level:      LevelInfo,
-		JSONFormat: false,
-		Output:     os.Stdout,
-	}
-}
+// Global logger instance
+var defaultLogger *slog.Logger
 
-// Init 初始化全局 slog logger
+// Init initializes the global slog logger.
 func Init(cfg *Config) {
 	if cfg == nil {
-		cfg = DefaultConfig()
+		cfg = &Config{
+			Level:      slog.LevelInfo,
+			JSONFormat: false,
+			Output:     os.Stdout,
+			Service:    "go-backend-template",
+			Version:    "1.0.0",
+		}
 	}
 
 	var handler slog.Handler
 
 	opts := &slog.HandlerOptions{
 		Level:     cfg.Level,
-		AddSource: true,
+		AddSource: true, // Include source file and line number in logs
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			// 格式化时间字段
+			// Format the time field
 			if a.Key == "time" {
 				if t, ok := a.Value.Any().(time.Time); ok {
 					a.Value = slog.StringValue(t.Format(time.RFC3339))
@@ -59,6 +60,54 @@ func Init(cfg *Config) {
 		handler = slog.NewTextHandler(cfg.Output, opts)
 	}
 
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
+	// Create base logger with service metadata
+	baseLogger := slog.New(handler)
+	defaultLogger = baseLogger.With(
+		"service", cfg.Service,
+		"version", cfg.Version,
+	)
+
+	slog.SetDefault(defaultLogger)
+}
+
+// FromContext retrieves the logger from the context, or returns the default logger if not found.
+func FromContext(ctx context.Context) *slog.Logger {
+	if logger, ok := ctx.Value(loggerKey).(*slog.Logger); ok {
+		return logger
+	}
+	return defaultLogger
+}
+
+// WithContext stores the logger in the context.
+func WithContext(ctx context.Context, logger *slog.Logger) context.Context {
+	return context.WithValue(ctx, loggerKey, logger)
+}
+
+// WithRequestID creates a new logger with request ID and stores it in context
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	logger := FromContext(ctx).With("request_id", requestID)
+	return WithContext(ctx, logger)
+}
+
+// WithUserID adds user ID to the logger in context
+func WithUserID(ctx context.Context, userID interface{}) context.Context {
+	logger := FromContext(ctx).With("user_id", userID)
+	return WithContext(ctx, logger)
+}
+
+// Convenience functions for common logging patterns
+func Info(ctx context.Context, msg string, args ...any) {
+	FromContext(ctx).InfoContext(ctx, msg, args...)
+}
+
+func Error(ctx context.Context, msg string, args ...any) {
+	FromContext(ctx).ErrorContext(ctx, msg, args...)
+}
+
+func Debug(ctx context.Context, msg string, args ...any) {
+	FromContext(ctx).DebugContext(ctx, msg, args...)
+}
+
+func Warn(ctx context.Context, msg string, args ...any) {
+	FromContext(ctx).WarnContext(ctx, msg, args...)
 }
