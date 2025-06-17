@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-backend-template/internal/dto"
+	"github.com/go-backend-template/internal/errors"
 	"github.com/go-backend-template/internal/handlers/handler_utils"
 	"github.com/go-backend-template/internal/services"
 	"github.com/go-backend-template/internal/utils" // Added validator utility
@@ -333,7 +334,7 @@ func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
 	// Get and validate OpenID and UnionID.
 	openID, unionID, ok := handler_utils.GetWechatIDs(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse("Missing WeChat credentials"))
+		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(errors.ErrOpenIDNotProvided.Message))
 		return
 	}
 
