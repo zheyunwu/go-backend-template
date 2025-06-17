@@ -346,7 +346,7 @@ func (h *AuthHandler) RegisterFromWechatMiniProgram(ctx *gin.Context) {
 	}
 
 	// Validate UpdateProfileRequest part of the payload as RegisterFromWechatMiniProgramRequest embeds it.
-	if validationErrs := customValidator.ValidateStruct(&payload.UpdateProfileRequest); validationErrs != nil {
+	if validationErrs := customValidator.ValidateStruct(&payload); validationErrs != nil {
 		logger.Warn(ctx, "Validation failed for RegisterFromWechatMiniProgram (ProfileData)", "errors", validationErrs)
 		ctx.JSON(http.StatusBadRequest, response.NewErrorResponse(utils.FormatValidationErrors(validationErrs)))
 		return

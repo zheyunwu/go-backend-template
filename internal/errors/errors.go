@@ -24,6 +24,7 @@ var (
 	ErrUserAlreadyExists       = NewAppError("user_already_exists", "User already exists", http.StatusConflict)
 	ErrPhoneAlreadyExists      = NewAppError("phone_already_exists", "Phone number already exists", http.StatusConflict)
 	ErrEmailAlreadyExists      = NewAppError("email_already_exists", "Email already exists", http.StatusConflict)
+	ErrEmailNotProvided        = NewAppError("email_not_provided", "Email not provided", http.StatusBadRequest)
 	ErrEmailOrPhoneNotProvided = NewAppError("email_or_phone_not_provided", "Email or phone number not provided", http.StatusBadRequest)
 	ErrInvalidEmail            = NewAppError("invalid_email", "Invalid email format", http.StatusBadRequest)
 	ErrInvalidPassword         = NewAppError("invalid_password", "Invalid password", http.StatusBadRequest)
@@ -87,7 +88,7 @@ var (
 	// Content security check related errors
 	ErrContentSecurityCheck = NewAppError("content_security_check", "Inappropriate content detected", http.StatusBadRequest) // "包含不恰当内容" -> "Inappropriate content detected"
 	ErrContentSecurityAPI   = NewAppError("content_security_api_error", "Content security check API error", http.StatusServiceUnavailable)
-	ErrContentTooLong       = NewAppError("content_too_long", "Content is too long", http.StatusBadRequest)                // "内容过长" -> "Content is too long"
+	ErrContentTooLong       = NewAppError("content_too_long", "Content is too long", http.StatusBadRequest) // "内容过长" -> "Content is too long"
 	ErrContentEmptyCheck    = NewAppError("content_empty", "Content cannot be empty", http.StatusBadRequest)
 	ErrOpenIDRequired       = NewAppError("openid_required", "OpenID is required for content security check", http.StatusBadRequest)
 )

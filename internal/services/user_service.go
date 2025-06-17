@@ -128,13 +128,13 @@ func (s *userService) GetUser(ctx context.Context, id uint, includeSoftDeleted .
 // CreateUser creates a user (traditional Email/Phone + password).
 func (s *userService) CreateUser(ctx context.Context, req *dto.RegisterWithPasswordRequest) (uint, error) {
 	// Validate that at least email or phone is provided.
-	if (req.Email == nil || *req.Email == "") && (req.Phone == nil || *req.Phone == "") {
-		return 0, errors.ErrEmailOrPhoneNotProvided
+	if req.Email == "" {
+		return 0, errors.ErrEmailNotProvided
 	}
 
 	// Validate for duplicate email or phone number.
-	if req.Email != nil && *req.Email != "" {
-		if _, err := s.userRepo.GetUserByField(ctx, "email", *req.Email, true); err == nil { // Pass context
+	if req.Email != "" {
+		if _, err := s.userRepo.GetUserByField(ctx, "email", req.Email, true); err == nil { // Pass context
 			return 0, errors.ErrEmailAlreadyExists
 		}
 	}
@@ -164,20 +164,20 @@ func (s *userService) CreateUser(ctx context.Context, req *dto.RegisterWithPassw
 	}
 
 	// If the user provided an email, automatically send a verification email.
-	if req.Email != nil && *req.Email != "" {
+	if req.Email != "" {
 		// Generate verification code.
-		code, err := s.verificationService.GenerateEmailVerificationCode(ctx, *req.Email) // Pass context
+		code, err := s.verificationService.GenerateEmailVerificationCode(ctx, req.Email) // Pass context
 		if err != nil {
-			logger.Warn(ctx, "Failed to generate email verification code after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
+			logger.Warn(ctx, "Failed to generate email verification code after user creation", "userId", user.ID, "email", req.Email, "error", err) // Use slog.WarnContext
 			// Do not return an error here, as the user has already been created successfully; only email verification failed.
 		} else {
 			// Send verification email, using the user's language preference.
-			err = s.emailService.SendEmailVerification(ctx, *req.Email, user.Name, code, user.Locale) // Pass context
+			err = s.emailService.SendEmailVerification(ctx, req.Email, user.Name, code, user.Locale) // Pass context
 			if err != nil {
-				logger.Warn(ctx, "Failed to send verification email after user creation", "userId", user.ID, "email", *req.Email, "error", err) // Use slog.WarnContext
+				logger.Warn(ctx, "Failed to send verification email after user creation", "userId", user.ID, "email", req.Email, "error", err) // Use slog.WarnContext
 				// Do not return an error here, as the user has already been created successfully.
 			} else {
-				logger.Info(ctx, "Verification email sent successfully after user creation", "userId", user.ID, "email", *req.Email, "language", user.Locale) // Use slog.InfoContext
+				logger.Info(ctx, "Verification email sent successfully after user creation", "userId", user.ID, "email", req.Email, "language", user.Locale) // Use slog.InfoContext
 			}
 		}
 	}
@@ -678,18 +678,6 @@ func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dt
 		}
 	}
 
-	// Validate for duplicate email or phone number.
-	if req.Email != nil && *req.Email != "" {
-		if _, err := s.userRepo.GetUserByField(ctx, "email", *req.Email, true); err == nil { // Pass context
-			return 0, errors.ErrEmailAlreadyExists
-		}
-	}
-	if req.Phone != nil && *req.Phone != "" {
-		if _, err := s.userRepo.GetUserByField(ctx, "phone", *req.Phone, true); err == nil { // Pass context
-			return 0, errors.ErrPhoneAlreadyExists
-		}
-	}
-
 	// Convert DTO to User model.
 	user := req.ToModel()
 
@@ -697,9 +685,7 @@ func (s *userService) RegisterFromWechatMiniProgram(ctx context.Context, req *dt
 	err := s.userRepo.CreateUser(ctx, user) // Pass context
 	if err != nil {
 		logger.Error(ctx, "Failed to create user", // Use slog.ErrorContext
-			"nickname", user.Name,
-			"email", req.Email,
-			"phone", req.Phone,
+			"name", user.Name,
 			"openId", openID,
 			"error", err)
 		return 0, fmt.Errorf("failed to create user: %w", err)

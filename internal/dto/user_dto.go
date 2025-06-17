@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-backend-template/internal/models"
+	"github.com/go-backend-template/internal/utils"
 )
 
 /* Response DTOs */
@@ -47,27 +48,81 @@ func ToUserProfileDTO(user *models.User) *UserProfileDTO {
 
 /* Request DTOs */
 
-// UpdateProfileRequest is the request for updating user profile information.
+// RegisterWithPasswordRequest is the request for registering a new user with a password.
+type RegisterWithPasswordRequest struct {
+	Password string `json:"password" validate:"required,min=8"`
+	Email    string `json:"email" validate:"required,email"`
+
+	// Optional fields for user profile
+	Name      *string            `json:"name" validate:"omitempty,min=0,max=50"`
+	AvatarURL *string            `json:"avatar_url" validate:"omitempty,empty_or_url"`
+	Gender    *models.GenderType `json:"gender" validate:"omitempty,oneof=PREFER_NOT_TO_SAY MALE FEMALE OTHER"`
+	Phone     *string            `json:"phone" validate:"omitempty,empty_or_e164"` // E.164 phone number format
+	BirthDate *string            `json:"birth_date" validate:"omitempty,datetime=2006-01-02"`
+	Locale    *string            `json:"locale" validate:"omitempty,oneof=en zh de"`
+}
+
+// ToModel converts a password registration request to a User model, including the hashed password.
+func (r *RegisterWithPasswordRequest) ToModel(hashedPassword string) *models.User {
+	user := models.User{
+		Email:    &r.Email,
+		Password: &hashedPassword, // Store the hashed password
+	}
+	if r.Name != nil && *r.Name != "" {
+		user.Name = *r.Name
+	} else {
+		// 如果没有提供名称，默认“User”+6位随机字符
+		user.Name = "User " + utils.RandomString(6)
+	}
+	if r.AvatarURL != nil {
+		user.AvatarURL = r.AvatarURL
+	}
+	if r.Gender != nil && r.Gender.IsValid() {
+		user.Gender = *r.Gender
+	}
+	if r.Phone != nil && *r.Phone != "" {
+		user.Phone = r.Phone
+	}
+	if r.BirthDate != nil && *r.BirthDate != "" {
+		birthDate, err := time.Parse("2006-01-02", *r.BirthDate)
+		// Set birth date only if parsing is successful
+		if err == nil {
+			// Ensure the time part is zeroed out, keeping only the date part
+			birthDate = time.Date(birthDate.Year(), birthDate.Month(), birthDate.Day(), 0, 0, 0, 0, time.UTC)
+			user.BirthDate = &birthDate
+		}
+	}
+	if r.Locale != nil && *r.Locale != "" {
+		user.Locale = *r.Locale
+	}
+
+	return &user
+}
+
+// UpdateProfileRequest defines the DTO for updating a user's profile. (Use pointers for partial updates)
 type UpdateProfileRequest struct {
-	Name      string            `json:"name" validate:"omitempty,min=1,max=50"`
-	AvatarURL *string           `json:"avatar_url" validate:"omitempty,url"`
-	Gender    models.GenderType `json:"gender" validate:"omitempty,oneof=PREFER_NOT_TO_SAY MALE FEMALE OTHER"`
-	Email     *string           `json:"email" validate:"omitempty,email"`
-	Phone     *string           `json:"phone" validate:"omitempty,e164"` // E.164 phone number format
-	BirthDate *string           `json:"birth_date" validate:"omitempty,datetime=2006-01-02"`
-	Locale    string            `json:"locale" validate:"omitempty,len=2"` // ISO 639-1 language code
+	Name      *string            `json:"name" validate:"omitempty,min=0,max=50"`
+	AvatarURL *string            `json:"avatar_url" validate:"omitempty,empty_or_url"`
+	Gender    *models.GenderType `json:"gender" validate:"omitempty,oneof=PREFER_NOT_TO_SAY MALE FEMALE OTHER"`
+	Email     *string            `json:"email" validate:"omitempty,email"`
+	Phone     *string            `json:"phone" validate:"omitempty,empty_or_e164"` // E.164 phone number format
+	BirthDate *string            `json:"birth_date" validate:"omitempty,datetime=2006-01-02"`
+	Locale    *string            `json:"locale" validate:"omitempty,oneof=en zh de"`
 }
 
 // ToUpdatesMap converts the update request to a map of fields for updating.
 func (r *UpdateProfileRequest) ToUpdatesMap() map[string]interface{} {
 	updates := map[string]interface{}{}
-	if r.Name != "" {
+	if r.Name != nil && *r.Name != "" {
 		updates["Name"] = r.Name
+	} else {
+		// 如果没有提供名称，默认“User”+6位随机字符
+		updates["Name"] = "User " + utils.RandomString(6)
 	}
-	if r.AvatarURL != nil && *r.AvatarURL != "" {
+	if r.AvatarURL != nil {
 		updates["AvatarURL"] = r.AvatarURL
 	}
-	if r.Gender != "" {
+	if r.Gender != nil && r.Gender.IsValid() {
 		updates["Gender"] = r.Gender
 	}
 	if r.Email != nil && *r.Email != "" {
@@ -84,7 +139,7 @@ func (r *UpdateProfileRequest) ToUpdatesMap() map[string]interface{} {
 			updates["BirthDate"] = birthDate
 		}
 	}
-	if r.Locale != "" {
+	if r.Locale != nil && *r.Locale != "" {
 		updates["Locale"] = r.Locale
 	}
 	return updates
@@ -94,81 +149,6 @@ func (r *UpdateProfileRequest) ToUpdatesMap() map[string]interface{} {
 type UpdatePasswordRequest struct {
 	CurrentPassword string `json:"current_password" validate:"required,min=8"` // Current password
 	NewPassword     string `json:"new_password" validate:"required,min=8"`     // New password
-}
-
-// RegisterFromWechatMiniProgramRequest is the request for WeChat Mini Program registration.
-type RegisterFromWechatMiniProgramRequest struct {
-	UpdateProfileRequest
-}
-
-// ToModel converts a WeChat Mini Program registration request to a User model.
-func (r *RegisterFromWechatMiniProgramRequest) ToModel() *models.User {
-	user := models.User{
-		Name:      r.Name,
-		AvatarURL: r.AvatarURL,
-		Gender:    r.Gender,
-	}
-
-	if r.Email != nil && *r.Email != "" {
-		user.Email = r.Email
-	}
-	if r.Phone != nil && *r.Phone != "" {
-		user.Phone = r.Phone
-	}
-	if r.BirthDate != nil && *r.BirthDate != "" {
-		birthDate, err := time.Parse("2006-01-02", *r.BirthDate)
-		// Set birth date only if parsing is successful
-		if err == nil {
-			// Ensure the time part is zeroed out, keeping only the date part
-			birthDate = time.Date(birthDate.Year(), birthDate.Month(), birthDate.Day(), 0, 0, 0, 0, time.UTC)
-			user.BirthDate = &birthDate
-		}
-	}
-	if r.Locale != "" {
-		user.Locale = r.Locale
-	}
-
-	return &user
-}
-
-// RegisterWithPasswordRequest is the request for registration using a password.
-type RegisterWithPasswordRequest struct {
-	UpdateProfileRequest
-	Password string `json:"password" validate:"required,min=8"`
-}
-
-// ToModel converts a password registration request to a User model, including the hashed password.
-func (r *RegisterWithPasswordRequest) ToModel(hashedPassword string) *models.User {
-	user := models.User{
-		Name:      r.Name,
-		AvatarURL: r.AvatarURL,
-		Gender:    r.Gender,
-	}
-
-	if r.Email != nil && *r.Email != "" {
-		user.Email = r.Email
-	}
-	if r.Phone != nil && *r.Phone != "" {
-		user.Phone = r.Phone
-	}
-	if r.BirthDate != nil && *r.BirthDate != "" {
-		birthDate, err := time.Parse("2006-01-02", *r.BirthDate)
-		// Set birth date only if parsing is successful
-		if err == nil {
-			// Ensure the time part is zeroed out, keeping only the date part
-			birthDate = time.Date(birthDate.Year(), birthDate.Month(), birthDate.Day(), 0, 0, 0, 0, time.UTC)
-			user.BirthDate = &birthDate
-		}
-	}
-	if r.Locale != "" {
-		user.Locale = r.Locale
-	}
-
-	if hashedPassword != "" {
-		user.Password = &hashedPassword // Use the hashed password
-	}
-
-	return &user
 }
 
 // LoginWithPasswordRequest is the request for logging in with a password.
@@ -206,6 +186,37 @@ type PasswordResetConfirmRequest struct {
 	Email       string `json:"email" validate:"required,email"`        // Email address
 	ResetToken  string `json:"reset_token" validate:"required,len=8"`  // 8-digit reset token
 	NewPassword string `json:"new_password" validate:"required,min=8"` // New password
+}
+
+// DTOs related to WeChat Mini Program
+
+// RegisterFromWechatMiniProgramRequest is the request for WeChat Mini Program registration.
+type RegisterFromWechatMiniProgramRequest struct {
+	Name      *string            `json:"name" validate:"omitempty,min=0,max=50"`
+	AvatarURL *string            `json:"avatar_url" validate:"omitempty,empty_or_url"`
+	Gender    *models.GenderType `json:"gender" validate:"omitempty,oneof=PREFER_NOT_TO_SAY MALE FEMALE OTHER"`
+}
+
+// ToModel converts a WeChat Mini Program registration request to a User model.
+func (r *RegisterFromWechatMiniProgramRequest) ToModel() *models.User {
+	user := models.User{}
+
+	if r.Name != nil && *r.Name != "" {
+		user.Name = *r.Name
+	} else {
+		// 如果没有提供名称，则“微信用户”+6位随机字符
+		user.Name = "微信用户" + utils.RandomString(6)
+	}
+
+	if r.AvatarURL != nil {
+		user.AvatarURL = r.AvatarURL
+	}
+
+	if r.Gender != nil && r.Gender.IsValid() {
+		user.Gender = *r.Gender
+	}
+
+	return &user
 }
 
 // DTOs related to OAuth2
